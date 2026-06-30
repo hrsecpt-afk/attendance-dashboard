@@ -436,7 +436,14 @@ function App() {
   };
 
   const handleImportData = (newData) => {
-    if (activeMonth === 'all') {
+    // ถ้าข้อมูลที่นำเข้ามีโครงสร้างรายเดือนครบแล้ว (จาก GoogleSheetsImporter)
+    // ให้ใช้ migrateToMonthly โดยตรงเสมอ ไม่ว่า activeMonth จะเป็นเดือนไหน
+    const hasFullMonthlyStructure = newData.length > 0 &&
+      newData[0].leaves &&
+      newData[0].leaves.all !== undefined &&
+      newData[0].leaves.january !== undefined;
+
+    if (activeMonth === 'all' || hasFullMonthlyStructure) {
       setEmployeesData(migrateToMonthly(newData));
     } else {
       setEmployeesData(prev => prev.map(oldEmp => {
