@@ -245,10 +245,77 @@ const PersonnelManager = ({ employeesData, setEmployeesData }) => {
   const [editTarget, setEditTarget] = useState(null); // null = add mode, employee object = edit mode
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [successMsg, setSuccessMsg] = useState('');
+  const [syncing, setSyncing] = useState(false);
 
   const showSuccess = (msg) => {
     setSuccessMsg(msg);
     setTimeout(() => setSuccessMsg(''), 3000);
+  };
+
+  const handleSyncAllToSupabase = async () => {
+    const config = getSupabaseConfig();
+    if (!config) {
+      alert("❌ ไม่พบข้อมูลการเชื่อมต่อ Supabase หรือยังไม่ได้เชื่อมต่อ!");
+      return;
+    }
+
+    if (!window.confirm(`📤 ยืนยันซิงค์รายชื่อบุคลากรทั้งหมดจำนวน ${employeesData.length} คน ขึ้นระบบฐานข้อมูล Supabase หรือไม่?\n\n(ระบบจะส่งชื่อและฝ่ายทั้งหมดขึ้นไปจดทะเบียนเพื่อแก้ปัญหาฟิลด์เชื่อมต่อพนักงานภายนอกไม่ครบถ้วน)`)) {
+      return;
+    }
+
+    setSyncing(true);
+    try {
+      // 1. Sync employees
+      const employeesPayload = employeesData.map(emp => ({
+        id: emp.id,
+        full_name: emp.name,
+        position: emp.position,
+        location: emp.location
+      }));
+
+      const empRes = await fetch(`${config.url}/rest/v1/employees`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': config.key,
+          'Authorization': `Bearer ${config.key}`,
+          'Prefer': 'resolution=merge-duplicates'
+        },
+        body: JSON.stringify(employeesPayload)
+      });
+      if (!empRes.ok) throw new Error(await empRes.text());
+
+      // 2. Sync leave balances
+      const balancesPayload = employeesData.map(emp => {
+        const lb = emp.leaves?.all || {};
+        return {
+          employee_id: emp.id,
+          sick_remaining: lb.sick?.remaining ?? 30,
+          personal_remaining: lb.personal?.remaining ?? 45,
+          maternity_remaining: lb.maternity?.remaining ?? 90,
+          vacation_remaining: lb.vacation?.remaining ?? 10,
+          ordination_remaining: lb.ordination?.remaining ?? 120
+        };
+      });
+
+      const balRes = await fetch(`${config.url}/rest/v1/leave_balances`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': config.key,
+          'Authorization': `Bearer ${config.key}`,
+          'Prefer': 'resolution=merge-duplicates'
+        },
+        body: JSON.stringify(balancesPayload)
+      });
+      if (!balRes.ok) throw new Error(await balRes.text());
+
+      showSuccess(`✅ ซิงค์รายชื่อครูและวันลาทั้งหมด ${employeesData.length} คนขึ้น Supabase เรียบร้อยแล้ว!`);
+    } catch (err) {
+      alert(`❌ ซิงค์ล้มเหลว: ${err.message}`);
+    } finally {
+      setSyncing(false);
+    }
   };
 
   const positionsList = useMemo(() => Array.from(new Set(employeesData.map(e => e.position))).filter(Boolean).sort(), [employeesData]);
@@ -380,20 +447,40 @@ const PersonnelManager = ({ employeesData, setEmployeesData }) => {
             เพิ่ม แก้ไข หรือลบข้อมูลบุคลากรในระบบ — การเปลี่ยนแปลงจะซิงค์กับ Supabase โดยอัตโนมัติ
           </p>
         </div>
-        <button
-          onClick={() => { setEditTarget(null); setShowModal(true); }}
-          style={{
-            padding: '11px 22px',
-            background: 'linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)',
-            border: 'none', color: '#fff', borderRadius: '12px', cursor: 'pointer',
-            fontWeight: 700, fontSize: '0.9rem', whiteSpace: 'nowrap',
-            boxShadow: '0 0 18px var(--primary-glow)', transition: 'transform 0.15s, box-shadow 0.15s'
-          }}
-          onMouseEnter={e => { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 0 28px var(--primary-glow)'; }}
-          onMouseLeave={e => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 0 18px var(--primary-glow)'; }}
-        >
-          ➕ เพิ่มบุคลากรใหม่
-        </button>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <button
+            onClick={handleSyncAllToSupabase}
+            disabled={syncing}
+            style={{
+              padding: '11px 22px',
+              background: syncing ? 'rgba(255,255,255,0.04)' : 'rgba(16,185,129,0.08)',
+              border: syncing ? '1px solid var(--border-color)' : '1px solid rgba(16,185,129,0.25)',
+              color: syncing ? 'var(--text-muted)' : 'var(--green)',
+              borderRadius: '12px',
+              cursor: syncing ? 'not-allowed' : 'pointer',
+              fontWeight: 700,
+              fontSize: '0.9rem',
+              whiteSpace: 'nowrap',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            {syncing ? '⌛ กำลังซิงค์...' : '📤 ซิงค์รายชื่อขึ้น Supabase'}
+          </button>
+          <button
+            onClick={() => { setEditTarget(null); setShowModal(true); }}
+            style={{
+              padding: '11px 22px',
+              background: 'linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)',
+              border: 'none', color: '#fff', borderRadius: '12px', cursor: 'pointer',
+              fontWeight: 700, fontSize: '0.9rem', whiteSpace: 'nowrap',
+              boxShadow: '0 0 18px var(--primary-glow)', transition: 'transform 0.15s, box-shadow 0.15s'
+            }}
+            onMouseEnter={e => { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 0 28px var(--primary-glow)'; }}
+            onMouseLeave={e => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 0 18px var(--primary-glow)'; }}
+          >
+            ➕ เพิ่มบุคลากรใหม่
+          </button>
+        </div>
       </div>
 
       {/* ── Success Toast ────────────────────────────────── */}
