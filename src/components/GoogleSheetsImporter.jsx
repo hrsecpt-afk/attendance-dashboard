@@ -17,7 +17,13 @@ const GoogleSheetsImporter = ({ onImportData, employeesData }) => {
     idCol: '',
     nameCol: '',
     positionCol: '',
-    locationCol: ''
+    locationCol: '',
+    sickDaysCol: '',
+    personalDaysCol: '',
+    vacationDaysCol: '',
+    vacationRemainingCol: '',
+    absentCol: '',
+    lateCol: ''
   });
 
   // Supabase Sync states
@@ -160,7 +166,11 @@ const GoogleSheetsImporter = ({ onImportData, employeesData }) => {
       setCsvData(parsedLines);
       
       // Auto-detect columns mapping
-      const detected = { idCol: '', nameCol: '', positionCol: '', locationCol: '' };
+      const detected = { 
+        idCol: '', nameCol: '', positionCol: '', locationCol: '',
+        sickDaysCol: '', personalDaysCol: '', vacationDaysCol: '', vacationRemainingCol: '',
+        absentCol: '', lateCol: ''
+      };
       
       fileHeaders.forEach((header) => {
         const h = header.toLowerCase().trim();
@@ -175,6 +185,24 @@ const GoogleSheetsImporter = ({ onImportData, employeesData }) => {
         }
         if (!detected.locationCol && (h.includes('สถานที่') || h.includes('หน่วยงาน') || h.includes('location') || h.includes('department') || h.includes('สังกัด') || h.includes('ปฏิบัติงาน'))) {
           detected.locationCol = header;
+        }
+        if (!detected.sickDaysCol && (h.includes('ป่วย') || h.includes('sick'))) {
+          detected.sickDaysCol = header;
+        }
+        if (!detected.personalDaysCol && (h.includes('ลากิจ') || h.includes('กิจ') || h.includes('personal'))) {
+          detected.personalDaysCol = header;
+        }
+        if (!detected.vacationDaysCol && (h.includes('พักผ่อน') || h.includes('vacation') || h.includes('ลาพัก'))) {
+          detected.vacationDaysCol = header;
+        }
+        if (!detected.vacationRemainingCol && (h.includes('คงเหลือ') || h.includes('remaining') || h.includes('เหลือ'))) {
+          detected.vacationRemainingCol = header;
+        }
+        if (!detected.absentCol && (h.includes('ขาด') || h.includes('absent') || h.includes('ไม่มา'))) {
+          detected.absentCol = header;
+        }
+        if (!detected.lateCol && (h.includes('สาย') || h.includes('late'))) {
+          detected.lateCol = header;
         }
       });
 
@@ -206,6 +234,14 @@ const GoogleSheetsImporter = ({ onImportData, employeesData }) => {
     const nameIdx = headers.indexOf(mapping.nameCol);
     const posIdx = headers.indexOf(mapping.positionCol);
     const locIdx = headers.indexOf(mapping.locationCol);
+    
+    // stats indexes
+    const sickIdx = headers.indexOf(mapping.sickDaysCol);
+    const personalIdx = headers.indexOf(mapping.personalDaysCol);
+    const vacationIdx = headers.indexOf(mapping.vacationDaysCol);
+    const vacationRemIdx = headers.indexOf(mapping.vacationRemainingCol);
+    const absentIdx = headers.indexOf(mapping.absentCol);
+    const lateIdx = headers.indexOf(mapping.lateCol);
 
     const preview = dataRows.map((row, index) => {
       const idVal = idIdx !== -1 ? parseInt(row[idIdx]) : null;
@@ -213,18 +249,46 @@ const GoogleSheetsImporter = ({ onImportData, employeesData }) => {
       const posVal = posIdx !== -1 ? row[posIdx] : '';
       const locVal = locIdx !== -1 ? row[locIdx] : '';
 
+      // Parse leaves columns
+      const sickDays = sickIdx !== -1 ? parseFloat(row[sickIdx]) || 0 : 0;
+      const personalDays = personalIdx !== -1 ? parseFloat(row[personalIdx]) || 0 : 0;
+      const vacationDays = vacationIdx !== -1 ? parseFloat(row[vacationIdx]) || 0 : 0;
+      const parsedVacationRemaining = vacationRemIdx !== -1 ? (parseFloat(row[vacationRemIdx]) !== undefined ? parseFloat(row[vacationRemIdx]) : 30) : 30;
+      const absent = absentIdx !== -1 ? parseFloat(row[absentIdx]) || 0 : 0;
+      const late = lateIdx !== -1 ? parseFloat(row[lateIdx]) || 0 : 0;
+
       return {
         id: idVal || (index + 1),
         name: (nameVal || '').trim(),
         position: (posVal || 'พนักงาน').trim(),
-        location: (locVal || 'ศูนย์การศึกษาพิเศษฯ').trim()
+        location: (locVal || 'ศูนย์การศึกษาพิเศษฯ').trim(),
+        // prefilled leaves structure matching mock data
+        leaves: {
+          all: {
+            sick: { count: sickDays > 0 ? Math.ceil(sickDays / 1.5) : 0, days: sickDays },
+            personal: { count: personalDays > 0 ? Math.ceil(personalDays / 1.5) : 0, days: personalDays },
+            vacation: { count: vacationDays > 0 ? Math.ceil(vacationDays / 1.5) : 0, days: vacationDays, remaining: isNaN(parsedVacationRemaining) ? 30 : parsedVacationRemaining },
+            absent: absent,
+            late: { count: late > 0 ? Math.ceil(late / 1.5) : 0, days: late },
+            maternity: { count: 0, days: 0 },
+            wifeAssist: { count: 0, days: 0 },
+            ordination: { count: 0, days: 0 },
+            military: { count: 0, days: 0 },
+            study: { count: 0, days: 0 },
+            work: { count: 0, days: 0 },
+            follow: { count: 0, days: 0 },
+            rehab: { count: 0, days: 0 },
+            total: { count: 0, days: sickDays + personalDays + vacationDays },
+            outOfArea: { count: 0, hours: 0, days: 0 }
+          }
+        }
       };
     }).filter(emp => emp.name.length > 0);
 
     setEmployeesPreview(preview);
   }, [mapping, csvData, headers]);
 
-  // Create empty leaves helper
+  // Create empty leaves helper (unused or legacy)
   const createEmptyLeave = (vacationRemaining = 30) => ({
     sick: { count: 0, days: 0 },
     vacation: { count: 0, days: 0, remaining: vacationRemaining },
@@ -255,7 +319,7 @@ const GoogleSheetsImporter = ({ onImportData, employeesData }) => {
       name: emp.name,
       position: emp.position,
       location: emp.location,
-      leaves: createEmptyLeave(30)
+      leaves: emp.leaves
     }));
 
     if (append) {
@@ -530,6 +594,79 @@ const GoogleSheetsImporter = ({ onImportData, employeesData }) => {
                 <option value="">-- ไม่ระบุ --</option>
                 {headers.map(h => <option key={h} value={h}>{h}</option>)}
               </select>
+            </div>
+          </div>
+
+          {/* Leaves Stats Mapping */}
+          <div style={{ borderTop: '1px dashed var(--border-color)', paddingTop: '12px', marginTop: '12px', marginBottom: '16px' }}>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: 600 }}>📊 ตั้งค่าการแมปข้อมูลสถิติ ขาด ลา มาสาย สะสม (Optional - ถ้ามีในชีต)</p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
+              <div>
+                <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>🤒 ลาป่วยสะสม (วัน)</label>
+                <select 
+                  value={mapping.sickDaysCol} 
+                  onChange={(e) => setMapping({...mapping, sickDaysCol: e.target.value})}
+                  style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-dark)', color: 'var(--text-main)', fontSize: '0.82rem' }}
+                >
+                  <option value="">-- ไม่แมป --</option>
+                  {headers.map(h => <option key={h} value={h}>{h}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>📌 ลากิจสะสม (วัน)</label>
+                <select 
+                  value={mapping.personalDaysCol} 
+                  onChange={(e) => setMapping({...mapping, personalDaysCol: e.target.value})}
+                  style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-dark)', color: 'var(--text-main)', fontSize: '0.82rem' }}
+                >
+                  <option value="">-- ไม่แมป --</option>
+                  {headers.map(h => <option key={h} value={h}>{h}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>🌴 ลาพักผ่อนสะสม (วัน)</label>
+                <select 
+                  value={mapping.vacationDaysCol} 
+                  onChange={(e) => setMapping({...mapping, vacationDaysCol: e.target.value})}
+                  style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-dark)', color: 'var(--text-main)', fontSize: '0.82rem' }}
+                >
+                  <option value="">-- ไม่แมป --</option>
+                  {headers.map(h => <option key={h} value={h}>{h}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>🌴 ลาพักผ่อนคงเหลือ (วัน)</label>
+                <select 
+                  value={mapping.vacationRemainingCol} 
+                  onChange={(e) => setMapping({...mapping, vacationRemainingCol: e.target.value})}
+                  style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-dark)', color: 'var(--text-main)', fontSize: '0.82rem' }}
+                >
+                  <option value="">-- ไม่แมป (ค่าเริ่มต้น 30) --</option>
+                  {headers.map(h => <option key={h} value={h}>{h}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>🚨 ขาดงานสะสม (วัน)</label>
+                <select 
+                  value={mapping.absentCol} 
+                  onChange={(e) => setMapping({...mapping, absentCol: e.target.value})}
+                  style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-dark)', color: 'var(--text-main)', fontSize: '0.82rem' }}
+                >
+                  <option value="">-- ไม่แมป --</option>
+                  {headers.map(h => <option key={h} value={h}>{h}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>🕰️ มาสายสะสม (วัน)</label>
+                <select 
+                  value={mapping.lateCol} 
+                  onChange={(e) => setMapping({...mapping, lateCol: e.target.value})}
+                  style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-dark)', color: 'var(--text-main)', fontSize: '0.82rem' }}
+                >
+                  <option value="">-- ไม่แมป --</option>
+                  {headers.map(h => <option key={h} value={h}>{h}</option>)}
+                </select>
+              </div>
             </div>
           </div>
 
