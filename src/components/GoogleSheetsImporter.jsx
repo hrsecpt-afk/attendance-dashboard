@@ -267,15 +267,12 @@ const GoogleSheetsImporter = ({ onImportData, employeesData }) => {
       const leavesByMonth = { all: null };
       MONTHS.forEach(m => { leavesByMonth[m] = emptyMonth(); });
 
-      // กระจายสถิติสะสมออกเป็นรายเดือนแบบเท่ากัน (12 เดือน)
-      // ใช้สัดส่วนที่ใกล้เคียงกับ mock data: ต.ค. 30%, พ.ย. 40%, ธ.ค. 30% (3 เดือนแรกของปีงบประมาณ)
-      // แต่สำหรับข้อมูลนำเข้าจากชีต ให้กระจายเท่ากันทุกเดือนเพื่อความเป็นธรรม
-      const activeMonths = ['october','november','december','january','february','march'];
-      const n = activeMonths.length;
+      // กระจายสถิติสะสมออกครบทั้ง 12 เดือนเท่ากัน
+      const n = MONTHS.length; // 12
       const D = (val) => parseFloat((val / n).toFixed(2));
       const C = (val) => Math.max(0, Math.round(val / n));
 
-      activeMonths.forEach(m => {
+      MONTHS.forEach(m => {
         leavesByMonth[m].sick = { count: C(sickDays > 0 ? Math.ceil(sickDays / 1.5) : 0), days: D(sickDays) };
         leavesByMonth[m].personal = { count: C(personalDays > 0 ? Math.ceil(personalDays / 1.5) : 0), days: D(personalDays) };
         leavesByMonth[m].vacation = { count: C(vacationDays > 0 ? Math.ceil(vacationDays / 1.5) : 0), days: D(vacationDays), remaining: 0 };
