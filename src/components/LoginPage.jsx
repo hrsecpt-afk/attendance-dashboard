@@ -152,35 +152,6 @@ const LoginPage = () => {
             )}
           </button>
         </form>
-
-        {/* Default accounts hint */}
-        <div style={{ marginTop: '24px', padding: '14px', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px dashed var(--border-color)' }}>
-          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '8px' }}>💡 บัญชีเริ่มต้น (ทดสอบ)</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            {[
-              { user: 'admin', pass: 'admin1234', role: 'admin', label: 'แอดมิน' },
-              { user: 'director', pass: 'director1234', role: 'director', label: 'ผู้อำนวยการ' },
-              { user: 'user1', pass: '1234', role: 'user', label: 'ผู้ใช้งาน' },
-            ].map(({ user, pass, role, label }) => (
-              <button
-                key={user}
-                type="button"
-                onClick={() => { setUsername(user); setPassword(pass); }}
-                style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '7px 12px', background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px',
-                  cursor: 'pointer', color: 'var(--text-main)', fontSize: '0.78rem', textAlign: 'left'
-                }}
-              >
-                <span><b>{user}</b> / {pass}</span>
-                <span style={{ background: ROLE_COLORS[role], color: '#fff', padding: '2px 8px', borderRadius: '6px', fontSize: '0.68rem', fontWeight: 700 }}>
-                  {label}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
 
       {/* Shake animation */}

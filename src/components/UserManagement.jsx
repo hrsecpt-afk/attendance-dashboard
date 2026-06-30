@@ -75,6 +75,30 @@ const UserManagement = ({ employeesData = [] }) => {
     updateUsers(users.filter(u => u.id !== userId));
   };
 
+  const handleBatchCreateUsers = () => {
+    const unlinkedEmps = employeesData.filter(emp => !users.some(u => u.employeeId === emp.id));
+    if (unlinkedEmps.length === 0) {
+      alert('📌 บุคลากรทุกคนในระบบมีบัญชีผู้ใช้งานเรียบร้อยแล้ว!');
+      return;
+    }
+
+    if (!window.confirm(`👥 ยืนยันสร้างบัญชีผู้ใช้งานสำหรับบุคลากรที่ยังไม่มีบัญชีจำนวน ${unlinkedEmps.length} คน โดยอัตโนมัติ?\n\n(Username จะตั้งเป็น "user_[รหัส]" และ Password จะเป็น "1234")`)) {
+      return;
+    }
+
+    const newUsers = unlinkedEmps.map((emp, index) => ({
+      id: Date.now() + index,
+      username: `user_${emp.id}`,
+      password: '1234',
+      role: 'user',
+      displayName: emp.name,
+      employeeId: emp.id
+    }));
+
+    updateUsers([...users, ...newUsers]);
+    alert(`✅ สร้างบัญชีผู้ใช้งานอัตโนมัติสำเร็จ ${newUsers.length} บัญชี!\n\n(คุณครูสามารถล็อกอินด้วย Username เช่น user_1, user_2 และรหัสผ่าน 1234)`);
+  };
+
   const input = (value, setter, placeholder, type = 'text') => (
     <input
       type={type} value={value} onChange={e => setter(e.target.value)}
@@ -88,12 +112,20 @@ const UserManagement = ({ employeesData = [] }) => {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
         <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700 }}>👥 จัดการบัญชีผู้ใช้งาน ({users.length} บัญชี)</h3>
-        <button
-          onClick={() => { resetForm(); setShowForm(v => !v); }}
-          style={{ padding: '8px 16px', background: showForm ? 'rgba(239,68,68,0.08)' : 'rgba(16,185,129,0.08)', border: `1px solid ${showForm ? 'rgba(239,68,68,0.25)' : 'rgba(16,185,129,0.25)'}`, color: showForm ? 'var(--red)' : 'var(--green)', borderRadius: '9px', cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem' }}
-        >
-          {showForm ? '✖ ปิดฟอร์ม' : '➕ เพิ่มผู้ใช้ใหม่'}
-        </button>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button
+            onClick={handleBatchCreateUsers}
+            style={{ padding: '8px 16px', background: 'rgba(6,182,212,0.08)', border: '1px solid rgba(6,182,212,0.25)', color: 'var(--cyan)', borderRadius: '9px', cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem' }}
+          >
+            ⚡ สร้างบัญชีให้ทุกคนอัตโนมัติ ({employeesData.filter(emp => !users.some(u => u.employeeId === emp.id)).length} คน)
+          </button>
+          <button
+            onClick={() => { resetForm(); setShowForm(v => !v); }}
+            style={{ padding: '8px 16px', background: showForm ? 'rgba(239,68,68,0.08)' : 'rgba(16,185,129,0.08)', border: `1px solid ${showForm ? 'rgba(239,68,68,0.25)' : 'rgba(16,185,129,0.25)'}`, color: showForm ? 'var(--red)' : 'var(--green)', borderRadius: '9px', cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem' }}
+          >
+            {showForm ? '✖ ปิดฟอร์ม' : '➕ เพิ่มผู้ใช้ใหม่'}
+          </button>
+        </div>
       </div>
 
       {/* Add/Edit Form */}
