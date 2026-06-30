@@ -1,0 +1,7975 @@
+[
+  {
+    "id": 1,
+    "name": "นางสาวภัทรภร หมื่นมะเริง",
+    "position": "ผู้อำนวยการ",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 0,
+        "days": 0
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 30
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 0,
+        "days": 0
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 2,
+    "name": "นายชัยธวัช สาทถาพร",
+    "position": "รองผู้อำนวยการ",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 2,
+        "days": 2
+      },
+      "vacation": {
+        "count": 11,
+        "days": 11,
+        "remaining": 19
+      },
+      "personal": {
+        "count": 1,
+        "days": 1
+      },
+      "absent": 6,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 14,
+        "days": 14
+      },
+      "late": {
+        "count": 2,
+        "days": 2
+      },
+      "outOfArea": {
+        "count": 1,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 3,
+    "name": "นายโกสินทร์ ยังมี",
+    "position": "ครู",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 0,
+        "days": 0
+      },
+      "vacation": {
+        "count": 5,
+        "days": 7,
+        "remaining": 13
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 5,
+        "days": 7
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 1,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 4,
+    "name": "นายคามิน หล้าก่ำ",
+    "position": "ครู",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 2,
+        "days": 2
+      },
+      "vacation": {
+        "count": 5,
+        "days": 8,
+        "remaining": 12
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 7,
+        "days": 10
+      },
+      "late": {
+        "count": 3,
+        "days": 3
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 5,
+    "name": "นางวรรณเพ็ญ ปิ่นประดับ",
+    "position": "ครู",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 0,
+        "days": 0
+      },
+      "vacation": {
+        "count": 7,
+        "days": 7,
+        "remaining": 13
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 7,
+        "days": 7
+      },
+      "late": {
+        "count": 1,
+        "days": 1
+      },
+      "outOfArea": {
+        "count": 3,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 6,
+    "name": "นางสาวนุชนาท ทาเอื้อ",
+    "position": "ครู",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 4,
+        "days": 3.5
+      },
+      "vacation": {
+        "count": 10,
+        "days": 14,
+        "remaining": 5
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 1,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 14,
+        "days": 17.5
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 2,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 7,
+    "name": "นางสาวภัชญณัญ ภัทรพนาสกุล",
+    "position": "ครู",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 1,
+        "days": 1
+      },
+      "vacation": {
+        "count": 5,
+        "days": 5,
+        "remaining": 15
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 6,
+        "days": 6
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 8,
+    "name": "นางสาวรุ่งอัมพร วิสามารถ",
+    "position": "ครู",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 0,
+        "days": 0
+      },
+      "vacation": {
+        "count": 6,
+        "days": 9,
+        "remaining": 11
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 1,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 6,
+        "days": 9
+      },
+      "late": {
+        "count": 7,
+        "days": 7
+      },
+      "outOfArea": {
+        "count": 1,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 9,
+    "name": "นางสาววรางคณา อาชีวะ",
+    "position": "ครู",
+    "location": "หน่วยฯธัญบุรี",
+    "leaves": {
+      "sick": {
+        "count": 2,
+        "days": 2
+      },
+      "vacation": {
+        "count": 4,
+        "days": 6,
+        "remaining": 14
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 6,
+        "days": 8
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 2,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 10,
+    "name": "นางสิราภัทณ์ สมนาแซง",
+    "position": "ครู",
+    "location": "หน่วยฯคลองหลวง",
+    "leaves": {
+      "sick": {
+        "count": 1,
+        "days": 1
+      },
+      "vacation": {
+        "count": 5,
+        "days": 7,
+        "remaining": 13
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 6,
+        "days": 8
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 1,
+        "hours": 2,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 11,
+    "name": "นางสาวอรพรรณ ใจใหญ่",
+    "position": "ครู",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 0,
+        "days": 0
+      },
+      "vacation": {
+        "count": 1,
+        "days": 2,
+        "remaining": 18
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 1,
+        "days": 2
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 12,
+    "name": "นางสาวศรินทรรัตน์ สกุลปทุมทอง",
+    "position": "ครู",
+    "location": "หน่วยฯเมืองปทุมธานี",
+    "leaves": {
+      "sick": {
+        "count": 4,
+        "days": 4
+      },
+      "vacation": {
+        "count": 6,
+        "days": 9,
+        "remaining": 11
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 10,
+        "days": 13
+      },
+      "late": {
+        "count": 2,
+        "days": 2
+      },
+      "outOfArea": {
+        "count": 9,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 13,
+    "name": "นางสาวเนาวรัตน์ สมหวังดี",
+    "position": "ครู",
+    "location": "หน่วยฯหนองเสือ",
+    "leaves": {
+      "sick": {
+        "count": 0,
+        "days": 0
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 20
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 0,
+        "days": 0
+      },
+      "late": {
+        "count": 1,
+        "days": 1
+      },
+      "outOfArea": {
+        "count": 2,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 14,
+    "name": "นางสาวรุ่งฤดี ดอนประศรี",
+    "position": "ครู",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 1,
+        "days": 1
+      },
+      "vacation": {
+        "count": 2,
+        "days": 2,
+        "remaining": 18
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 3,
+        "days": 3
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 1,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 15,
+    "name": "นางสาวอุไรวรรณ วงศ์แสง",
+    "position": "ครู",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 2,
+        "days": 2
+      },
+      "vacation": {
+        "count": 4,
+        "days": 8,
+        "remaining": 11
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 1,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 6,
+        "days": 10
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 2,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 16,
+    "name": "นางสาวจารุณี แดนคำสาร",
+    "position": "ครู",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 0,
+        "days": 0
+      },
+      "vacation": {
+        "count": 4,
+        "days": 6,
+        "remaining": 14
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 4,
+        "days": 6
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 17,
+    "name": "นางสาวสุธิดา หมัดหมุด",
+    "position": "ครู",
+    "location": "หน่วยฯลำลูกกา",
+    "leaves": {
+      "sick": {
+        "count": 1,
+        "days": 0.5
+      },
+      "vacation": {
+        "count": 3,
+        "days": 3,
+        "remaining": 17
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 4,
+        "days": 3.5
+      },
+      "late": {
+        "count": 1,
+        "days": 1
+      },
+      "outOfArea": {
+        "count": 3,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 18,
+    "name": "นางศิราณี คล้ายแก้ว",
+    "position": "ครู",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 2,
+        "days": 2
+      },
+      "vacation": {
+        "count": 3,
+        "days": 5,
+        "remaining": 15
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 5,
+        "days": 7
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 1,
+        "hours": 1.5,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 19,
+    "name": "นางสาวภาณุมาศ กลัดปิ่น (21/10/68)",
+    "position": "ครู",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 4,
+        "days": 3.5
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 14
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 4,
+        "days": 3.5
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 3,
+        "hours": 2,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 20,
+    "name": "นางสาวประกายทิพย์ จันธิมา (24/10/68)",
+    "position": "ครู",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 1,
+        "days": 1
+      },
+      "vacation": {
+        "count": 4,
+        "days": 5,
+        "remaining": 5
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 5,
+        "days": 6
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 4,
+        "hours": 2,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 21,
+    "name": "นางสาววรรณวิษา ศรีลาศักดิ์",
+    "position": "ครูผู้ช่วย",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 1,
+        "days": 1
+      },
+      "vacation": {
+        "count": 1,
+        "days": 3,
+        "remaining": 17
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 2,
+        "days": 4
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 22,
+    "name": "นางสาววรทิพย์ ปลื้มสกุลไทย",
+    "position": "ครูผู้ช่วย",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 1,
+        "days": 1
+      },
+      "vacation": {
+        "count": 3,
+        "days": 3,
+        "remaining": 17
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 1,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 4,
+        "days": 4
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 1,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 23,
+    "name": "นายประเสริฐ อาดำ",
+    "position": "ครูผู้ช่วย",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 1,
+        "days": 1
+      },
+      "vacation": {
+        "count": 5,
+        "days": 5,
+        "remaining": 15
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 6,
+        "days": 6
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 2,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 24,
+    "name": "นายอนันต์ แสงศรี",
+    "position": "ครูผู้ช่วย",
+    "location": "หน่วยฯธัญบุรี",
+    "leaves": {
+      "sick": {
+        "count": 1,
+        "days": 1
+      },
+      "vacation": {
+        "count": 4,
+        "days": 7,
+        "remaining": 13
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 5,
+        "days": 8
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 25,
+    "name": "นางสาวอัญชิสา โมฬี",
+    "position": "ครูผู้ช่วย",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 0,
+        "days": 0
+      },
+      "vacation": {
+        "count": 4,
+        "days": 9,
+        "remaining": 11
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 4,
+        "days": 9
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 1,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 26,
+    "name": "นางสาวภาวิณี ทรัพย์ชื่น",
+    "position": "ครูผู้ช่วย",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 1,
+        "days": 1
+      },
+      "vacation": {
+        "count": 5,
+        "days": 6,
+        "remaining": 14
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 6,
+        "days": 7
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 3,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 27,
+    "name": "นางสาวเกศดา จันทร์ทรง",
+    "position": "ครูผู้ช่วย",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 5,
+        "days": 5
+      },
+      "vacation": {
+        "count": 1,
+        "days": 1,
+        "remaining": 18
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 6,
+        "days": 6
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 1,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 28,
+    "name": "นางสาวสุภาพร เจริญสุข",
+    "position": "ครูผู้ช่วย",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 1,
+        "days": 1
+      },
+      "vacation": {
+        "count": 4,
+        "days": 5,
+        "remaining": 12
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 5,
+        "days": 6
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 2,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 29,
+    "name": "นางสาวประภัสสร สิทธิจินดา",
+    "position": "ครูผู้ช่วย",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 0,
+        "days": 0
+      },
+      "vacation": {
+        "count": 3,
+        "days": 7,
+        "remaining": 7
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 3,
+        "days": 7
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 1,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 30,
+    "name": "นางสาวปัทมา วงศ์ราช",
+    "position": "ครูผู้ช่วย",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 1,
+        "days": 1
+      },
+      "vacation": {
+        "count": 1,
+        "days": 2,
+        "remaining": 18
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 2,
+        "days": 3
+      },
+      "late": {
+        "count": 2,
+        "days": 2
+      },
+      "outOfArea": {
+        "count": 2,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 31,
+    "name": "นางพรพิมล ทรัพย์นิมิตร (10/11/68)",
+    "position": "ครูผู้ช่วย",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 3,
+        "days": 7
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 10
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 3,
+        "days": 7
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 2,
+        "hours": 2,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 32,
+    "name": "นายณัฐิวุฒิ พลนาคู (10/11/68)",
+    "position": "ครูผู้ช่วย",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 2,
+        "days": 1
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 10
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 1,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 2,
+        "days": 1
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 1,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 33,
+    "name": "นางสาวพิมพ์บุญ ไตรบุตร",
+    "position": "พนักงานราชการ",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 2,
+        "days": 2
+      },
+      "vacation": {
+        "count": 1,
+        "days": 1,
+        "remaining": 9
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 3,
+        "days": 3
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 2,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 34,
+    "name": "นางสาวปรียาพร พิมภาค",
+    "position": "พนักงานราชการ",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 0,
+        "days": 0
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 10
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 0,
+        "days": 0
+      },
+      "late": {
+        "count": 1,
+        "days": 1
+      },
+      "outOfArea": {
+        "count": 2,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 35,
+    "name": "นางสาวจีระนันท์ สรรพเจริญสิน",
+    "position": "พนักงานราชการ",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 0,
+        "days": 0
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 10
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 0,
+        "days": 0
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 2,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 36,
+    "name": "นางสาวพัชรี อ่อนอึ่ง",
+    "position": "พนักงานราชการ",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 2,
+        "days": 2
+      },
+      "vacation": {
+        "count": 1,
+        "days": 3,
+        "remaining": 7
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 1,
+        "days": 3
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 4,
+        "days": 8
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 1,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 37,
+    "name": "นางสาวเดือนเพ็ญ ยังมี",
+    "position": "พนักงานราชการ",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 0,
+        "days": 0
+      },
+      "vacation": {
+        "count": 5,
+        "days": 7,
+        "remaining": 3
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 5,
+        "days": 7
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 1,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 38,
+    "name": "นางสาวพิมพ์วิภา ผ่องใส",
+    "position": "พนักงานราชการ",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 3,
+        "days": 3
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 10
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 3,
+        "days": 3
+      },
+      "late": {
+        "count": 1,
+        "days": 1
+      },
+      "outOfArea": {
+        "count": 4,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 39,
+    "name": "นายเจษฎา ธรรมศิลป์",
+    "position": "พนักงานราชการ",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 0,
+        "days": 0
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 10
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 1,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 0,
+        "days": 0
+      },
+      "late": {
+        "count": 2,
+        "days": 2
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 40,
+    "name": "นางสาวกมลลักษณ์ วงศาสุวรรณ",
+    "position": "ครูอัตราจ้าง งบ สพฐ.",
+    "location": "โรงเรียนคลองหนึ่ง (แก้วนิมิตร)",
+    "leaves": {
+      "sick": {
+        "count": 4,
+        "days": 4
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 2,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 4,
+        "days": 4
+      },
+      "late": {
+        "count": 6,
+        "days": 6
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 41,
+    "name": "นางสาววัชรี มีธง",
+    "position": "ครูอัตราจ้าง งบ สพฐ.",
+    "location": "รพ.ธรรมศาสตร์ฯ",
+    "leaves": {
+      "sick": {
+        "count": 1,
+        "days": 1
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 1,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 1,
+        "days": 1
+      },
+      "late": {
+        "count": 4,
+        "days": 4
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 42,
+    "name": "นายกฤษฎา ชูศรีจันทร์",
+    "position": "ครูอัตราจ้าง งบ สพฐ.",
+    "location": "รพ.ปทุมธานี",
+    "leaves": {
+      "sick": {
+        "count": 0,
+        "days": 0
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 1,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 0,
+        "days": 0
+      },
+      "late": {
+        "count": 1,
+        "days": 1
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 43,
+    "name": "นางสาวทิพวรรณ แสงสี",
+    "position": "ครูอัตราจ้าง งบ สพฐ.",
+    "location": "โรงเรียนบางชวดอนุสรณ์",
+    "leaves": {
+      "sick": {
+        "count": 2,
+        "days": 2
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 1,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 2,
+        "days": 2
+      },
+      "late": {
+        "count": 1,
+        "days": 1
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 44,
+    "name": "นางสาวฤทัยรัตน์ ป้องบุญจันทร์",
+    "position": "ครูอัตราจ้าง งบ สพฐ.",
+    "location": "โรงเรียนบัวแก้วเกษร",
+    "leaves": {
+      "sick": {
+        "count": 5,
+        "days": 5
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 5,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 5,
+        "days": 5
+      },
+      "late": {
+        "count": 7,
+        "days": 7
+      },
+      "outOfArea": {
+        "count": 2,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 45,
+    "name": "นางสาวมิรันตรี เหมไชย",
+    "position": "ครูอัตราจ้าง งบ สพฐ.",
+    "location": "โรงเรียนวัดอัยยิการาม",
+    "leaves": {
+      "sick": {
+        "count": 9,
+        "days": 9
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 9,
+        "days": 9
+      },
+      "late": {
+        "count": 1,
+        "days": 1
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 46,
+    "name": "นายรพีพล แสนเวียง",
+    "position": "ครูอัตราจ้าง",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 3,
+        "days": 3
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 3,
+        "days": 3
+      },
+      "late": {
+        "count": 2,
+        "days": 2
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 47,
+    "name": "นายพิชัย งามขำ",
+    "position": "ครูอัตราจ้าง",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 1,
+        "days": 1
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 1,
+        "days": 1
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 1,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 48,
+    "name": "นางสาวศุภมาศ บุตรโคตม์",
+    "position": "ครูอัตราจ้าง",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 4,
+        "days": 3
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 1,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 4,
+        "days": 3
+      },
+      "late": {
+        "count": 1,
+        "days": 1
+      },
+      "outOfArea": {
+        "count": 1,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 49,
+    "name": "นายปรีชา มหาวัน",
+    "position": "ครูอัตราจ้าง",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 6,
+        "days": 6
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 2,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 6,
+        "days": 6
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 2,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 50,
+    "name": "นายนรเศรษฐ์ สมศรี",
+    "position": "ครูอัตราจ้าง",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 2,
+        "days": 4
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 2,
+        "days": 4
+      },
+      "late": {
+        "count": 3,
+        "days": 3
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 51,
+    "name": "นางสาวอภิชญา อินทนา",
+    "position": "ครูอัตราจ้าง",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 2,
+        "days": 1.5
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 1,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 2,
+        "days": 1.5
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 52,
+    "name": "นางสาววรัญญา ทำสะดวก",
+    "position": "ครูอัตราจ้าง",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 1,
+        "days": 1
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 1,
+        "days": 1
+      },
+      "late": {
+        "count": 2,
+        "days": 2
+      },
+      "outOfArea": {
+        "count": 2,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 53,
+    "name": "นางสาววิชิดา วงษ์อินจันทร์",
+    "position": "ครูอัตราจ้าง",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 1,
+        "days": 1
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 1,
+        "days": 1
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 1,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 54,
+    "name": "นางสาวนิสา กลับใจ",
+    "position": "ครูอัตราจ้าง",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 0,
+        "days": 0
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 0,
+        "days": 0
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 55,
+    "name": "นางสาวอริษา รอดตัวดี",
+    "position": "ครูอัตราจ้าง",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 2,
+        "days": 2
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 1,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 2,
+        "days": 2
+      },
+      "late": {
+        "count": 9,
+        "days": 9
+      },
+      "outOfArea": {
+        "count": 3,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 56,
+    "name": "นางสาวจารุวรรณ์ ดิษฐวงษ์",
+    "position": "ครูอัตราจ้าง",
+    "location": "หน่วยฯลำลูกกา",
+    "leaves": {
+      "sick": {
+        "count": 4,
+        "days": 5.5
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 4,
+        "days": 5.5
+      },
+      "late": {
+        "count": 1,
+        "days": 1
+      },
+      "outOfArea": {
+        "count": 2,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 57,
+    "name": "นางสาวธมลวรรณ ทาไว",
+    "position": "ครูอัตราจ้าง",
+    "location": "หน่วยฯลำลูกกา",
+    "leaves": {
+      "sick": {
+        "count": 1,
+        "days": 1
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 1,
+        "days": 1
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 1,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 58,
+    "name": "นางสาวธนัชญา เพียเพ็ง",
+    "position": "ครูอัตราจ้าง",
+    "location": "หน่วยฯลำลูกกา",
+    "leaves": {
+      "sick": {
+        "count": 3,
+        "days": 2.5
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 3,
+        "days": 2.5
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 59,
+    "name": "นางสาวบุญฑริกา บุญสนอง",
+    "position": "ครูอัตราจ้าง",
+    "location": "หน่วยฯเมืองปทุม",
+    "leaves": {
+      "sick": {
+        "count": 2,
+        "days": 2
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 2,
+        "days": 2
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 2,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 60,
+    "name": "นางสาวกานติมา นิ่มนวล",
+    "position": "ครูอัตราจ้าง",
+    "location": "หน่วยฯเมืองปทุม",
+    "leaves": {
+      "sick": {
+        "count": 3,
+        "days": 3
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 3,
+        "days": 3
+      },
+      "late": {
+        "count": 10,
+        "days": 10
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 61,
+    "name": "นายอดิศร คุณประทุม",
+    "position": "ครูอัตราจ้าง",
+    "location": "หน่วยฯธัญบุรี",
+    "leaves": {
+      "sick": {
+        "count": 0,
+        "days": 0
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 0,
+        "days": 0
+      },
+      "late": {
+        "count": 1,
+        "days": 1
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 62,
+    "name": "นางสาวชนิตา ยากลิ่นหอม",
+    "position": "ครูอัตราจ้าง",
+    "location": "หน่วยฯธัญบุรี",
+    "leaves": {
+      "sick": {
+        "count": 2,
+        "days": 2
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 2,
+        "days": 2
+      },
+      "late": {
+        "count": 4,
+        "days": 4
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 63,
+    "name": "นางสาวนิภาวรรณ เกษทองมา",
+    "position": "ครูอัตราจ้าง",
+    "location": "หน่วยฯธัญบุรี",
+    "leaves": {
+      "sick": {
+        "count": 1,
+        "days": 1
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 1,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 1,
+        "days": 1
+      },
+      "late": {
+        "count": 3,
+        "days": 3
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 64,
+    "name": "นางสาวณริญชญา พรมมา",
+    "position": "ครูอัตราจ้าง",
+    "location": "หน่วยฯหนองเสือ",
+    "leaves": {
+      "sick": {
+        "count": 2,
+        "days": 1.5
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 2,
+        "days": 1.5
+      },
+      "late": {
+        "count": 1,
+        "days": 1
+      },
+      "outOfArea": {
+        "count": 1,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 65,
+    "name": "นายปริญญา หนูทอง",
+    "position": "ครูอัตราจ้าง",
+    "location": "หน่วยฯหนองเสือ",
+    "leaves": {
+      "sick": {
+        "count": 4,
+        "days": 4
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 4,
+        "days": 4
+      },
+      "late": {
+        "count": 3,
+        "days": 3
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 66,
+    "name": "นางสาวพรลภัส มหายศ",
+    "position": "ครูอัตราจ้าง",
+    "location": "หน่วยฯหนองเสือ",
+    "leaves": {
+      "sick": {
+        "count": 5,
+        "days": 5
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 5,
+        "days": 5
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 3,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 67,
+    "name": "นางสาวนฤมล สงค์กระโทก",
+    "position": "ครูอัตราจ้าง",
+    "location": "หน่วยฯคลองหลวง",
+    "leaves": {
+      "sick": {
+        "count": 0,
+        "days": 0
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 0,
+        "days": 0
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 1,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 68,
+    "name": "นางสาวพิพรรษพร มิ่งโอโล",
+    "position": "ครูอัตราจ้าง",
+    "location": "หน่วยฯคลองหลวง",
+    "leaves": {
+      "sick": {
+        "count": 0,
+        "days": 0
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 0,
+        "days": 0
+      },
+      "late": {
+        "count": 2,
+        "days": 2
+      },
+      "outOfArea": {
+        "count": 1,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 69,
+    "name": "นายปฏิภาณ จิตจันทึก",
+    "position": "ครูอัตราจ้าง",
+    "location": "หน่วยฯคลองหลวง",
+    "leaves": {
+      "sick": {
+        "count": 4,
+        "days": 4
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 4,
+        "days": 4
+      },
+      "late": {
+        "count": 1,
+        "days": 1
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 70,
+    "name": "นางสาวเบญจพร พรมด่วน",
+    "position": "ครูอัตราจ้าง",
+    "location": "หน่วยฯคลองหลวง",
+    "leaves": {
+      "sick": {
+        "count": 3,
+        "days": 3
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 3,
+        "days": 3
+      },
+      "late": {
+        "count": 1,
+        "days": 1
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 71,
+    "name": "นางสาวสุกัญญา ชยากูล",
+    "position": "ครูอัตราจ้าง",
+    "location": "โรงเรียนวัดชินวรารามฯ",
+    "leaves": {
+      "sick": {
+        "count": 2,
+        "days": 2
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 2,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 2,
+        "days": 2
+      },
+      "late": {
+        "count": 1,
+        "days": 1
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 72,
+    "name": "นางสาวทิพย์วัลย์ พักต์เพียงจันทร์",
+    "position": "ครูอัตราจ้าง",
+    "location": "โรงเรียนชุมชนวัดจันทน์กะพ้อ",
+    "leaves": {
+      "sick": {
+        "count": 1,
+        "days": 1
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 1,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 1,
+        "days": 1
+      },
+      "late": {
+        "count": 6,
+        "days": 6
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 73,
+    "name": "นายวรวุฒิ ถี่ถ้วน",
+    "position": "ครูอัตราจ้าง",
+    "location": "โรงเรียนชุมชนวัดบางขัน",
+    "leaves": {
+      "sick": {
+        "count": 1,
+        "days": 1
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 1,
+        "days": 1
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 2,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 74,
+    "name": "นางสาวรัตน์ติกาญจน์ จันทะไพร",
+    "position": "ครูอัตราจ้าง",
+    "location": "โรงเรียนวัดศิริจันทราราม",
+    "leaves": {
+      "sick": {
+        "count": 1,
+        "days": 1
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 1,
+        "days": 1
+      },
+      "late": {
+        "count": 1,
+        "days": 1
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 75,
+    "name": "นางสาวณิชากานต์ จูจันทร์",
+    "position": "ครูอัตราจ้าง",
+    "location": "โรงเรียนวัดเทียนถวาย",
+    "leaves": {
+      "sick": {
+        "count": 0,
+        "days": 0
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 0,
+        "days": 0
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 76,
+    "name": "นางสาวนภัสวรรณ คุ้มสังข์",
+    "position": "ครูอัตราจ้าง",
+    "location": "โรงเรียนลำสนุ่น",
+    "leaves": {
+      "sick": {
+        "count": 2,
+        "days": 2
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 2,
+        "days": 2
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 77,
+    "name": "นางสาวขวัญดี ประยูร",
+    "position": "ครูอัตราจ้าง",
+    "location": "โรงเรียนวัดเกิดการอุดม",
+    "leaves": {
+      "sick": {
+        "count": 1,
+        "days": 1
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 1,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 1,
+        "days": 1
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 1,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 78,
+    "name": "นางสาวสิรินยากร ภัทรณุกูล",
+    "position": "ครูอัตราจ้าง",
+    "location": "โรงเรียนสามัคคีราษฎร์บํารุง",
+    "leaves": {
+      "sick": {
+        "count": 2,
+        "days": 2
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 2,
+        "days": 2
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 79,
+    "name": "นายธนโชค รักษาศิลป์",
+    "position": "ครูอัตราจ้าง",
+    "location": "โรงเรียนบ้านพร้าว",
+    "leaves": {
+      "sick": {
+        "count": 0,
+        "days": 0
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 0,
+        "days": 0
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 80,
+    "name": "นางสาวจิราพร เขียวเปลื้อง",
+    "position": "ครูอัตราจ้าง",
+    "location": "โรงเรียนวัดบัวสุวรรณประดิษฐ์",
+    "leaves": {
+      "sick": {
+        "count": 2,
+        "days": 2
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 2,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 2,
+        "days": 2
+      },
+      "late": {
+        "count": 4,
+        "days": 4
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 81,
+    "name": "นางสาวจุฑามาศ ค้าคุ้ม",
+    "position": "ครูอัตราจ้าง",
+    "location": "โรงเรียนวัดกลางคลองสี่",
+    "leaves": {
+      "sick": {
+        "count": 1,
+        "days": 1
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 1,
+        "days": 1
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 82,
+    "name": "นางสาววิไล บุญยัง",
+    "position": "ครูอัตราจ้าง",
+    "location": "โรงเรียนวัดลาดสนุ่น",
+    "leaves": {
+      "sick": {
+        "count": 0,
+        "days": 0
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 1,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 0,
+        "days": 0
+      },
+      "late": {
+        "count": 2,
+        "days": 2
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 83,
+    "name": "นายณัฐวุฒิ  บำรุงทรัพย์",
+    "position": "ครูอัตราจ้าง",
+    "location": "โรงเรียนชุมชนเลิศพินิจพิทยาคม",
+    "leaves": {
+      "sick": {
+        "count": 1,
+        "days": 1
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 1,
+        "days": 1
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 84,
+    "name": "นายชัยนันท์ นวลตา",
+    "position": "ครูอัตราจ้าง",
+    "location": "โรงเรียนชุมชนประชาธิปัตย์วิทยาคาร",
+    "leaves": {
+      "sick": {
+        "count": 2,
+        "days": 2
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 2,
+        "days": 2
+      },
+      "late": {
+        "count": 1,
+        "days": 1
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 85,
+    "name": "นางสาวเพชรรัตน์  กันเพชร",
+    "position": "ครูอัตราจ้าง",
+    "location": "โรงเรียนวัดแสงสรรค์",
+    "leaves": {
+      "sick": {
+        "count": 3,
+        "days": 3
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 2,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 3,
+        "days": 3
+      },
+      "late": {
+        "count": 3,
+        "days": 3
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 86,
+    "name": "นางสาวจินห์จุฑา คงชู",
+    "position": "ครูอัตราจ้าง",
+    "location": "โรงเรียนชุมชนวัดพิชิตปิตยาราม",
+    "leaves": {
+      "sick": {
+        "count": 4,
+        "days": 4
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 1,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 4,
+        "days": 4
+      },
+      "late": {
+        "count": 1,
+        "days": 1
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 87,
+    "name": "นางสาวทวินันท์ วรพิมพ์ภิมรย์",
+    "position": "ครูอัตราจ้าง",
+    "location": "โรงเรียนวัดธัญญะผล",
+    "leaves": {
+      "sick": {
+        "count": 3,
+        "days": 3
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 1,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 3,
+        "days": 3
+      },
+      "late": {
+        "count": 7,
+        "days": 7
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 88,
+    "name": "นายธนวัฒน์ วัฒนสุข",
+    "position": "ครูอัตราจ้าง",
+    "location": "โรงเรียนชุมชนวัดทำเลทอง",
+    "leaves": {
+      "sick": {
+        "count": 1,
+        "days": 3
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 1,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 1,
+        "days": 3
+      },
+      "late": {
+        "count": 1,
+        "days": 1
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 89,
+    "name": "นางสาวมัลลิกา สร้างกลาง",
+    "position": "ครูอัตราจ้าง",
+    "location": "โรงเรียนร่วมใจประสิทธิ์",
+    "leaves": {
+      "sick": {
+        "count": 2,
+        "days": 2
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 2,
+        "days": 2
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 90,
+    "name": "นายเทพณรงค์ คงบางใหญ่",
+    "position": "ครูอัตราจ้าง",
+    "location": "โรงเรียนร่วมจิตประสาท",
+    "leaves": {
+      "sick": {
+        "count": 2,
+        "days": 2
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 2,
+        "days": 2
+      },
+      "late": {
+        "count": 4,
+        "days": 4
+      },
+      "outOfArea": {
+        "count": 1,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 91,
+    "name": "นายอภิรัฐ สุขสาร",
+    "position": "ครูอัตราจ้าง",
+    "location": "โรงเรียนรวมราษฎร์สามัคคี",
+    "leaves": {
+      "sick": {
+        "count": 0,
+        "days": 0
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 0,
+        "days": 0
+      },
+      "late": {
+        "count": 5,
+        "days": 5
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 92,
+    "name": "นางสาวเรศชกรณ์ เยาวกรณ์",
+    "position": "ครูอัตราจ้าง",
+    "location": "โรงเรียนเจริญดีวิทยา",
+    "leaves": {
+      "sick": {
+        "count": 1,
+        "days": 1
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 1,
+        "days": 1
+      },
+      "late": {
+        "count": 1,
+        "days": 1
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 93,
+    "name": "นายเกรียงเดช จันคำ",
+    "position": "ครูอัตราจ้าง",
+    "location": "โรงเรียนชุมชนบึงบา",
+    "leaves": {
+      "sick": {
+        "count": 1,
+        "days": 1
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 1,
+        "days": 1
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 94,
+    "name": "นางสาวชุติมา สินารา",
+    "position": "ครูอัตราจ้าง",
+    "location": "โรงเรียนหนองเสือวิทยาคม",
+    "leaves": {
+      "sick": {
+        "count": 2,
+        "days": 2
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 2,
+        "days": 2
+      },
+      "late": {
+        "count": 13,
+        "days": 13
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 95,
+    "name": "นางสาวพิมลดา พุฒเอก",
+    "position": "ครูอัตราจ้าง",
+    "location": "โรงเรียนทีปังกรวิทยาพัฒน์",
+    "leaves": {
+      "sick": {
+        "count": 0,
+        "days": 0
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 0,
+        "days": 0
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 96,
+    "name": "นางสาวสุชาวดี จรจันทร์",
+    "position": "ครูอัตราจ้าง",
+    "location": "โรงเรียนเตรียมอุดมศึกษาน้อมเกล้าฯ",
+    "leaves": {
+      "sick": {
+        "count": 4,
+        "days": 4
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 4,
+        "days": 4
+      },
+      "late": {
+        "count": 2,
+        "days": 2
+      },
+      "outOfArea": {
+        "count": 1,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 97,
+    "name": "นางสาวชนกพร ปิยศทิพย์",
+    "position": "พนักงานธุรการ",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 5,
+        "days": 4.5
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 5,
+        "days": 4.5
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 98,
+    "name": "นางกนกรัตน์ ส่งโสภา",
+    "position": "พี่เลี้ยงเด็กพิการ",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 4,
+        "days": 3.5
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 4,
+        "days": 3.5
+      },
+      "late": {
+        "count": 1,
+        "days": 1
+      },
+      "outOfArea": {
+        "count": 2,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 99,
+    "name": "นางสาวแพรวา จั่นบ้านโขด",
+    "position": "พี่เลี้ยงเด็กพิการ",
+    "location": "หน่วยฯหนองเสือ",
+    "leaves": {
+      "sick": {
+        "count": 0,
+        "days": 0
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 0,
+        "days": 0
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 2,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 100,
+    "name": "นางสาวบุญญิสา ขาวจันทร์",
+    "position": "พี่เลี้ยงเด็กพิการ",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 5,
+        "days": 5
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 5,
+        "days": 5
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 101,
+    "name": "นางสาวเบ็ญจมาศ เหลืองช่างทอง",
+    "position": "พี่เลี้ยงเด็กพิการ",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 5,
+        "days": 5
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 5,
+        "days": 5
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 102,
+    "name": "นางสาวปรางทิพย์ มณฑาทิพย์",
+    "position": "พี่เลี้ยงเด็กพิการ",
+    "location": "หน่วยฯคลองหลวง",
+    "leaves": {
+      "sick": {
+        "count": 2,
+        "days": 2
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 2,
+        "days": 2
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 1,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 103,
+    "name": "นางสาวเมทินี ปรีชานุกูล",
+    "position": "พี่เลี้ยงเด็กพิการ",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 1,
+        "days": 1
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 1,
+        "days": 1
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 104,
+    "name": "นางสาวเยาวรัตน์ เวสสุวรรณ์",
+    "position": "พี่เลี้ยงเด็กพิการ",
+    "location": "หน่วยฯธัญบุรี",
+    "leaves": {
+      "sick": {
+        "count": 2,
+        "days": 1.5
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 2,
+        "days": 1.5
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 105,
+    "name": "นางสาววารุณี สมมนัส",
+    "position": "พี่เลี้ยงเด็กพิการ",
+    "location": "หน่วยฯเมืองปทุม",
+    "leaves": {
+      "sick": {
+        "count": 2,
+        "days": 3
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 2,
+        "days": 3
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 3,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 106,
+    "name": "นายวชร ไหมทอง",
+    "position": "พี่เลี้ยงเด็กพิการ",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 9,
+        "days": 8
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 9,
+        "days": 8
+      },
+      "late": {
+        "count": 1,
+        "days": 1
+      },
+      "outOfArea": {
+        "count": 1,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 107,
+    "name": "นางสาวประภาสิริ ส่งโสภา",
+    "position": "พี่เลี้ยงเด็กพิการ",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 3,
+        "days": 3
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 3,
+        "days": 3
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 1,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 108,
+    "name": "นางสาวนันทวรรณ ประสารศรี",
+    "position": "พี่เลี้ยงเด็กพิการ",
+    "location": "หน่วยฯลำลูกกา",
+    "leaves": {
+      "sick": {
+        "count": 0,
+        "days": 0
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 0,
+        "days": 0
+      },
+      "late": {
+        "count": 4,
+        "days": 4
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 109,
+    "name": "นางสาวพัชนีพงศ์ ผลไม้",
+    "position": "พี่เลี้ยงเด็กพิการ",
+    "location": "หน่วยฯคลองหลวง",
+    "leaves": {
+      "sick": {
+        "count": 1,
+        "days": 1
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 1,
+        "days": 1
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 1,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 110,
+    "name": "นางสาวจิราวรรณ คำภู",
+    "position": "พี่เลี้ยงเด็กพิการ",
+    "location": "หน่วยฯหนองเสือ",
+    "leaves": {
+      "sick": {
+        "count": 3,
+        "days": 3
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 1,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 3,
+        "days": 3
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 2,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 111,
+    "name": "นายนัฐพงษ์ โสมิ่ง",
+    "position": "พี่เลี้ยงเด็กพิการ",
+    "location": "หน่วยฯธัญบุรี",
+    "leaves": {
+      "sick": {
+        "count": 0,
+        "days": 0
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 0,
+        "days": 0
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 112,
+    "name": "นางสาวนิศาชล เพ็ชรมณี",
+    "position": "พี่เลี้ยงเด็กพิการ",
+    "location": "หน่วยฯเมืองปทุม",
+    "leaves": {
+      "sick": {
+        "count": 5,
+        "days": 5
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 5,
+        "days": 5
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 4,
+        "hours": 2,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 113,
+    "name": "นางสาวธนัชพร จินดามัง",
+    "position": "พี่เลี้ยงเด็กพิการ",
+    "location": "หน่วยฯคลองหลวง",
+    "leaves": {
+      "sick": {
+        "count": 1,
+        "days": 1
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 1,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 1,
+        "days": 1
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 114,
+    "name": "นางสาวมลิดา มชิตนัง",
+    "position": "พี่เลี้ยงเด็กพิการ",
+    "location": "หน่วยฯลำลูกกา",
+    "leaves": {
+      "sick": {
+        "count": 0,
+        "days": 0
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 0,
+        "days": 0
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 115,
+    "name": "นายยุรวัศรรษ์ สิทธิศักดิ์",
+    "position": "พี่เลี้ยงเด็กพิการ",
+    "location": "หน่วยฯคลองหลวง",
+    "leaves": {
+      "sick": {
+        "count": 0,
+        "days": 0
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 0,
+        "days": 0
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 116,
+    "name": "นายสกล โพพระ",
+    "position": "จ้างเหมาบริการ (ยาม)",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 6,
+        "days": 12
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 6,
+        "days": 12
+      },
+      "late": {
+        "count": 1,
+        "days": 1
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 117,
+    "name": "นางสาววันณา ใจปลื้ม",
+    "position": "จ้างเหมาบริการ (ภารโรง)",
+    "location": "ศูนย์การศึกษาพิเศษฯ",
+    "leaves": {
+      "sick": {
+        "count": 5,
+        "days": 5
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 5,
+        "days": 5
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 118,
+    "name": "นายสุริยันต์ แจ้งจันทร์",
+    "position": "จ้างเหมาบริการ (คนงาน)",
+    "location": "หน่วยฯคลองหลวง",
+    "leaves": {
+      "sick": {
+        "count": 3,
+        "days": 3
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 3,
+        "days": 3
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  },
+  {
+    "id": 119,
+    "name": "นางสาวกนกวรรณ วงษ์สุวรรณ์",
+    "position": "จ้างเหมาบริการ (คนครัว)",
+    "location": "หน่วยฯธัญบุรี",
+    "leaves": {
+      "sick": {
+        "count": 2,
+        "days": 2
+      },
+      "vacation": {
+        "count": 0,
+        "days": 0,
+        "remaining": 0
+      },
+      "personal": {
+        "count": 0,
+        "days": 0
+      },
+      "absent": 0,
+      "maternity": {
+        "count": 0,
+        "days": 0
+      },
+      "wifeAssist": {
+        "count": 0,
+        "days": 0
+      },
+      "ordination": {
+        "count": 0,
+        "days": 0
+      },
+      "military": {
+        "count": 0,
+        "days": 0
+      },
+      "study": {
+        "count": 0,
+        "days": 0
+      },
+      "work": {
+        "count": 0,
+        "days": 0
+      },
+      "follow": {
+        "count": 0,
+        "days": 0
+      },
+      "rehab": {
+        "count": 0,
+        "days": 0
+      },
+      "total": {
+        "count": 2,
+        "days": 2
+      },
+      "late": {
+        "count": 0,
+        "days": 0
+      },
+      "outOfArea": {
+        "count": 0,
+        "hours": 0,
+        "days": 0
+      }
+    }
+  }
+]
