@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import PrintableLeavePdf from './PrintableLeavePdf';
+import { useAuth } from '../context/AuthContext';
 
 const getSupabaseCfg = () => {
   try {
@@ -20,10 +21,53 @@ const formatDateThai = (dateStr) => {
 };
 
 const MyDashboard = ({ currentUser, employeesData = [] }) => {
+  const { users, updateProfile } = useAuth();
+  
   const [leaveRequests, setLeaveRequests] = useState([]);
   const [dutyRequests, setDutyRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [printRequest, setPrintRequest] = useState(null);
+
+  // Settings States
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [formUsername, setFormUsername] = useState('');
+  const [formPassword, setFormPassword] = useState('');
+  const [formDisplayName, setFormDisplayName] = useState('');
+  const [settingsError, setSettingsError] = useState('');
+  const [settingsSuccess, setSettingsSuccess] = useState('');
+
+  // Find user details in list to populate form
+  useEffect(() => {
+    if (showSettingsModal && currentUser) {
+      const entry = users.find(u => u.id === currentUser.id);
+      setFormUsername(currentUser.username || '');
+      setFormPassword(entry ? entry.password : '');
+      setFormDisplayName(currentUser.displayName || '');
+      setSettingsError('');
+      setSettingsSuccess('');
+    }
+  }, [showSettingsModal, currentUser, users]);
+
+  const handleSaveSettings = (e) => {
+    e.preventDefault();
+    setSettingsError('');
+    setSettingsSuccess('');
+
+    if (!formUsername.trim()) return setSettingsError('โปรดระบุ Username');
+    if (!formPassword.trim()) return setSettingsError('โปรดระบุรหัสผ่าน');
+    if (formPassword.length < 4) return setSettingsError('รหัสผ่านต้องมีความยาวอย่างน้อย 4 ตัวอักษร');
+
+    const duplicate = users.find(u => u.username.toLowerCase() === formUsername.trim().toLowerCase() && u.id !== currentUser.id);
+    if (duplicate) return setSettingsError('Username นี้ถูกใช้งานแล้ว');
+
+    try {
+      updateProfile(currentUser.id, formUsername, formPassword, formDisplayName);
+      setSettingsSuccess('💾 บันทึกการเปลี่ยนแปลงเรียบร้อยแล้ว!');
+      setTimeout(() => setShowSettingsModal(false), 800);
+    } catch (err) {
+      setSettingsError(`ล้มเหลว: ${err.message}`);
+    }
+  };
 
   const employee = employeesData.find(e => e.id === currentUser.employeeId);
 
@@ -119,7 +163,28 @@ const MyDashboard = ({ currentUser, employeesData = [] }) => {
             ตำแหน่ง: <b>{employee?.position || '-'}</b> | สังกัด: <b>{employee?.location || '-'}</b>
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <button 
+            onClick={() => setShowSettingsModal(true)}
+            style={{ 
+              background: 'rgba(255,255,255,0.06)', 
+              border: '1px solid var(--border-color)', 
+              borderRadius: '12px', 
+              padding: '12px 18px', 
+              color: 'var(--text-main)', 
+              fontWeight: 700, 
+              fontSize: '0.82rem', 
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={e => e.target.style.background = 'rgba(255,255,255,0.12)'}
+            onMouseLeave={e => e.target.style.background = 'rgba(255,255,255,0.06)'}
+          >
+            ⚙️ ตั้งค่าบัญชีผู้ใช้
+          </button>
           <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '10px 18px', textAlign: 'center' }}>
             <div style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--green)' }}>{leaveStats.vacation?.remaining ?? 10}</div>
             <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>วันลาพักผ่อนคงเหลือ</div>
@@ -277,6 +342,65 @@ const MyDashboard = ({ currentUser, employeesData = [] }) => {
           request={printRequest} 
           onClose={() => setPrintRequest(null)} 
         />
+      )}
+
+      {/* Account Settings Modal */}
+      {showSettingsModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000, padding: '20px'
+        }}>
+          <div className="glass-panel" style={{
+            width: '100%', maxWidth: '400px', padding: '28px',
+            borderRadius: '20px', border: '1px solid rgba(159,122,234,0.3)',
+            animation: 'fadeIn 0.25s ease'
+          }}>
+            <h3 style={{ margin: '0 0 16px 0', fontSize: '1.15rem', fontWeight: 800 }}>⚙️ แก้ไขข้อมูลบัญชีผู้ใช้งาน</h3>
+            
+            {settingsError && <div style={{ color: 'var(--red)', fontSize: '0.8rem', marginBottom: '12px' }}>⚠️ {settingsError}</div>}
+            {settingsSuccess && <div style={{ color: 'var(--green)', fontSize: '0.8rem', marginBottom: '12px' }}>✅ {settingsSuccess}</div>}
+
+            <form onSubmit={handleSaveSettings} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 600 }}>Username</label>
+                <input 
+                  type="text" 
+                  value={formUsername} 
+                  onChange={e => setFormUsername(e.target.value)} 
+                  required
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-dark)', color: 'var(--text-main)', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box', marginTop: '4px' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 600 }}>Password (รหัสผ่าน)</label>
+                <input 
+                  type="text" 
+                  value={formPassword} 
+                  onChange={e => setFormPassword(e.target.value)} 
+                  required
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-dark)', color: 'var(--text-main)', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box', marginTop: '4px' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 600 }}>ชื่อแสดงในระบบ (Display Name)</label>
+                <input 
+                  type="text" 
+                  value={formDisplayName} 
+                  onChange={e => setFormDisplayName(e.target.value)} 
+                  required
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-dark)', color: 'var(--text-main)', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box', marginTop: '4px' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                <button type="submit" className="glow-button" style={{ flex: 1, padding: '10px', fontSize: '0.85rem', borderRadius: '10px', fontWeight: 700, cursor: 'pointer' }}>บันทึกข้อมูล</button>
+                <button type="button" onClick={() => setShowSettingsModal(false)} style={{ flex: 1, padding: '10px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-main)', borderRadius: '10px', cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem' }}>ยกเลิก</button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
     </div>

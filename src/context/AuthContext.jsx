@@ -95,8 +95,32 @@ export const AuthProvider = ({ children }) => {
     setUsers(newUsers);
   };
 
+  // User/Admin: update own profile credentials
+  const updateProfile = (userId, newUsername, newPassword, newDisplayName) => {
+    const updatedUsers = users.map(u => {
+      if (u.id === userId) {
+        return { 
+          ...u, 
+          username: newUsername.trim(), 
+          password: newPassword.trim(), 
+          displayName: newDisplayName.trim() 
+        };
+      }
+      return u;
+    });
+    saveUsers(updatedUsers);
+    setUsers(updatedUsers);
+
+    if (currentUser && currentUser.id === userId) {
+      const updatedUser = updatedUsers.find(u => u.id === userId);
+      const { password: _pw, ...safeUser } = updatedUser;
+      setCurrentUser(safeUser);
+      sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(safeUser));
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ currentUser, users, authError, login, logout, updateUsers }}>
+    <AuthContext.Provider value={{ currentUser, users, authError, login, logout, updateUsers, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );
