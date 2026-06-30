@@ -243,6 +243,71 @@ const GoogleSheetsImporter = ({ onImportData, employeesData }) => {
     const absentIdx = headers.indexOf(mapping.absentCol);
     const lateIdx = headers.indexOf(mapping.lateCol);
 
+    // Helper: build a full monthly leaves structure (กระจายสถิติรายปีออกเป็นรายเดือน)
+    const buildMonthlyLeaves = (sickDays, personalDays, vacationDays, vacationRemaining, absent, late) => {
+      const emptyMonth = () => ({
+        sick: { count: 0, days: 0 },
+        vacation: { count: 0, days: 0, remaining: 0 },
+        personal: { count: 0, days: 0 },
+        absent: 0,
+        maternity: { count: 0, days: 0 },
+        wifeAssist: { count: 0, days: 0 },
+        ordination: { count: 0, days: 0 },
+        military: { count: 0, days: 0 },
+        study: { count: 0, days: 0 },
+        work: { count: 0, days: 0 },
+        follow: { count: 0, days: 0 },
+        rehab: { count: 0, days: 0 },
+        total: { count: 0, days: 0 },
+        late: { count: 0, days: 0 },
+        outOfArea: { count: 0, hours: 0, days: 0 }
+      });
+
+      const MONTHS = ['january','february','march','april','may','june','july','august','september','october','november','december'];
+      const leavesByMonth = { all: null };
+      MONTHS.forEach(m => { leavesByMonth[m] = emptyMonth(); });
+
+      // กระจายสถิติสะสมออกเป็นรายเดือนแบบเท่ากัน (12 เดือน)
+      // ใช้สัดส่วนที่ใกล้เคียงกับ mock data: ต.ค. 30%, พ.ย. 40%, ธ.ค. 30% (3 เดือนแรกของปีงบประมาณ)
+      // แต่สำหรับข้อมูลนำเข้าจากชีต ให้กระจายเท่ากันทุกเดือนเพื่อความเป็นธรรม
+      const activeMonths = ['october','november','december','january','february','march'];
+      const n = activeMonths.length;
+      const D = (val) => parseFloat((val / n).toFixed(2));
+      const C = (val) => Math.max(0, Math.round(val / n));
+
+      activeMonths.forEach(m => {
+        leavesByMonth[m].sick = { count: C(sickDays > 0 ? Math.ceil(sickDays / 1.5) : 0), days: D(sickDays) };
+        leavesByMonth[m].personal = { count: C(personalDays > 0 ? Math.ceil(personalDays / 1.5) : 0), days: D(personalDays) };
+        leavesByMonth[m].vacation = { count: C(vacationDays > 0 ? Math.ceil(vacationDays / 1.5) : 0), days: D(vacationDays), remaining: 0 };
+        leavesByMonth[m].absent = D(absent);
+        leavesByMonth[m].late = { count: C(late > 0 ? Math.ceil(late / 1.5) : 0), days: D(late) };
+        const totalDays = leavesByMonth[m].sick.days + leavesByMonth[m].personal.days + leavesByMonth[m].vacation.days;
+        const totalCount = leavesByMonth[m].sick.count + leavesByMonth[m].personal.count + leavesByMonth[m].vacation.count;
+        leavesByMonth[m].total = { count: totalCount, days: parseFloat(totalDays.toFixed(2)) };
+      });
+
+      // all = ยอดรวม
+      leavesByMonth.all = {
+        sick: { count: sickDays > 0 ? Math.ceil(sickDays / 1.5) : 0, days: sickDays },
+        personal: { count: personalDays > 0 ? Math.ceil(personalDays / 1.5) : 0, days: personalDays },
+        vacation: { count: vacationDays > 0 ? Math.ceil(vacationDays / 1.5) : 0, days: vacationDays, remaining: isNaN(vacationRemaining) ? 30 : vacationRemaining },
+        absent: absent,
+        late: { count: late > 0 ? Math.ceil(late / 1.5) : 0, days: late },
+        maternity: { count: 0, days: 0 },
+        wifeAssist: { count: 0, days: 0 },
+        ordination: { count: 0, days: 0 },
+        military: { count: 0, days: 0 },
+        study: { count: 0, days: 0 },
+        work: { count: 0, days: 0 },
+        follow: { count: 0, days: 0 },
+        rehab: { count: 0, days: 0 },
+        total: { count: 0, days: sickDays + personalDays + vacationDays },
+        outOfArea: { count: 0, hours: 0, days: 0 }
+      };
+
+      return leavesByMonth;
+    };
+
     const preview = dataRows.map((row, index) => {
       const idVal = idIdx !== -1 ? parseInt(row[idIdx]) : null;
       const nameVal = nameIdx !== -1 ? row[nameIdx] : '';
@@ -253,7 +318,7 @@ const GoogleSheetsImporter = ({ onImportData, employeesData }) => {
       const sickDays = sickIdx !== -1 ? parseFloat(row[sickIdx]) || 0 : 0;
       const personalDays = personalIdx !== -1 ? parseFloat(row[personalIdx]) || 0 : 0;
       const vacationDays = vacationIdx !== -1 ? parseFloat(row[vacationIdx]) || 0 : 0;
-      const parsedVacationRemaining = vacationRemIdx !== -1 ? (parseFloat(row[vacationRemIdx]) !== undefined ? parseFloat(row[vacationRemIdx]) : 30) : 30;
+      const parsedVacRem = vacationRemIdx !== -1 ? parseFloat(row[vacationRemIdx]) : 30;
       const absent = absentIdx !== -1 ? parseFloat(row[absentIdx]) || 0 : 0;
       const late = lateIdx !== -1 ? parseFloat(row[lateIdx]) || 0 : 0;
 
@@ -262,26 +327,7 @@ const GoogleSheetsImporter = ({ onImportData, employeesData }) => {
         name: (nameVal || '').trim(),
         position: (posVal || 'พนักงาน').trim(),
         location: (locVal || 'ศูนย์การศึกษาพิเศษฯ').trim(),
-        // prefilled leaves structure matching mock data
-        leaves: {
-          all: {
-            sick: { count: sickDays > 0 ? Math.ceil(sickDays / 1.5) : 0, days: sickDays },
-            personal: { count: personalDays > 0 ? Math.ceil(personalDays / 1.5) : 0, days: personalDays },
-            vacation: { count: vacationDays > 0 ? Math.ceil(vacationDays / 1.5) : 0, days: vacationDays, remaining: isNaN(parsedVacationRemaining) ? 30 : parsedVacationRemaining },
-            absent: absent,
-            late: { count: late > 0 ? Math.ceil(late / 1.5) : 0, days: late },
-            maternity: { count: 0, days: 0 },
-            wifeAssist: { count: 0, days: 0 },
-            ordination: { count: 0, days: 0 },
-            military: { count: 0, days: 0 },
-            study: { count: 0, days: 0 },
-            work: { count: 0, days: 0 },
-            follow: { count: 0, days: 0 },
-            rehab: { count: 0, days: 0 },
-            total: { count: 0, days: sickDays + personalDays + vacationDays },
-            outOfArea: { count: 0, hours: 0, days: 0 }
-          }
-        }
+        leaves: buildMonthlyLeaves(sickDays, personalDays, vacationDays, isNaN(parsedVacRem) ? 30 : parsedVacRem, absent, late)
       };
     }).filter(emp => emp.name.length > 0);
 
