@@ -5,10 +5,15 @@ import { useAuth } from '../context/AuthContext';
 const getSupabaseCfg = () => {
   try {
     const s = localStorage.getItem('attendance_dashboard_supabase_config');
-    if (!s) return null;
-    const p = JSON.parse(s);
-    return p.url && p.key ? p : null;
-  } catch { return null; }
+    if (s) {
+      const p = JSON.parse(s);
+      if (p.url && p.key) return p;
+    }
+  } catch {}
+  return {
+    url: 'https://vayvssbxuskhyujtbtyw.supabase.co',
+    key: 'sb_publishable_yjyN0-SOXFwTPoOolSmKBw_QDyFe2rZ'
+  };
 };
 
 const formatDateThai = (dateStr) => {
@@ -20,6 +25,31 @@ const formatDateThai = (dateStr) => {
   } catch { return dateStr; }
 };
 
+const getTodayDateString = () => {
+  const today = new Date();
+  let yyyy = today.getFullYear();
+  if (yyyy > 2400) yyyy -= 543;
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const dd = String(today.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+};
+
+const extractTimeOnly = (val) => {
+  if (!val) return '-';
+  if (String(val).includes('T')) {
+    try {
+      const date = new Date(val);
+      if (!isNaN(date.getTime())) {
+        const pad = (n) => String(n).padStart(2, '0');
+        return `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+      }
+    } catch {}
+    const match = String(val).match(/T(\d{2}:\d{2}:\d{2})/);
+    if (match) return match[1];
+  }
+  return String(val);
+};
+
 const MyDashboard = ({ currentUser, employeesData = [] }) => {
   const { users, updateProfile } = useAuth();
   
@@ -28,6 +58,11 @@ const MyDashboard = ({ currentUser, employeesData = [] }) => {
   const [loading, setLoading] = useState(false);
   const [printRequest, setPrintRequest] = useState(null);
 
+  // Today Check-in Status States
+  const [todayStatus, setTodayStatus] = useState('absent');
+  const [todayTime, setTodayTime] = useState('-');
+  const [checkingTodayStatus, setCheckingTodayStatus] = useState(true);
+
   // Settings States
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [formUsername, setFormUsername] = useState('');
@@ -35,6 +70,71 @@ const MyDashboard = ({ currentUser, employeesData = [] }) => {
   const [formDisplayName, setFormDisplayName] = useState('');
   const [settingsError, setSettingsError] = useState('');
   const [settingsSuccess, setSettingsSuccess] = useState('');
+
+  // Fetch today's check-in status
+  useEffect(() => {
+    if (!currentUser.employeeId) return;
+
+    const fetchTodayStatus = async () => {
+      setCheckingTodayStatus(true);
+      const todayStr = getTodayDateString();
+      
+      // 1. Check local overrides first
+      try {
+        const overridesRaw = localStorage.getItem('attendance_dashboard_daily_overrides');
+        if (overridesRaw) {
+          const overrides = JSON.parse(overridesRaw);
+          if (overrides[todayStr] && overrides[todayStr].statuses) {
+            const status = overrides[todayStr].statuses[currentUser.employeeId];
+            const time = overrides[todayStr].times?.[currentUser.employeeId] || '-';
+            if (status) {
+              setTodayStatus(status);
+              setTodayTime(time);
+              setCheckingTodayStatus(false);
+              return;
+            }
+          }
+        }
+      } catch (e) {
+        console.error("Error reading local overrides", e);
+      }
+
+      // 2. Fallback to Supabase fetch
+      const cfg = getSupabaseCfg();
+      if (cfg) {
+        try {
+          const res = await fetch(`${cfg.url}/rest/v1/attendance_logs?employee_id=eq.${currentUser.employeeId}&work_date=eq.${todayStr}`, {
+            headers: { 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.length > 0) {
+              const checkInLog = data.find(log => log.check_type === 'check_in' || log.check_type === 'checkin') || data[0];
+              setTodayStatus(checkInLog.status || 'present');
+              const logTime = extractTimeOnly(checkInLog.checked_at || checkInLog.check_time);
+              setTodayTime(logTime === '00:00:00' || logTime === '00:00' ? '-' : logTime || '-');
+            } else {
+              setTodayStatus('absent');
+              setTodayTime('-');
+            }
+          } else {
+            setTodayStatus('absent');
+            setTodayTime('-');
+          }
+        } catch (e) {
+          console.error("Failed to fetch today status from Supabase", e);
+          setTodayStatus('absent');
+          setTodayTime('-');
+        }
+      } else {
+        setTodayStatus('absent');
+        setTodayTime('-');
+      }
+      setCheckingTodayStatus(false);
+    };
+
+    fetchTodayStatus();
+  }, [currentUser.employeeId]);
 
   // Find user details in list to populate form
   useEffect(() => {
@@ -189,6 +289,84 @@ const MyDashboard = ({ currentUser, employeesData = [] }) => {
             <div style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--green)' }}>{leaveStats.vacation?.remaining ?? 10}</div>
             <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>วันลาพักผ่อนคงเหลือ</div>
           </div>
+        </div>
+      </div>
+
+      {/* Today Check-in Status Card */}
+      <div className="glass-panel animate-fade-in" style={{
+        padding: '20px 24px',
+        borderRadius: '20px',
+        border: '1px solid rgba(159, 122, 234, 0.18)',
+        background: 'rgba(255, 255, 255, 0.02)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '20px'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{
+            width: '56px',
+            height: '56px',
+            borderRadius: '16px',
+            background: todayStatus === 'present' ? 'rgba(16, 185, 129, 0.12)' :
+                        todayStatus === 'late' ? 'rgba(245, 158, 11, 0.12)' :
+                        todayStatus === 'gov' ? 'rgba(6, 182, 212, 0.12)' :
+                        todayStatus === 'sick' ? 'rgba(239, 68, 68, 0.12)' :
+                        'rgba(239, 68, 68, 0.12)',
+            border: `1px solid ${
+                        todayStatus === 'present' ? 'var(--green)' :
+                        todayStatus === 'late' ? 'var(--yellow)' :
+                        todayStatus === 'gov' ? 'var(--cyan)' :
+                        todayStatus === 'sick' ? 'var(--red)' :
+                        'var(--red)'
+                    }`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '1.65rem',
+            boxShadow: todayStatus === 'present' ? '0 0 12px rgba(16, 185, 129, 0.15)' : 'none'
+          }}>
+            {todayStatus === 'present' ? '🟢' :
+             todayStatus === 'late' ? '⏰' :
+             todayStatus === 'gov' ? '🚗' :
+             todayStatus === 'sick' ? '🤕' :
+             '🔴'}
+          </div>
+          <div>
+            <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 700 }}>
+              🗓️ ผลการสแกนใบหน้าและลงเวลาปฏิบัติงานของวันนี้ ({formatDateThai(new Date())})
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '6px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '1.2rem', fontWeight: 800, color: 
+                todayStatus === 'present' ? 'var(--green)' :
+                todayStatus === 'late' ? 'var(--yellow)' :
+                todayStatus === 'gov' ? 'var(--cyan)' :
+                todayStatus === 'sick' ? 'var(--red)' :
+                'var(--red)'
+              }}>
+                {checkingTodayStatus ? 'กำลังตรวจสอบ...' :
+                 todayStatus === 'present' ? 'มาปฏิบัติราชการปกติ' :
+                 todayStatus === 'late' ? 'มาสาย' :
+                 todayStatus === 'gov' ? 'ไปราชการ' :
+                 todayStatus === 'sick' ? 'ลาป่วย' :
+                 'ขาดงาน'}
+              </span>
+              <span className="badge badge-primary" style={{ fontSize: '0.78rem', padding: '4px 10px', borderRadius: '6px', fontWeight: 600 }}>
+                {checkingTodayStatus ? '...' : `เวลาลงทำงาน: ${todayTime}`}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Status indicator message */}
+        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', maxWidth: '340px', lineHeight: 1.4 }}>
+          {checkingTodayStatus ? 'กำลังโหลดข้อความ...' :
+           todayStatus === 'present' ? '👍 ยอดเยี่ยม! รักษาเวลาในการมาปฏิบัติหน้าที่ราชการอย่างสม่ำเสมอครับ' :
+           todayStatus === 'late' ? '⚠️ วันนี้คุณสแกนหน้าเข้างานสาย โปรดรักษาเวลาในวันทำการถัดไปนะครับ' :
+           todayStatus === 'gov' ? '🚗 ปฏิบัติภารกิจนอกสถานที่ราชการ ขอให้เดินทางและทำงานอย่างปลอดภัยครับ' :
+           todayStatus === 'sick' ? '🤕 พักผ่อนและรักษาตัวให้แข็งแรง ขอให้หายป่วยในเร็ววันครับ' :
+           '❌ ยังไม่มีข้อมูลสแกนเข้างานในวันนี้ หากมาปฏิบัติหน้าที่แล้ว โปรดแจ้งแอดมินเพื่อแก้ไขบันทึกครับ'}
         </div>
       </div>
 

@@ -33,7 +33,7 @@ const LeaveCharts = ({ data }) => {
   // Leaves by location
   const locationGroups = {};
   data.forEach(item => {
-    let loc = item.location;
+    let loc = item.location || 'ไม่ระบุ';
     if (loc.startsWith('โรงเรียน') || loc.startsWith('รพ.')) {
       loc = 'สถานศึกษาร่วม/รพ.';
     }

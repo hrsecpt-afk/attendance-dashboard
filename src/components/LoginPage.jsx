@@ -14,7 +14,7 @@ const LoginPage = () => {
     setLoading(true);
     // tiny delay for UX
     await new Promise(r => setTimeout(r, 400));
-    const ok = login(username, password);
+    const ok = await login(username, password);
     setLoading(false);
     if (!ok) {
       setShake(true);

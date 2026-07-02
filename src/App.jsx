@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import attendanceRawData from './data/attendance.json';
 import OverviewCards from './components/OverviewCards';
 import LeaveCharts from './components/LeaveCharts';
@@ -192,7 +192,7 @@ const safeAlert = (msg) => {
 };
 
 function App() {
-  const { currentUser, logout } = useAuth();
+  const { currentUser, logout, users, updateProfile } = useAuth();
   const [selectedYear, setSelectedYear] = useState('2569');
 
   const [employeesData, setEmployeesData] = useState(() => {
@@ -234,6 +234,48 @@ function App() {
   const [newEmpPos, setNewEmpPos] = useState('');
   const [newEmpLoc, setNewEmpLoc] = useState('');
 
+  // Profile settings states
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [profileUsername, setProfileUsername] = useState('');
+  const [profilePassword, setProfilePassword] = useState('');
+  const [profileDisplayName, setProfileDisplayName] = useState('');
+  const [profileError, setProfileError] = useState('');
+  const [profileSuccess, setProfileSuccess] = useState('');
+
+  useEffect(() => {
+    if (isProfileModalOpen && currentUser) {
+      const entry = users.find(u => u.id === currentUser.id);
+      setProfileUsername(currentUser.username || '');
+      setProfilePassword(entry ? entry.password : '');
+      setProfileDisplayName(currentUser.displayName || '');
+      setProfileError('');
+      setProfileSuccess('');
+    }
+  }, [isProfileModalOpen, currentUser, users]);
+
+  const handleSaveProfileSettings = (e) => {
+    e.preventDefault();
+    setProfileError('');
+    setProfileSuccess('');
+
+    if (!profileUsername.trim()) return setProfileError('โปรดระบุชื่อผู้ใช้');
+    if (!profilePassword.trim()) return setProfileError('โปรดระบุรหัสผ่าน');
+    if (profilePassword.length < 4) return setProfileError('รหัสผ่านต้องมีความยาวอย่างน้อย 4 ตัวอักษร');
+
+    const duplicate = users.find(
+      u => u.username.toLowerCase() === profileUsername.trim().toLowerCase() && u.id !== currentUser.id
+    );
+    if (duplicate) return setProfileError('ชื่อผู้ใช้นี้ถูกใช้งานแล้ว');
+
+    try {
+      updateProfile(currentUser.id, profileUsername.trim(), profilePassword.trim(), profileDisplayName.trim());
+      setProfileSuccess('💾 บันทึกการเปลี่ยนแปลงเรียบร้อยแล้ว!');
+      setTimeout(() => setIsProfileModalOpen(false), 800);
+    } catch (err) {
+      setProfileError(`ล้มเหลว: ${err.message}`);
+    }
+  };
+
   // Auto-save when employeesData changes
   useEffect(() => {
     localStorage.setItem(`attendance_dashboard_data_v2_year_${selectedYear}`, JSON.stringify(employeesData));
@@ -245,8 +287,8 @@ function App() {
   useEffect(() => {
     const configKey = 'attendance_dashboard_supabase_config';
     const current = localStorage.getItem(configKey);
-    const targetUrl = 'https://obxgfqztkbmoqyicjjuk.supabase.co';
-    const targetKey = 'sb_publishable_HzHy2N6TJe9cFPvsRJ7YHw_d3J8-NXn';
+    const targetUrl = 'https://vayvssbxuskhyujtbtyw.supabase.co';
+    const targetKey = 'sb_publishable_yjyN0-SOXFwTPoOolSmKBw_QDyFe2rZ';
     
     let needsUpdate = false;
     try {
@@ -254,7 +296,7 @@ function App() {
         needsUpdate = true;
       } else {
         const parsed = JSON.parse(current);
-        if (!parsed.url || !parsed.key || parsed.url.includes('vayvssbxuskhyujtbtyw')) {
+        if (!parsed.url || !parsed.key || parsed.url.includes('obxgfqztkbmoqyicjjuk')) {
           needsUpdate = true;
         }
       }
@@ -270,6 +312,109 @@ function App() {
     }
   }, []);
 
+  // Fetch employees and balances from Supabase on mount to sync local state
+  useEffect(() => {
+    const fetchEmployeesFromSupabase = async () => {
+      const configKey = 'attendance_dashboard_supabase_config';
+      const saved = localStorage.getItem(configKey);
+      if (!saved) return;
+
+      try {
+        const cfg = JSON.parse(saved);
+        if (!cfg.url || !cfg.key) return;
+
+        // 1. Fetch employees
+        const empRes = await fetch(`${cfg.url}/rest/v1/employees?select=*`, {
+          headers: { 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` }
+        });
+        if (!empRes.ok) return;
+        const dbEmps = await empRes.json();
+
+        // 2. Fetch leave balances (resilient fetch)
+        let dbBals = [];
+        try {
+          const balRes = await fetch(`${cfg.url}/rest/v1/leave_balances?select=*`, {
+            headers: { 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` }
+          });
+          if (balRes.ok) {
+            dbBals = await balRes.json();
+          }
+        } catch (e) {
+          console.error("Resilient fetch: leave_balances table not available", e);
+        }
+
+        const balMap = {};
+        dbBals.forEach(b => {
+          balMap[b.employee_id] = b;
+        });
+
+        if (dbEmps && dbEmps.length > 0) {
+          const syncedData = dbEmps.map(emp => {
+            const bal = balMap[emp.id] || {};
+            
+            const leavesByMonth = {
+              all: {
+                sick: { count: 0, days: 30 - (bal.sick_remaining ?? 30) },
+                personal: { count: 0, days: 45 - (bal.personal_remaining ?? 45) },
+                maternity: { count: 0, days: 90 - (bal.maternity_remaining ?? 90) },
+                vacation: { count: 0, days: 10 - (bal.vacation_remaining ?? 10), remaining: bal.vacation_remaining ?? 10 },
+                ordination: { count: 0, days: 120 - (bal.ordination_remaining ?? 120) },
+                absent: 0,
+                wifeAssist: { count: 0, days: 0 },
+                military: { count: 0, days: 0 },
+                study: { count: 0, days: 0 },
+                work: { count: 0, days: 0 },
+                follow: { count: 0, days: 0 },
+                rehab: { count: 0, days: 0 },
+                total: { count: 0, days: 0 },
+                late: { count: 0, days: 0 },
+                outOfArea: { count: 0, hours: 0, days: 0 }
+              }
+            };
+
+            const months = [
+              'january', 'february', 'march', 'april', 'may', 'june',
+              'july', 'august', 'september', 'october', 'november', 'december'
+            ];
+            
+            months.forEach(m => {
+              leavesByMonth[m] = {
+                sick: { count: 0, days: 0 },
+                vacation: { count: 0, days: 0, remaining: bal.vacation_remaining ?? 10 },
+                personal: { count: 0, days: 0 },
+                absent: 0,
+                maternity: { count: 0, days: 0 },
+                wifeAssist: { count: 0, days: 0 },
+                ordination: { count: 0, days: 0 },
+                military: { count: 0, days: 0 },
+                study: { count: 0, days: 0 },
+                work: { count: 0, days: 0 },
+                follow: { count: 0, days: 0 },
+                rehab: { count: 0, days: 0 },
+                total: { count: 0, days: 0 },
+                late: { count: 0, days: 0 },
+                outOfArea: { count: 0, hours: 0, days: 0 }
+              };
+            });
+
+            return {
+              id: emp.id,
+              name: emp.full_name,
+              position: emp.position,
+              location: emp.location,
+              leaves: leavesByMonth
+            };
+          });
+          setEmployeesData(syncedData);
+        }
+      } catch (err) {
+        console.error("Failed to sync employees from Supabase on mount", err);
+      }
+    };
+
+    fetchEmployeesFromSupabase();
+  }, []);
+
   useEffect(() => {
     document.body.classList.toggle('light-theme', theme === 'light');
   }, [theme]);
@@ -283,8 +428,6 @@ function App() {
       }
     }
   }, [currentUser, activeView]);
-
-  if (!currentUser) return <LoginPage />;
 
   // Synchronize year changes to avoid race conditions
   const handleYearChange = (newYear) => {
@@ -464,21 +607,87 @@ function App() {
       if (emp.id === updatedEmpForActiveMonth.id) {
         const newLeaves = { ...emp.leaves, [activeMonth]: updatedEmpForActiveMonth.leaves };
         newLeaves.all = recalculateAccumulatedLeaves(newLeaves);
-        return { ...emp, leaves: newLeaves };
+        return { 
+          ...emp, 
+          name: updatedEmpForActiveMonth.name,
+          position: updatedEmpForActiveMonth.position,
+          location: updatedEmpForActiveMonth.location,
+          leaves: newLeaves 
+        };
       }
       return emp;
     }));
+
+    // Sync changes to Supabase if config is present
+    try {
+      const savedConfig = localStorage.getItem('attendance_dashboard_supabase_config');
+      if (savedConfig) {
+        const cfg = JSON.parse(savedConfig);
+        if (cfg.url && cfg.key) {
+          const table = cfg.employeesTable || 'employees';
+          const cols = cfg.supabaseColumns || { id: 'id', fullName: 'full_name', position: 'position', location: 'location' };
+          fetch(`${cfg.url}/rest/v1/${table}?${cols.id}=eq.${updatedEmpForActiveMonth.id}`, {
+            method: 'PATCH',
+            headers: { 
+              'Content-Type': 'application/json', 
+              'apikey': cfg.key, 
+              'Authorization': `Bearer ${cfg.key}` 
+            },
+            body: JSON.stringify({ 
+              [cols.fullName]: updatedEmpForActiveMonth.name, 
+              [cols.position]: updatedEmpForActiveMonth.position, 
+              [cols.location]: updatedEmpForActiveMonth.location 
+            })
+          }).catch(err => console.error('Supabase patch failed in handleUpdateEmployee', err));
+        }
+      }
+    } catch (err) {
+      console.error('Failed to parse Supabase config in handleUpdateEmployee', err);
+    }
   };
 
   const handleResetDatabase = () => {
-    if (window.confirm('🚨 รีเซ็ตข้อมูลทั้งหมดกลับเป็นค่าเริ่มต้น? การแก้ไขทั้งหมดจะหายไป')) {
-      const freshData = migrateToMonthly(attendanceRawData);
-      setEmployeesData(freshData);
-      localStorage.removeItem(`attendance_dashboard_data_v2_year_${selectedYear}`);
-      if (selectedYear === '2569') {
-        localStorage.removeItem('attendance_dashboard_data_v2');
+    const mode = window.confirm(
+      "⚠️ คุณต้องการรีเซ็ตข้อมูลแบบใด?\n\n" +
+      "• กด [ตกลง / OK] เพื่อ: รีเซ็ตสถิติการขาดลามาสายของทุกคนเป็น 0 (เก็บรายชื่อ, บัญชีผู้ใช้ และรหัสผ่านไว้)\n" +
+      "• กด [ยกเลิก / Cancel] เพื่อ: รีเซ็ตระบบทั้งหมดกลับเป็นค่าเริ่มต้นตัวอย่าง (รายชื่อที่เพิ่มใหม่จะหายทั้งหมด)"
+    );
+    
+    if (mode) {
+      // Mode 1: Keep employees and users, reset leaves to 0
+      setEmployeesData(prev => prev.map(emp => {
+        const currentVacationLimit = emp.leaves?.all?.vacation?.remaining ?? 30;
+        return {
+          ...emp,
+          leaves: {
+            all: createEmptyLeave(currentVacationLimit),
+            january: createEmptyLeave(currentVacationLimit),
+            february: createEmptyLeave(currentVacationLimit),
+            march: createEmptyLeave(currentVacationLimit),
+            april: createEmptyLeave(currentVacationLimit),
+            may: createEmptyLeave(currentVacationLimit),
+            june: createEmptyLeave(currentVacationLimit),
+            july: createEmptyLeave(currentVacationLimit),
+            august: createEmptyLeave(currentVacationLimit),
+            september: createEmptyLeave(currentVacationLimit),
+            october: createEmptyLeave(currentVacationLimit),
+            november: createEmptyLeave(currentVacationLimit),
+            december: createEmptyLeave(currentVacationLimit)
+          }
+        };
+      }));
+      safeAlert("✅ รีเซ็ตสถิติการขาดลามาสายของทุกคนเป็น 0 เรียบร้อยแล้ว (รายชื่อ บัญชีผู้ใช้งาน และรหัสผ่านยังคงอยู่ตามปกติ)");
+    } else {
+      if (window.confirm("🚨 ยืนยันการรีเซ็ตระบบทั้งหมดกลับเป็นค่าเริ่มต้นโรงงาน? ข้อมูลรายชื่อที่เพิ่มใหม่และบัญชีทั้งหมดจะถูกลบ!")) {
+        const freshData = migrateToMonthly(attendanceRawData);
+        setEmployeesData(freshData);
+        localStorage.removeItem(`attendance_dashboard_data_v2_year_${selectedYear}`);
+        if (selectedYear === '2569') {
+          localStorage.removeItem('attendance_dashboard_data_v2');
+        }
+        handleClearFilters();
+        safeAlert("✅ รีเซ็ตระบบทั้งหมดเป็นค่าเริ่มต้นเรียบร้อยแล้ว");
       }
-      handleClearFilters();
     }
   };
 
@@ -528,8 +737,147 @@ function App() {
 
   const handlePrintPDF = () => window.print();
 
+  // Helper to convert date YYYY-MM-DD into fiscal year & month key
+  const getDateDetails = (dateStr) => {
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return null;
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10);
+    const beYear = year + 543;
+    const fiscalYear = month >= 10 ? beYear + 1 : beYear;
+    const monthKeys = [
+      'january', 'february', 'march', 'april', 'may', 'june',
+      'july', 'august', 'september', 'october', 'november', 'december'
+    ];
+    return { fiscalYear: String(fiscalYear), monthKey: monthKeys[month - 1] };
+  };
+
+  // Computes employee data overridden with daily logs from localStorage
+  const overriddenEmployeesData = useMemo(() => {
+    const cloned = JSON.parse(JSON.stringify(employeesData));
+    const savedOverrides = localStorage.getItem('attendance_dashboard_daily_overrides');
+    if (!savedOverrides) return cloned;
+    
+    try {
+      const overrides = JSON.parse(savedOverrides);
+      const agg = {};
+      
+      Object.entries(overrides).forEach(([dateStr, dayData]) => {
+        const details = getDateDetails(dateStr);
+        if (!details) return;
+        
+        if (details.fiscalYear !== String(selectedYear)) return;
+        
+        const statuses = dayData.statuses || {};
+        Object.entries(statuses).forEach(([empIdStr, status]) => {
+          const empId = Number(empIdStr);
+          if (!agg[empId]) agg[empId] = {};
+          if (!agg[empId][details.monthKey]) {
+            agg[empId][details.monthKey] = {
+              absent: 0,
+              sick: 0,
+              late: 0,
+              vacation: 0,
+              outOfArea: 0,
+              work: 0,
+              personal: 0
+            };
+          }
+          
+          if (status === 'late') {
+            agg[empId][details.monthKey].late += 1;
+          } else if (status === 'gov') {
+            agg[empId][details.monthKey].work += 1;
+          } else if (status === 'sick') {
+            agg[empId][details.monthKey].sick += 1;
+          } else if (status === 'absent') {
+            agg[empId][details.monthKey].absent += 1;
+          } else if (status === 'personal') {
+            agg[empId][details.monthKey].personal += 1;
+          } else if (status === 'vacation') {
+            agg[empId][details.monthKey].vacation += 1;
+          }
+        });
+      });
+      
+      cloned.forEach(emp => {
+        const empAgg = agg[emp.id];
+        if (empAgg) {
+          Object.entries(empAgg).forEach(([monthKey, stats]) => {
+            if (!emp.leaves[monthKey]) {
+              emp.leaves[monthKey] = {
+                sick: { count: 0, days: 0 },
+                vacation: { count: 0, days: 0 },
+                personal: { count: 0, days: 0 },
+                absent: 0,
+                maternity: { count: 0, days: 0 },
+                late: { count: 0, days: 0 },
+                outOfArea: { count: 0, hours: 0, days: 0 },
+                work: { count: 0, days: 0 }
+              };
+            }
+            emp.leaves[monthKey].absent = stats.absent;
+            emp.leaves[monthKey].sick = { ...emp.leaves[monthKey].sick, count: stats.sick, days: stats.sick };
+            emp.leaves[monthKey].personal = { ...emp.leaves[monthKey].personal, count: stats.personal, days: stats.personal };
+            emp.leaves[monthKey].vacation = { ...emp.leaves[monthKey].vacation, count: stats.vacation, days: stats.vacation };
+            emp.leaves[monthKey].late = { ...emp.leaves[monthKey].late, count: stats.late, days: stats.late };
+            emp.leaves[monthKey].work = { ...emp.leaves[monthKey].work, count: stats.work, days: stats.work };
+            emp.leaves[monthKey].outOfArea = { ...emp.leaves[monthKey].outOfArea, count: stats.work, days: stats.work };
+          });
+        }
+        
+        const all = {
+          sick: { count: 0, days: 0 },
+          vacation: { count: 0, days: 0, remaining: emp.leaves.all?.vacation?.remaining ?? 30 },
+          personal: { count: 0, days: 0 },
+          absent: 0,
+          maternity: { count: 0, days: 0 },
+          late: { count: 0, days: 0 },
+          outOfArea: { count: 0, hours: 0, days: 0 },
+          work: { count: 0, days: 0 }
+        };
+        
+        const fiscalMonthsKeys = [
+          'october', 'november', 'december', 'january', 'february', 'march',
+          'april', 'may', 'june', 'july', 'august', 'september'
+        ];
+        
+        fiscalMonthsKeys.forEach(mKey => {
+          const mObj = emp.leaves[mKey];
+          if (mObj) {
+            all.absent += mObj.absent || 0;
+            all.sick.days += mObj.sick?.days || 0;
+            all.sick.count += mObj.sick?.count || 0;
+            all.late.count += mObj.late?.count || 0;
+            all.work.days += mObj.work?.days || 0;
+            all.personal.days += mObj.personal?.days || 0;
+            all.personal.count += mObj.personal?.count || 0;
+            all.vacation.days += mObj.vacation?.days || 0;
+            all.vacation.count += mObj.vacation?.count || 0;
+            all.outOfArea.count += mObj.outOfArea?.count || 0;
+            all.outOfArea.days += mObj.outOfArea?.days || 0;
+          }
+        });
+        
+        emp.leaves.all = {
+          ...emp.leaves.all,
+          absent: all.absent,
+          sick: { count: all.sick.count, days: all.sick.days },
+          personal: { count: all.personal.count, days: all.personal.days },
+          vacation: { count: all.vacation.count, days: all.vacation.days, remaining: parseFloat((30 - all.vacation.days).toFixed(1)) },
+          late: { count: all.late.count, days: all.late.count },
+          work: { count: all.work.count, days: all.work.days },
+          outOfArea: { count: all.outOfArea.count, hours: emp.leaves.all?.outOfArea?.hours ?? 0, days: all.outOfArea.days }
+        };
+      });
+    } catch (e) {
+      console.error("Failed to parse daily overrides in App level", e);
+    }
+    return cloned;
+  }, [employeesData, selectedYear, activeView]);
+
   // Build flat "display" dataset for current active month
-  const displayData = employeesData.map(emp => ({
+  const displayData = overriddenEmployeesData.map(emp => ({
     ...emp,
     leaves: emp.leaves[activeMonth] || createEmptyLeave(30)
   }));
@@ -559,6 +907,8 @@ function App() {
 
   const activeMonthLabel = monthsList.find(m => m.key === activeMonth)?.label || '';
 
+  if (!currentUser) return <LoginPage />;
+
   return (
     <div className="dashboard-container">
       {/* ============================================================ Header */}
@@ -580,7 +930,27 @@ function App() {
             {theme === 'dark' ? '☀️' : '🌙'}
           </button>
           <NotificationBell onNavigate={(view) => setActiveView(view)} />
-<button onClick={logout} style={{ padding: '8px 16px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: 'var(--red)', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '0.82rem' }}>🚪 Logout</button>
+          {currentUser && (
+            <button 
+              onClick={() => setIsProfileModalOpen(true)}
+              style={{ 
+                padding: '10px 14px', 
+                background: 'rgba(255, 255, 255, 0.05)', 
+                border: '1px solid var(--border-color)', 
+                color: 'var(--text-main)', 
+                borderRadius: '12px', 
+                cursor: 'pointer', 
+                fontWeight: 600, 
+                fontSize: '0.82rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+            >
+              ⚙️ ตั้งค่าบัญชี
+            </button>
+          )}
+          <button onClick={logout} style={{ padding: '10px 16px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: 'var(--red)', borderRadius: '12px', cursor: 'pointer', fontWeight: 600, fontSize: '0.82rem' }}>🚪 Logout</button>
         </div>
       </header>
 {currentUser?.role === 'admin' && <UserManagement employeesData={employeesData} />}
@@ -951,7 +1321,7 @@ function App() {
         <IndividualReportView data={filteredAndSortedData} />
       ) : activeView === VIEWS.STATS_SUMMARY ? (
         <LeaveSummaryDashboard
-          employeesData={employeesData}
+          employeesData={overriddenEmployeesData}
           selectedYear={selectedYear}
           onYearChange={handleYearChange}
           positionsList={positionsList}
@@ -959,7 +1329,7 @@ function App() {
         />
       ) : activeView === VIEWS.PRINT_SUMMARY ? (
         <IndividualLeaveSummaryReport
-          employeesData={employeesData}
+          employeesData={overriddenEmployeesData}
           selectedYear={selectedYear}
         />
       ) : activeView === VIEWS.LEAVE_SYSTEM ? (
@@ -981,6 +1351,97 @@ function App() {
           onClose={() => setSelectedEmployee(null)}
           onUpdateEmployee={handleUpdateEmployee}
         />
+      )}
+
+      {/* ============================================================ Profile Settings Modal */}
+      {isProfileModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsProfileModalOpen(false)}>
+          <div className="modal-content animate-fade-in" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '420px', padding: '28px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, color: 'var(--primary)' }}>⚙️ ตั้งค่าบัญชีผู้ใช้</h3>
+              <button 
+                onClick={() => setIsProfileModalOpen(false)}
+                style={{
+                  background: 'none', border: 'none', color: 'var(--text-main)', cursor: 'pointer', fontSize: '1.2rem', fontWeight: 'bold'
+                }}
+              >✕</button>
+            </div>
+            
+            <form onSubmit={handleSaveProfileSettings} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)' }}>Username</label>
+                <input
+                  type="text"
+                  required
+                  value={profileUsername}
+                  onChange={(e) => setProfileUsername(e.target.value)}
+                  style={{
+                    padding: '10px 14px', background: 'var(--bg-dark)', border: '1px solid var(--border-color)', borderRadius: '10px', color: 'var(--text-main)', outline: 'none', fontSize: '0.85rem'
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)' }}>รหัสผ่านใหม่</label>
+                <input
+                  type="password"
+                  required
+                  value={profilePassword}
+                  onChange={(e) => setProfilePassword(e.target.value)}
+                  style={{
+                    padding: '10px 14px', background: 'var(--bg-dark)', border: '1px solid var(--border-color)', borderRadius: '10px', color: 'var(--text-main)', outline: 'none', fontSize: '0.85rem'
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)' }}>ชื่อแสดงผล</label>
+                <input
+                  type="text"
+                  required
+                  value={profileDisplayName}
+                  onChange={(e) => setProfileDisplayName(e.target.value)}
+                  style={{
+                    padding: '10px 14px', background: 'var(--bg-dark)', border: '1px solid var(--border-color)', borderRadius: '10px', color: 'var(--text-main)', outline: 'none', fontSize: '0.85rem'
+                  }}
+                />
+              </div>
+
+              {profileError && (
+                <div style={{ color: 'var(--red)', fontSize: '0.82rem', textAlign: 'center' }}>
+                  ⚠️ {profileError}
+                </div>
+              )}
+
+              {profileSuccess && (
+                <div style={{ color: 'var(--green)', fontSize: '0.82rem', textAlign: 'center' }}>
+                  {profileSuccess}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsProfileModalOpen(false)}
+                  style={{
+                    flex: 1, padding: '11px', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border-color)', color: 'var(--text-muted)', borderRadius: '10px', fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem'
+                  }}
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  className="glow-button"
+                  style={{
+                    flex: 2, padding: '11px', justifyContent: 'center', fontSize: '0.85rem'
+                  }}
+                >
+                  💾 บันทึก
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       <footer style={{ marginTop: '60px', textAlign: 'center', padding: '24px 0', borderTop: '1px solid var(--border-color)', fontSize: '0.85rem', color: 'var(--text-muted)' }}>

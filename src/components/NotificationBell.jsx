@@ -6,10 +6,15 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 const getSupabaseCfg = () => {
   try {
     const s = localStorage.getItem('attendance_dashboard_supabase_config');
-    if (!s) return null;
-    const p = JSON.parse(s);
-    return p.url && p.key ? p : null;
-  } catch { return null; }
+    if (s) {
+      const p = JSON.parse(s);
+      if (p.url && p.key) return p;
+    }
+  } catch {}
+  return {
+    url: 'https://vayvssbxuskhyujtbtyw.supabase.co',
+    key: 'sb_publishable_yjyN0-SOXFwTPoOolSmKBw_QDyFe2rZ'
+  };
 };
 
 const timeAgo = (dateStr) => {

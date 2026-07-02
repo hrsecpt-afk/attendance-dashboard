@@ -42,7 +42,8 @@ const getPersonnelCategory = (position) => {
 const DailyReportGenerator = ({ employeesData }) => {
   const [rawDate, setRawDate] = useState(() => {
     const today = new Date();
-    const yyyy = today.getFullYear();
+    let yyyy = today.getFullYear();
+    if (yyyy > 2400) yyyy -= 543;
     const mm = String(today.getMonth() + 1).padStart(2, '0');
     const dd = String(today.getDate()).padStart(2, '0');
     return `${yyyy}-${mm}-${dd}`;
@@ -59,8 +60,8 @@ const DailyReportGenerator = ({ employeesData }) => {
   const [isSigneeModalOpen, setIsSigneeModalOpen] = useState(false);
 
   // Supabase Config States
-  const [supabaseUrl, setSupabaseUrl] = useState('https://obxgfqztkbmoqyicjjuk.supabase.co');
-  const [supabaseKey, setSupabaseKey] = useState('sb_publishable_HzHy2N6TJe9cFPvsRJ7YHw_d3J8-NXn');
+  const [supabaseUrl, setSupabaseUrl] = useState('https://vayvssbxuskhyujtbtyw.supabase.co');
+  const [supabaseKey, setSupabaseKey] = useState('sb_publishable_yjyN0-SOXFwTPoOolSmKBw_QDyFe2rZ');
   const [supabaseTable, setSupabaseTable] = useState('attendance_logs');
   const [supabaseMatchCol, setSupabaseMatchCol] = useState('employee_id');
   const [supabaseDateCol, setSupabaseDateCol] = useState('work_date');
@@ -106,6 +107,18 @@ const DailyReportGenerator = ({ employeesData }) => {
     const initialStatuses = {};
     const initialTimes = {};
     employeesData.forEach(emp => {
+      initialStatuses[emp.id] = 'absent';
+      initialTimes[emp.id] = '-';
+    });
+    setAttendanceStatuses(initialStatuses);
+    setCheckInTimes(initialTimes);
+  };
+
+  // Reset all employees to present with normal check-in times
+  const resetToPresent = () => {
+    const initialStatuses = {};
+    const initialTimes = {};
+    employeesData.forEach(emp => {
       initialStatuses[emp.id] = 'present';
       initialTimes[emp.id] = generateRandomTime('normal');
     });
@@ -125,12 +138,12 @@ const DailyReportGenerator = ({ employeesData }) => {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        setSupabaseUrl(parsed.url || 'https://obxgfqztkbmoqyicjjuk.supabase.co');
-        setSupabaseKey(parsed.key || 'sb_publishable_HzHy2N6TJe9cFPvsRJ7YHw_d3J8-NXn');
+        setSupabaseUrl(parsed.url || 'https://vayvssbxuskhyujtbtyw.supabase.co');
+        setSupabaseKey(parsed.key || 'sb_publishable_yjyN0-SOXFwTPoOolSmKBw_QDyFe2rZ');
         setSupabaseTable(parsed.table || 'attendance_logs');
         setSupabaseMatchCol(parsed.matchCol || 'employee_id');
         setSupabaseDateCol(parsed.dateCol || 'work_date');
-        if ((parsed.url || 'https://obxgfqztkbmoqyicjjuk.supabase.co') && (parsed.key || 'sb_publishable_HzHy2N6TJe9cFPvsRJ7YHw_d3J8-NXn')) {
+        if ((parsed.url || 'https://vayvssbxuskhyujtbtyw.supabase.co') && (parsed.key || 'sb_publishable_yjyN0-SOXFwTPoOolSmKBw_QDyFe2rZ')) {
           setIsSupabaseConnected(true);
         }
       } catch (e) {
@@ -138,8 +151,8 @@ const DailyReportGenerator = ({ employeesData }) => {
       }
     } else {
       // If no local storage config, connect using default user project
-      setSupabaseUrl('https://obxgfqztkbmoqyicjjuk.supabase.co');
-      setSupabaseKey('sb_publishable_HzHy2N6TJe9cFPvsRJ7YHw_d3J8-NXn');
+      setSupabaseUrl('https://vayvssbxuskhyujtbtyw.supabase.co');
+      setSupabaseKey('sb_publishable_yjyN0-SOXFwTPoOolSmKBw_QDyFe2rZ');
       setIsSupabaseConnected(true);
     }
   }, []);
@@ -196,7 +209,7 @@ const DailyReportGenerator = ({ employeesData }) => {
 
     try {
       // 1. Try querying with employees table relation join (using full_name since name doesn't exist)
-      let targetUrl = `${url}/rest/v1/${table}?select=*,employees(id,full_name,employee_code)&${dateCol}=eq.${targetDate}`;
+      let targetUrl = `${url}/rest/v1/${table}?select=*,employees(id,full_name)&${dateCol}=eq.${targetDate}`;
       let response = await fetch(targetUrl, {
         method: 'GET',
         headers: {
@@ -234,9 +247,9 @@ const DailyReportGenerator = ({ employeesData }) => {
       const newStatuses = {};
       const newTimes = {};
 
-      // Initialize all to normal first
+      // Initialize all to absent first (default if no scan log)
       employeesData.forEach(emp => {
-        newStatuses[emp.id] = 'present';
+        newStatuses[emp.id] = 'absent';
         newTimes[emp.id] = '-';
       });
 
@@ -287,38 +300,24 @@ const DailyReportGenerator = ({ employeesData }) => {
       checkInRows.forEach(row => {
         const emp = findLocalEmployee(row);
         if (emp) {
-          let status = 'present';
+          let status = 'absent';
           let timeVal = '-';
           
           const timeStr = extractTime(row);
-          if (timeStr && timeStr !== '-') {
+          if (timeStr && timeStr !== '-' && timeStr !== '00:00:00' && timeStr !== '00:00') {
             timeVal = timeStr;
-            
-            if (row.status !== undefined) {
-              const rawStatus = String(row.status || '').trim().toLowerCase();
-              if (rawStatus === 'late' || rawStatus === 'สาย') status = 'late';
-              else if (rawStatus === 'gov' || rawStatus === 'ไปราชการ') status = 'gov';
-              else if (rawStatus === 'sick' || rawStatus === 'ลาป่วย') status = 'sick';
-              else if (rawStatus === 'ontime' || rawStatus === 'present' || rawStatus === 'มาปกติ') status = 'present';
-            } else {
-              // Auto-classify status by check-in time (> 08:15:00 is late)
-              const timeParts = timeStr.split(':');
-              if (timeParts.length >= 2) {
-                const hour = parseInt(timeParts[0], 10);
-                const minute = parseInt(timeParts[1], 10);
-                if (hour > 8 || (hour === 8 && minute >= 15)) {
-                  status = 'late';
-                }
-              }
-            }
-          } else {
-            if (row.status !== undefined) {
-              const rawStatus = String(row.status || '').trim().toLowerCase();
-              if (rawStatus === 'late' || rawStatus === 'สาย') status = 'late';
-              else if (rawStatus === 'gov' || rawStatus === 'ไปราชการ') status = 'gov';
-              else if (rawStatus === 'sick' || rawStatus === 'ลาป่วย') status = 'sick';
-              else if (rawStatus === 'ontime' || rawStatus === 'present' || rawStatus === 'มาปกติ') status = 'present';
-            }
+            status = 'present';
+          }
+
+          const rawLoc = String(row.location_type || '').trim().toLowerCase();
+          if (rawLoc === 'outside_school' || rawLoc === 'outside') {
+            status = 'gov';
+          } else if (row.status !== undefined) {
+            const rawStatus = String(row.status || '').trim().toLowerCase();
+            if (rawStatus === 'late' || rawStatus === 'สาย') status = 'late';
+            else if (rawStatus === 'gov' || rawStatus === 'ไปราชการ') status = 'gov';
+            else if (rawStatus === 'sick' || rawStatus === 'ลาป่วย') status = 'sick';
+            else if (rawStatus === 'ontime' || rawStatus === 'present' || rawStatus === 'normal' || rawStatus === 'มาปกติ') status = 'present';
           }
 
           newStatuses[emp.id] = status;
@@ -328,6 +327,23 @@ const DailyReportGenerator = ({ employeesData }) => {
 
       setAttendanceStatuses(newStatuses);
       setCheckInTimes(newTimes);
+
+      // Auto-save to daily overrides to sync with the stats and report pages
+      const savedData = localStorage.getItem('attendance_dashboard_daily_overrides') || '{}';
+      try {
+        const overrides = JSON.parse(savedData);
+        overrides[targetDate] = {
+          statuses: newStatuses,
+          times: newTimes,
+          signeePersonnelHead,
+          signeePersonnelStaff,
+          signeeDirector
+        };
+        localStorage.setItem('attendance_dashboard_daily_overrides', JSON.stringify(overrides));
+      } catch (e) {
+        console.error("Auto-save daily overrides failed:", e);
+      }
+
       setApiStatus(`✅ ดึงข้อมูลสำเร็จ: โหลดประวัติพนักงานแล้ว ${checkInRows.length} รายการ`);
     } catch (err) {
       console.error(err);
@@ -373,8 +389,9 @@ const DailyReportGenerator = ({ employeesData }) => {
     }
   }, [rawDate, isSupabaseConnected]);
 
-  // Save manual overrides of daily statuses & times to LocalStorage
-  const handleSaveDailyReport = () => {
+  // Save manual overrides of daily statuses & times to LocalStorage and sync to Supabase
+  const handleSaveDailyReport = async () => {
+    // 1. Save to LocalStorage
     const savedData = localStorage.getItem('attendance_dashboard_daily_overrides') || '{}';
     try {
       const overrides = JSON.parse(savedData);
@@ -390,6 +407,80 @@ const DailyReportGenerator = ({ employeesData }) => {
     } catch (e) {
       console.error(e);
       alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+      return;
+    }
+
+    // 2. Sync to Supabase attendance_logs
+    if (isSupabaseConnected) {
+      setApiStatus('⏳ กำลังซิงค์ข้อมูลลงเวลาไปที่ Supabase...');
+      try {
+        const url = supabaseUrl.trim();
+        const key = supabaseKey.trim();
+        const table = supabaseTable.trim(); // usually 'attendance_logs'
+        
+        // Construct payload for all employees matching the Supabase schema columns
+        const payload = employeesData.map(emp => {
+          const status = attendanceStatuses[emp.id] || 'present';
+          let time = checkInTimes[emp.id] || '-';
+          
+          if (time === '-' || !time.trim()) {
+            time = '00:00:00';
+          } else {
+            // Ensure format HH:mm:ss
+            const parts = time.split(':');
+            if (parts.length === 2) {
+              time = `${time}:00`;
+            }
+          }
+          
+          // Combine rawDate and time to form checked_at timestamp (Thailand is UTC+7)
+          const checkedAt = `${rawDate}T${time}+07:00`;
+          
+          const dbStatus = status === 'late' ? 'late' : 'normal';
+          const locationType = status === 'gov' ? 'outside_school' : 'inside_school';
+          
+          return {
+            employee_id: emp.id,
+            work_date: rawDate,
+            checked_at: checkedAt,
+            check_type: 'check_in',
+            status: dbStatus,
+            location_type: locationType
+          };
+        });
+
+        console.log("PAYLOAD TO SYNC:", payload);
+
+        // Delete existing logs for this date first to avoid duplicates
+        await fetch(`${url}/rest/v1/${table}?work_date=eq.${rawDate}`, {
+          method: 'DELETE',
+          headers: {
+            'apikey': key,
+            'Authorization': `Bearer ${key}`
+          }
+        });
+
+        // Insert new logs
+        const res = await fetch(`${url}/rest/v1/${table}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': key,
+            'Authorization': `Bearer ${key}`
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+          setApiStatus(`✅ บันทึกรายงานและซิงค์ข้อมูลลง Supabase สำเร็จ! (วันที่ ${formattedThaiDate})`);
+        } else {
+          const errMsg = await res.text();
+          throw new Error(errMsg);
+        }
+      } catch (err) {
+        console.error("Failed to sync daily report to Supabase", err);
+        setApiStatus(`⚠️ บันทึกในเครื่องแล้ว แต่ซิงค์ Supabase ล้มเหลว: ${err.message}`);
+      }
     }
   };
 
@@ -452,6 +543,7 @@ const DailyReportGenerator = ({ employeesData }) => {
       let newTime = '-';
       if (status === 'present') newTime = generateRandomTime('normal');
       else if (status === 'late') newTime = generateRandomTime('late');
+      else if (status === 'absent') newTime = '-';
       return {
         ...prev,
         [empId]: newTime
@@ -465,12 +557,30 @@ const DailyReportGenerator = ({ employeesData }) => {
       ...prev,
       [empId]: value
     }));
+
+    const cleanVal = (value || '').trim();
+    if (cleanVal === '' || cleanVal === '-') {
+      setAttendanceStatuses(prev => ({
+        ...prev,
+        [empId]: 'absent'
+      }));
+    } else {
+      setAttendanceStatuses(prev => {
+        if (prev[empId] === 'absent') {
+          return {
+            ...prev,
+            [empId]: 'present'
+          };
+        }
+        return prev;
+      });
+    }
   };
 
   // Reset all employees to default (Present)
   const handleResetAll = () => {
     if (window.confirm('ต้องการรีเซ็ตสถานะทุกคนของวันนี้ให้เป็น "มาปฏิบัติราชการปกติ" หรือไม่?')) {
-      resetLocalData();
+      resetToPresent();
       
       // Clear saved overrides for this day
       const savedData = localStorage.getItem('attendance_dashboard_daily_overrides');
@@ -534,6 +644,7 @@ const DailyReportGenerator = ({ employeesData }) => {
       late: initialGroup(),
       gov: initialGroup(),
       sick: initialGroup(),
+      absent: initialGroup(),
       present: initialGroup()
     };
     
@@ -553,13 +664,16 @@ const DailyReportGenerator = ({ employeesData }) => {
       } else if (status === 'sick') {
         result.sick[cat]++;
         result.sick.all++;
+      } else if (status === 'absent') {
+        result.absent[cat]++;
+        result.absent.all++;
       }
     });
     
-    // Present = Total - Gov - Sick (Late counts as present)
+    // Present = Total - Gov - Sick - Absent (Late counts as present)
     categories.forEach(cat => {
-      result.present[cat] = result.total[cat] - (result.gov[cat] || 0) - (result.sick[cat] || 0);
-      result.present.all = result.total.all - (result.gov.all || 0) - (result.sick.all || 0);
+      result.present[cat] = result.total[cat] - (result.gov[cat] || 0) - (result.sick[cat] || 0) - (result.absent[cat] || 0);
+      result.present.all = result.total.all - (result.gov.all || 0) - (result.sick.all || 0) - (result.absent.all || 0);
     });
     
     return result;
@@ -570,13 +684,15 @@ const DailyReportGenerator = ({ employeesData }) => {
     const lists = {
       late: [],
       gov: [],
-      sick: []
+      sick: [],
+      absent: []
     };
     employeesData.forEach(emp => {
       const status = attendanceStatuses[emp.id] || 'present';
       if (status === 'late') lists.late.push(emp.name);
       else if (status === 'gov') lists.gov.push(emp.name);
       else if (status === 'sick') lists.sick.push(emp.name);
+      else if (status === 'absent') lists.absent.push(emp.name);
     });
     return lists;
   }, [employeesData, attendanceStatuses]);
@@ -763,6 +879,15 @@ const DailyReportGenerator = ({ employeesData }) => {
               <td>${displayVal(stats.sick.ลูกจ้างชั่วคราว)}</td>
               <td class="bold">${displayVal(stats.sick.all)}</td>
             </tr>
+            <tr>
+              <td class="text-left">5. ขาดงาน</td>
+              <td>${displayVal(stats.absent.ข้าราชการครู)}</td>
+              <td>${displayVal(stats.absent.ครูพิเศษ)}</td>
+              <td>${displayVal(stats.absent.เจ้าหน้าที่)}</td>
+              <td>${displayVal(stats.absent.ลูกจ้างประจำ)}</td>
+              <td>${displayVal(stats.absent.ลูกจ้างชั่วคราว)}</td>
+              <td class="bold">${displayVal(stats.absent.all)}</td>
+            </tr>
             <tr class="bold">
               <td class="text-left">มาปฏิบัติราชการทั้งสิ้น</td>
               <td>${displayVal(stats.present.ข้าราชการครู)}</td>
@@ -789,6 +914,10 @@ const DailyReportGenerator = ({ employeesData }) => {
           <div class="list-item" style="margin-top: 6px;">
             <span class="bold">3. ลาป่วย</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
             ${namesList.sick.length > 0 ? namesList.sick.map((name, i) => `${i+1}.${name}`).join(' &nbsp;&nbsp;&nbsp;&nbsp; ') : '-'}
+          </div>
+          <div class="list-item" style="margin-top: 6px;">
+            <span class="bold">4. ขาดงาน</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+            ${namesList.absent.length > 0 ? namesList.absent.map((name, i) => `${i+1}.${name}`).join(' &nbsp;&nbsp;&nbsp;&nbsp; ') : '-'}
           </div>
         </div>
         
@@ -842,6 +971,7 @@ const DailyReportGenerator = ({ employeesData }) => {
       if (status === 'late') return 'สาย';
       if (status === 'gov') return 'ไปราชการ';
       if (status === 'sick') return 'ลาป่วย';
+      if (status === 'absent') return 'ขาดงาน';
       return 'มาปกติ';
     };
 
@@ -1092,6 +1222,26 @@ const DailyReportGenerator = ({ employeesData }) => {
               <span>{isSupabaseConnected ? '🔌 ดึงข้อมูล Supabase' : '🔌 เชื่อมต่อ Supabase'}</span>
               {isSupabaseConnected && <span style={{ width: '8px', height: '8px', background: 'var(--green)', borderRadius: '50%' }}></span>}
             </button>
+            {isSupabaseConnected && (
+              <button
+                onClick={() => setIsSupabaseModalOpen(true)}
+                title="ตั้งค่าการเชื่อมต่อ Supabase"
+                style={{
+                  padding: '10px 12px',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid var(--border-color)',
+                  color: 'var(--text-main)',
+                  borderRadius: '12px',
+                  cursor: 'pointer',
+                  fontSize: '0.92rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                ⚙️
+              </button>
+            )}
             <button
               onClick={() => setIsSigneeModalOpen(true)}
               style={{
@@ -1235,6 +1385,15 @@ const DailyReportGenerator = ({ employeesData }) => {
                 <td style={{ textAlign: 'center' }}>{stats.sick.ลูกจ้างชั่วคราว || '-'}</td>
                 <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{stats.sick.all || '-'}</td>
               </tr>
+              <tr style={{ color: 'var(--red)' }}>
+                <td style={{ fontWeight: '600' }}>5. ขาดงาน</td>
+                <td style={{ textAlign: 'center' }}>{stats.absent.ข้าราชการครู || '-'}</td>
+                <td style={{ textAlign: 'center' }}>{stats.absent.ครูพิเศษ || '-'}</td>
+                <td style={{ textAlign: 'center' }}>{stats.absent.เจ้าหน้าที่ || '-'}</td>
+                <td style={{ textAlign: 'center' }}>{stats.absent.ลูกจ้างประจำ || '-'}</td>
+                <td style={{ textAlign: 'center' }}>{stats.absent.ลูกจ้างชั่วคราว || '-'}</td>
+                <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{stats.absent.all || '-'}</td>
+              </tr>
               <tr style={{ fontWeight: 'bold', background: 'rgba(255,255,255,0.01)', borderTop: '2px solid var(--border-color)' }}>
                 <td>มาปฏิบัติราชการทั้งสิ้น</td>
                 <td style={{ textAlign: 'center', color: 'var(--green)' }}>{stats.present.ข้าราชการครู}</td>
@@ -1274,6 +1433,13 @@ const DailyReportGenerator = ({ employeesData }) => {
               : <span style={{ color: 'var(--text-muted)' }}>- ไม่มีพนักงานลาป่วย -</span>
             }
           </div>
+          <div>
+            <span style={{ fontWeight: 'bold', color: 'var(--red)', marginRight: '10px' }}>4. ขาดงาน:</span>
+            {namesList.absent.length > 0 
+              ? namesList.absent.map((n, i) => <span key={i} style={{ marginRight: '12px' }}>{i + 1}.{n}</span>)
+              : <span style={{ color: 'var(--text-muted)' }}>- ไม่มีพนักงานขาดงาน -</span>
+            }
+          </div>
         </div>
       </div>
 
@@ -1302,7 +1468,7 @@ const DailyReportGenerator = ({ employeesData }) => {
                 <th>ชื่อ - นามสกุล</th>
                 <th>ตำแหน่ง</th>
                 <th style={{ width: '100px', textAlign: 'center' }}>เวลาลงทำงาน</th>
-                <th style={{ width: '380px', textAlign: 'center' }}>บันทึกการปฏิบัติหน้าที่ประจำวัน</th>
+                <th style={{ width: '460px', textAlign: 'center' }}>บันทึกการปฏิบัติหน้าที่ประจำวัน</th>
               </tr>
             </thead>
             <tbody>
@@ -1326,28 +1492,28 @@ const DailyReportGenerator = ({ employeesData }) => {
                         type="text"
                         value={currentCheckIn}
                         onChange={(e) => handleTimeChange(emp.id, e.target.value)}
-                        disabled={currentStatus === 'gov' || currentStatus === 'sick'}
+                        disabled={currentStatus === 'gov' || currentStatus === 'sick' || currentStatus === 'absent'}
                         style={{
                           width: '82px',
                           padding: '6px',
                           textAlign: 'center',
-                          background: currentStatus === 'gov' || currentStatus === 'sick' ? 'transparent' : 'rgba(255,255,255,0.05)',
-                          border: currentStatus === 'gov' || currentStatus === 'sick' ? 'none' : '1px solid var(--border-color)',
+                          background: currentStatus === 'gov' || currentStatus === 'sick' || currentStatus === 'absent' ? 'transparent' : 'rgba(255,255,255,0.05)',
+                          border: currentStatus === 'gov' || currentStatus === 'sick' || currentStatus === 'absent' ? 'none' : '1px solid var(--border-color)',
                           borderRadius: '6px',
-                          color: currentStatus === 'late' ? 'var(--yellow)' : 'var(--text-main)',
+                          color: currentStatus === 'late' ? 'var(--yellow)' : currentStatus === 'absent' ? 'var(--red)' : 'var(--text-main)',
                           fontSize: '0.8rem',
                           fontWeight: 600
                         }}
                       />
                     </td>
                     <td style={{ textAlign: 'center' }}>
-                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                      <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'wrap' }}>
                         
                         {/* Status button normal */}
                         <button
                           onClick={() => handleStatusChange(emp.id, 'present')}
                           style={{
-                            padding: '6px 12px',
+                            padding: '6px 10px',
                             background: currentStatus === 'present' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255,255,255,0.02)',
                             border: `1px solid ${currentStatus === 'present' ? 'var(--green)' : 'var(--border-color)'}`,
                             color: currentStatus === 'present' ? 'var(--green)' : 'var(--text-muted)',
@@ -1365,7 +1531,7 @@ const DailyReportGenerator = ({ employeesData }) => {
                         <button
                           onClick={() => handleStatusChange(emp.id, 'late')}
                           style={{
-                            padding: '6px 12px',
+                            padding: '6px 10px',
                             background: currentStatus === 'late' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(255,255,255,0.02)',
                             border: `1px solid ${currentStatus === 'late' ? 'var(--yellow)' : 'var(--border-color)'}`,
                             color: currentStatus === 'late' ? 'var(--yellow)' : 'var(--text-muted)',
@@ -1383,7 +1549,7 @@ const DailyReportGenerator = ({ employeesData }) => {
                         <button
                           onClick={() => handleStatusChange(emp.id, 'gov')}
                           style={{
-                            padding: '6px 12px',
+                            padding: '6px 10px',
                             background: currentStatus === 'gov' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255,255,255,0.02)',
                             border: `1px solid ${currentStatus === 'gov' ? 'var(--green)' : 'var(--border-color)'}`,
                             color: currentStatus === 'gov' ? 'var(--green)' : 'var(--text-muted)',
@@ -1401,7 +1567,7 @@ const DailyReportGenerator = ({ employeesData }) => {
                         <button
                           onClick={() => handleStatusChange(emp.id, 'sick')}
                           style={{
-                            padding: '6px 12px',
+                            padding: '6px 10px',
                             background: currentStatus === 'sick' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(255,255,255,0.02)',
                             border: `1px solid ${currentStatus === 'sick' ? 'var(--red)' : 'var(--border-color)'}`,
                             color: currentStatus === 'sick' ? 'var(--red)' : 'var(--text-muted)',
@@ -1413,6 +1579,24 @@ const DailyReportGenerator = ({ employeesData }) => {
                           }}
                         >
                           🤕 ลาป่วย
+                        </button>
+
+                        {/* Status button absent */}
+                        <button
+                          onClick={() => handleStatusChange(emp.id, 'absent')}
+                          style={{
+                            padding: '6px 10px',
+                            background: currentStatus === 'absent' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(255,255,255,0.02)',
+                            border: `1px solid ${currentStatus === 'absent' ? 'var(--red)' : 'var(--border-color)'}`,
+                            color: currentStatus === 'absent' ? 'var(--red)' : 'var(--text-muted)',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            transition: 'var(--transition-smooth)'
+                          }}
+                        >
+                          🔴 ขาดงาน
                         </button>
                       </div>
                     </td>

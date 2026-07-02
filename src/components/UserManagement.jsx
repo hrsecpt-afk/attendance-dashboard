@@ -37,6 +37,22 @@ const UserManagement = ({ employeesData = [] }) => {
     setShowForm(true);
   };
 
+  const handleDisplayNameChange = (value) => {
+    setFormDisplayName(value);
+    if (value.trim()) {
+      const clean = (name) => name.replace(/^(นาย|นางสาว|นาง|ดร\.|ครูผู้ช่วย|ครู|ผอ\.|ผู้อำนวยการ)\s*/, '').replace(/\s+/g, '').trim();
+      const targetClean = clean(value);
+      const matched = employeesData.find(emp => clean(emp.name) === targetClean);
+      if (matched) {
+        setFormEmployeeId(String(matched.id));
+      } else {
+        setFormEmployeeId('');
+      }
+    } else {
+      setFormEmployeeId('');
+    }
+  };
+
   const handleSave = (e) => {
     e.preventDefault();
     setFormError('');
@@ -49,10 +65,21 @@ const UserManagement = ({ employeesData = [] }) => {
     );
     if (duplicate) return setFormError('ชื่อผู้ใช้นี้ถูกใช้แล้ว');
 
+    const clean = (name) => name.replace(/^(นาย|นางสาว|นาง|ดร\.|ครูผู้ช่วย|ครู|ผอ\.|ผู้อำนวยการ)\s*/, '').replace(/\s+/g, '').trim();
+    const targetClean = clean(formDisplayName);
+    let linkedEmpId = formEmployeeId ? String(formEmployeeId) : null;
+    
+    if (!linkedEmpId && formDisplayName.trim()) {
+      const matched = employeesData.find(emp => clean(emp.name) === targetClean);
+      if (matched) {
+        linkedEmpId = matched.id;
+      }
+    }
+
     if (editId) {
       updateUsers(users.map(u =>
         u.id === editId
-          ? { ...u, username: formUsername.trim(), password: formPassword.trim(), role: formRole, displayName: formDisplayName.trim() || formUsername.trim(), employeeId: formEmployeeId ? Number(formEmployeeId) : null }
+          ? { ...u, username: formUsername.trim(), password: formPassword.trim(), role: formRole, displayName: formDisplayName.trim() || formUsername.trim(), employeeId: linkedEmpId }
           : u
       ));
     } else {
@@ -62,7 +89,7 @@ const UserManagement = ({ employeesData = [] }) => {
         password: formPassword.trim(),
         role: formRole,
         displayName: formDisplayName.trim() || formUsername.trim(),
-        employeeId: formEmployeeId ? Number(formEmployeeId) : null,
+        employeeId: linkedEmpId,
       };
       updateUsers([...users, newUser]);
     }
@@ -142,7 +169,7 @@ const UserManagement = ({ employeesData = [] }) => {
             </div>
             <div>
               <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, display: 'block', marginBottom: '5px' }}>ชื่อแสดง</label>
-              {input(formDisplayName, setFormDisplayName, 'นายสมชาย ใจดี')}
+              {input(formDisplayName, handleDisplayNameChange, 'นายสมชาย ใจดี')}
             </div>
             <div>
               <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, display: 'block', marginBottom: '5px' }}>บทบาท</label>

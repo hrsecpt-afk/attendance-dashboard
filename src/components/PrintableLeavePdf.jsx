@@ -95,12 +95,12 @@ const PrintableLeavePdf = ({ request, onClose }) => {
             ตำแหน่ง <span style={{ borderBottom: '1px dotted #000', minWidth: '120px', display: 'inline-block', textAlign: 'center' }}>{request.position || 'พนักงาน'}</span> 
             สังกัด <span style={{ borderBottom: '1px dotted #000', minWidth: '220px', display: 'inline-block', textAlign: 'center' }}>ศูนย์การศึกษาพิเศษ ประจำจังหวัดปทุมธานี สำนักบริหารงานการศึกษาพิเศษ</span>
             <br />
-            มีวันลาพักผ่อนสะสม <span style={{ borderBottom: '1px dotted #000', minWidth: '40px', display: 'inline-block', textAlign: 'center', fontWeight: 'bold' }}>{request.vacation_accumulated || 0}</span> วันทำการ 
-            มีสิทธิลาพักผ่อนประจำปีนี้อีก <span style={{ borderBottom: '1px dotted #000', minWidth: '40px', display: 'inline-block', textAlign: 'center', fontWeight: 'bold' }}>{request.vacation_quota_current_year || 10}</span> วันทำการ 
-            รวมเป็น <span style={{ borderBottom: '1px dotted #000', minWidth: '40px', display: 'inline-block', textAlign: 'center', fontWeight: 'bold' }}>{request.vacation_quota_total || 10}</span> วันทำการ
+            มีวันลาพักผ่อนสะสมปี 2568 <span style={{ borderBottom: '1px dotted #000', minWidth: '40px', display: 'inline-block', textAlign: 'center', fontWeight: 'bold' }}>{request.vacation_accumulated || 0}</span> วันทำการ 
+            มีสิทธิ์วันลาพักผ่อนปี 2569 <span style={{ borderBottom: '1px dotted #000', minWidth: '40px', display: 'inline-block', textAlign: 'center', fontWeight: 'bold' }}>{request.vacation_quota_current_year || 10}</span> วันทำการ 
+            รวมวันลาพักผ่อนทั้งหมด <span style={{ borderBottom: '1px dotted #000', minWidth: '40px', display: 'inline-block', textAlign: 'center', fontWeight: 'bold' }}>{request.vacation_quota_total || 10}</span> วันทำการ
             <br />
             ลาพักผ่อนมาแล้ว <span style={{ borderBottom: '1px dotted #000', minWidth: '40px', display: 'inline-block', textAlign: 'center', fontWeight: 'bold' }}>{request.vacation_taken || 0}</span> วันทำการ 
-            คงเหลือสิทธิการลาพักผ่อนประจำปีนี้อีก <span style={{ borderBottom: '1px dotted #000', minWidth: '40px', display: 'inline-block', textAlign: 'center', fontWeight: 'bold' }}>{request.vacation_remaining || 0}</span> วันทำการ
+            สิทธิ์วันลาพักผ่อนคงเหลือปี 2569 <span style={{ borderBottom: '1px dotted #000', minWidth: '40px', display: 'inline-block', textAlign: 'center', fontWeight: 'bold' }}>{request.vacation_remaining || 0}</span> วันทำการ
             <br />
             ขอลาพักผ่อนตั้งแต่วันที่ <span style={{ borderBottom: '1px dotted #000', minWidth: '35px', display: 'inline-block', textAlign: 'center' }}>{startDateThai.day}</span> 
             เดือน <span style={{ borderBottom: '1px dotted #000', minWidth: '70px', display: 'inline-block', textAlign: 'center' }}>{startDateThai.month}</span> 

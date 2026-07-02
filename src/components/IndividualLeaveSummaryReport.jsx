@@ -72,8 +72,22 @@ export default function IndividualLeaveSummaryReport({
   const [reportType, setReportType] = useState('daily'); // 'daily' or 'monthly'
   
   // Daily Date Range states
-  const [startDate, setStartDate] = useState('2026-04-01');
-  const [endDate, setEndDate] = useState('2026-06-26');
+  const [startDate, setStartDate] = useState(() => {
+    const today = new Date();
+    let yyyy = today.getFullYear();
+    if (yyyy > 2400) yyyy -= 543;
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  });
+  const [endDate, setEndDate] = useState(() => {
+    const today = new Date();
+    let yyyy = today.getFullYear();
+    if (yyyy > 2400) yyyy -= 543;
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  });
 
   // Monthly Range states
   const [startMonthIdx, setStartMonthIdx] = useState(6); // Default: April (index 6)
@@ -82,7 +96,7 @@ export default function IndividualLeaveSummaryReport({
 
   // Column checkboxes
   const [checkedCats, setCheckedCats] = useState({
-    absent: false,
+    absent: true,
     sick: true,
     personal: true,
     late: true,
@@ -137,11 +151,18 @@ export default function IndividualLeaveSummaryReport({
   const datesList = useMemo(() => {
     if (reportType !== 'daily' || !startDate || !endDate) return [];
     const dates = [];
-    let current = new Date(startDate);
-    const end = new Date(endDate);
+    const [sYear, sMonth, sDay] = startDate.split('-').map(Number);
+    const [eYear, eMonth, eDay] = endDate.split('-').map(Number);
+    
+    let current = new Date(sYear, sMonth - 1, sDay);
+    const end = new Date(eYear, eMonth - 1, eDay);
+    
     let safety = 0;
     while (current <= end && safety < 1000) {
-      dates.push(current.toISOString().slice(0, 10));
+      const y = current.getFullYear();
+      const m = String(current.getMonth() + 1).padStart(2, '0');
+      const d = String(current.getDate()).padStart(2, '0');
+      dates.push(`${y}-${m}-${d}`);
       current.setDate(current.getDate() + 1);
       safety++;
     }
@@ -178,7 +199,7 @@ export default function IndividualLeaveSummaryReport({
                 if (status === cat.key) {
                   catDays += cat.hasDays ? 1 : 0;
                   catCount += cat.hasCount ? 1 : 0;
-                } else if (cat.key === 'work' && (status === 'gov' || status === 'work')) {
+                } else if (cat.key === 'outOfArea' && (status === 'gov' || status === 'work')) {
                   catDays += 1;
                   catCount += 1;
                 }

@@ -428,6 +428,11 @@ const DutyOutsideSystem = ({ employeesData, setEmployeesData }) => {
           isConnected = true;
         }
       }
+      if (!currentUrl || !currentKey) {
+        currentUrl = 'https://vayvssbxuskhyujtbtyw.supabase.co';
+        currentKey = 'sb_publishable_yjyN0-SOXFwTPoOolSmKBw_QDyFe2rZ';
+        isConnected = true;
+      }
       if (isConnected && currentUrl && currentKey) {
         const res = await fetch(`${currentUrl}/rest/v1/duty_requests?select=*&order=created_at.desc`, {
           headers: { apikey: currentKey, Authorization: `Bearer ${currentKey}` }
@@ -446,9 +451,22 @@ const DutyOutsideSystem = ({ employeesData, setEmployeesData }) => {
   // ── Init ────────────────────────────────────────────────────────────────
   useEffect(() => {
     const saved = localStorage.getItem('attendance_dashboard_supabase_config');
+    let config = { url: '', key: '' };
     if (saved) {
-      try { const p = JSON.parse(saved); if (p.url && p.key) { setSupabaseUrl(p.url); setSupabaseKey(p.key); setSupabaseConnected(true); } } catch {}
+      try {
+        const p = JSON.parse(saved);
+        if (p.url && p.key) config = p;
+      } catch {}
     }
+    if (!config.url || !config.key) {
+      config = {
+        url: 'https://vayvssbxuskhyujtbtyw.supabase.co',
+        key: 'sb_publishable_yjyN0-SOXFwTPoOolSmKBw_QDyFe2rZ'
+      };
+    }
+    setSupabaseUrl(config.url);
+    setSupabaseKey(config.key);
+    setSupabaseConnected(true);
     setTelegramToken(localStorage.getItem('leave_telegram_bot_token') || '8647599232:AAGPfSI1h92Kd_Rqhwcza7qZZ-3-KP0yFrE');
     setTelegramChatId(localStorage.getItem('leave_telegram_chat_id') || '-5598882879');
     loadDatabase();
@@ -697,8 +715,7 @@ const DutyOutsideSystem = ({ employeesData, setEmployeesData }) => {
           },
           body: JSON.stringify({
             status: newStatus,
-            director_comment: directorComment.trim(),
-            approved_at: new Date().toISOString()
+            director_comment: directorComment.trim()
           })
         });
         if (!res.ok) throw new Error(await res.text());

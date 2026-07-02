@@ -18,20 +18,30 @@ const safeAlert = (msg) => {
 
 const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
   const { currentUser } = useAuth();
-  // Core states
   const [role, setRole] = useState(() => {
-    // If logged in user is teacher, lock role to requester
+    // Lock or set default role based on current user session role
     try {
       const saved = sessionStorage.getItem('attendance_current_session');
       if (saved) {
         const u = JSON.parse(saved);
         if (u.role === 'user') return 'requester';
         if (u.role === 'director') return 'director';
+        if (u.role === 'admin') return 'admin';
       }
     } catch {}
     return 'requester';
   }); // requester, director, admin
-  const [activeTab, setActiveTab] = useState('form'); // form, history, dashboard, balances, settings
+  const [activeTab, setActiveTab] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('attendance_current_session');
+      if (saved) {
+        const u = JSON.parse(saved);
+        if (u.role === 'director') return 'history';
+        if (u.role === 'admin') return 'balances';
+      }
+    } catch {}
+    return 'form';
+  }); // form, history, dashboard, balances, settings
   const [loading, setLoading] = useState(false);
   const [requests, setRequests] = useState([]);
   const [balances, setBalances] = useState({});
@@ -384,16 +394,22 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
   useEffect(() => {
     // 1. Load Supabase credentials
     const savedSupabase = localStorage.getItem('attendance_dashboard_supabase_config');
+    let config = { url: '', key: '' };
     if (savedSupabase) {
       try {
         const parsed = JSON.parse(savedSupabase);
-        if (parsed.url && parsed.key) {
-          setSupabaseUrl(parsed.url);
-          setSupabaseKey(parsed.key);
-          setSupabaseConnected(true);
-        }
+        if (parsed.url && parsed.key) config = parsed;
       } catch (e) {}
     }
+    if (!config.url || !config.key) {
+      config = {
+        url: 'https://vayvssbxuskhyujtbtyw.supabase.co',
+        key: 'sb_publishable_yjyN0-SOXFwTPoOolSmKBw_QDyFe2rZ'
+      };
+    }
+    setSupabaseUrl(config.url);
+    setSupabaseKey(config.key);
+    setSupabaseConnected(true);
 
     // 2. Load Telegram configurations
     const savedTelegramToken = localStorage.getItem('leave_telegram_bot_token') || '8647599232:AAGPfSI1h92Kd_Rqhwcza7qZZ-3-KP0yFrE';
@@ -1341,9 +1357,63 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
                 marginTop: '4px'
               }}>
                 <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--cyan)', margin: '0 0 12px 0' }}>🌴 ประวัติสิทธิ์วันลาพักผ่อน</h4>
+                
+                {/* Quick preset buttons for Civil Servant and Govt Employee */}
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '14px', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>⚡ โควตาด่วน:</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setVacationAccumulated(20);
+                      setVacationQuotaCurrentYear(10);
+                      setVacationQuotaTotal(30);
+                      setVacationRemaining(30 - parseFloat(vacationTaken || 0) - calculatedDaysCount);
+                    }}
+                    style={{
+                      padding: '6px 12px',
+                      background: 'rgba(139, 92, 246, 0.08)',
+                      border: '1px solid rgba(139, 92, 246, 0.25)',
+                      color: 'var(--primary)',
+                      borderRadius: '8px',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={e => e.target.style.background = 'rgba(139, 92, 246, 0.15)'}
+                    onMouseLeave={e => e.target.style.background = 'rgba(139, 92, 246, 0.08)'}
+                  >
+                    🎖️ ข้าราชการ (สะสมปี 68: 20 วัน + สิทธิ์ปี 69: 10 วัน)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setVacationAccumulated(5);
+                      setVacationQuotaCurrentYear(10);
+                      setVacationQuotaTotal(15);
+                      setVacationRemaining(15 - parseFloat(vacationTaken || 0) - calculatedDaysCount);
+                    }}
+                    style={{
+                      padding: '6px 12px',
+                      background: 'rgba(6, 182, 212, 0.08)',
+                      border: '1px solid rgba(6, 182, 212, 0.25)',
+                      color: 'var(--cyan)',
+                      borderRadius: '8px',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={e => e.target.style.background = 'rgba(6, 182, 212, 0.15)'}
+                    onMouseLeave={e => e.target.style.background = 'rgba(6, 182, 212, 0.08)'}
+                  >
+                    💼 พนักงานราชการ (สะสมปี 68: 5 วัน + สิทธิ์ปี 69: 10 วัน)
+                  </button>
+                </div>
+
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '12px' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>วันลาพักผ่อนสะสม</label>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>วันลาพักผ่อนสะสมปี 68</label>
                     <input
                       type="number"
                       value={vacationAccumulated}
@@ -1357,7 +1427,7 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
                     />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>สิทธิลาปีนี้อีก</label>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>สิทธิ์วันลาพักผ่อนปี 69</label>
                     <input
                       type="number"
                       value={vacationQuotaCurrentYear}
@@ -1371,7 +1441,7 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
                     />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>รวม (วันทำการ)</label>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>รวมวันลาพักผ่อนทั้งหมด</label>
                     <div style={{ padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'rgba(0,0,0,0.15)', color: 'var(--text-main)', fontSize: '0.82rem', fontWeight: 'bold', textAlign: 'center' }}>
                       {parseFloat(vacationAccumulated || 0) + parseFloat(vacationQuotaCurrentYear || 0)}
                     </div>
@@ -1391,7 +1461,7 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
                     />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>คงเหลือสิทธิปีนี้อีก</label>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>สิทธิ์วันลาพักผ่อนคงเหลือปี 69</label>
                     <div style={{ padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'rgba(0,0,0,0.15)', color: 'var(--green)', fontSize: '0.82rem', fontWeight: 'bold', textAlign: 'center' }}>
                       {(parseFloat(vacationAccumulated || 0) + parseFloat(vacationQuotaCurrentYear || 0)) - parseFloat(vacationTaken || 0) - calculatedDaysCount}
                     </div>
