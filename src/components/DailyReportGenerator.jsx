@@ -1479,12 +1479,12 @@ const DailyReportGenerator = ({ employeesData }) => {
                 
                 return (
                   <tr key={emp.id} style={{ cursor: 'default' }}>
-                    <td style={{ textAlign: 'center', fontWeight: 'bold', color: 'var(--text-muted)' }}>{emp.id}</td>
+                    <td style={{ textAlign: 'center', fontWeight: 'bold', color: 'var(--text-muted)' }}>{index + 1}</td>
                     <td style={{ fontWeight: '600', color: 'var(--primary)' }}>{emp.name}</td>
                     <td>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                         <span className="badge badge-primary" style={{ fontSize: '0.72rem', width: 'fit-content' }}>{emp.position}</span>
-                        <span className="badge badge-cyan" style={{ fontSize: '0.68rem', width: 'fit-content', opacity: 0.8 }}>📍 {emp.location}</span>
+                        <span className="badge badge-cyan" style={{ fontSize: '0.68rem', width: 'fit-content', opacity: 0.8 }}>📍 {emp.location && emp.location.trim() ? emp.location : 'ศูนย์การศึกษาพิเศษประจำจังหวัดปทุมธานี'}</span>
                       </div>
                     </td>
                     <td style={{ textAlign: 'center' }}>

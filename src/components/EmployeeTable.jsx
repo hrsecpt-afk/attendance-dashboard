@@ -66,7 +66,7 @@ const EmployeeTable = ({ data, onSelectEmployee, onDeleteEmployee }) => {
           <tbody>
             {currentItems.map((employee) => (
               <tr key={employee.id} onClick={() => onSelectEmployee(employee)}>
-                <td style={{ textAlign: 'center', fontWeight: 'bold', color: 'var(--text-muted)' }}>{employee.id}</td>
+                <td style={{ textAlign: 'center', fontWeight: 'bold', color: 'var(--text-muted)' }}>{indexOfFirstItem + currentItems.indexOf(employee) + 1}</td>
                 <td style={{ fontWeight: '600', color: 'var(--primary)' }}>
                   {employee.name}
                 </td>
@@ -82,7 +82,7 @@ const EmployeeTable = ({ data, onSelectEmployee, onDeleteEmployee }) => {
                 </td>
                 <td>
                   <div style={{ fontSize: '0.85rem', fontWeight: 500 }}>
-                    {employee.location}
+                    {employee.location && employee.location.trim() ? employee.location : 'ศูนย์การศึกษาพิเศษประจำจังหวัดปทุมธานี'}
                   </div>
                 </td>
                 <td style={{ textAlign: 'center', color: employee.leaves.sick.days > 0 ? 'var(--cyan)' : 'var(--text-muted)' }}>
