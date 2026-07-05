@@ -271,6 +271,7 @@ const safeAlert = (msg) => {
 function App() {
   const { currentUser, logout, users, updateProfile } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isInitialLoadCompleted, setIsInitialLoadCompleted] = useState(false);
   const [selectedYear, setSelectedYear] = useState('2569');
 
   const [employeesData, setEmployeesData] = useState(() => {
@@ -364,7 +365,7 @@ function App() {
     }
   };
 
-  // Auto-save when employeesData changes
+  // Auto-save and Cloud Sync when employeesData changes
   useEffect(() => {
     try {
       localStorage.setItem(`attendance_dashboard_data_v3_year_${selectedYear}`, JSON.stringify(employeesData));
@@ -374,7 +375,43 @@ function App() {
     } catch (e) {
       console.warn("localStorage.setItem failed for employeesData:", e);
     }
-  }, [employeesData, selectedYear]);
+
+    // Cloud Sync to Supabase (only after initial load has finished)
+    if (!isInitialLoadCompleted) return;
+
+    const syncToCloud = async () => {
+      if (!employeesData || employeesData.length === 0) return;
+      const configKey = 'attendance_dashboard_supabase_config';
+      const savedConfig = localStorage.getItem(configKey);
+      if (!savedConfig) return;
+      try {
+        const cfg = JSON.parse(savedConfig);
+        if (!cfg.url || !cfg.key) return;
+
+        await fetch(`${cfg.url}/rest/v1/employees`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': cfg.key,
+            'Authorization': `Bearer ${cfg.key}`,
+            'Prefer': 'resolution=merge-duplicates'
+          },
+          body: JSON.stringify({
+            id: 999999,
+            full_name: "SYSTEM_EMPLOYEES_DATA",
+            position: "SYSTEM",
+            location: JSON.stringify(employeesData)
+          })
+        });
+        console.log("☁️ Synced employeesData to Supabase Cloud");
+      } catch (err) {
+        console.error("Cloud Sync failed", err);
+      }
+    };
+
+    const timer = setTimeout(syncToCloud, 2000);
+    return () => clearTimeout(timer);
+  }, [employeesData, selectedYear, isInitialLoadCompleted]);
 
   useEffect(() => {
     const configKey = 'attendance_dashboard_supabase_config';
@@ -423,8 +460,44 @@ function App() {
         const empRes = await fetch(`${cfg.url}/rest/v1/employees?select=*`, {
           headers: { 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` }
         });
-        if (!empRes.ok) return;
+        if (!empRes.ok) {
+          setIsInitialLoadCompleted(true);
+          return;
+        }
         let dbEmps = await empRes.json();
+
+        // ─── NEW: Extract Cloud Synced States from Dummy Employee Rows ───
+        const cloudStateEmp = dbEmps.find(e => e.id === 999999);
+        const cloudOverridesEmp = dbEmps.find(e => e.id === 999998);
+
+        // Filter out dummy system rows from standard employee list
+        dbEmps = dbEmps.filter(emp => emp.id !== 999999 && emp.id !== 999998);
+
+        if (cloudStateEmp && cloudStateEmp.location) {
+          try {
+            const parsed = JSON.parse(cloudStateEmp.location);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setEmployeesData(sortEmployeesByUserListOrder(syncEmployeeDetailsWithRaw(parsed)));
+              localStorage.setItem('attendance_dashboard_data_v3_year_2569', JSON.stringify(parsed));
+              localStorage.setItem('attendance_dashboard_data_v3', JSON.stringify(parsed));
+              console.log("☁️ Restored employeesData from Supabase Cloud Sync");
+            }
+          } catch (e) {
+            console.error("Failed to parse Cloud Synced employeesData", e);
+          }
+        }
+
+        if (cloudOverridesEmp && cloudOverridesEmp.location) {
+          try {
+            const parsed = JSON.parse(cloudOverridesEmp.location);
+            if (parsed) {
+              localStorage.setItem('attendance_dashboard_daily_overrides', JSON.stringify(parsed));
+              console.log("☁️ Restored daily_overrides from Supabase Cloud Sync");
+            }
+          } catch (e) {
+            console.error("Failed to parse Cloud Synced daily_overrides", e);
+          }
+        }
         
         // Filter out duplicate employees (วรรณเพ็ญ, ธนัญญา) to keep only the active ones in use
         const duplicateIdsToExclude = new Set([
@@ -539,6 +612,8 @@ function App() {
         }
       } catch (err) {
         console.error("Failed to sync employees from Supabase on mount", err);
+      } finally {
+        setIsInitialLoadCompleted(true);
       }
     };
 

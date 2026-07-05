@@ -59,6 +59,30 @@ const DailyReportGenerator = ({ employeesData }) => {
   const [signeeDirector, setSigneeDirector] = useState('นางสาวภัทรภร หมื่นมะเริง');
   const [isSigneeModalOpen, setIsSigneeModalOpen] = useState(false);
 
+  const syncOverridesToSupabase = async (overrides) => {
+    if (!isSupabaseConnected || !supabaseUrl || !supabaseKey) return;
+    try {
+      await fetch(`${supabaseUrl}/rest/v1/employees`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Prefer': 'resolution=merge-duplicates'
+        },
+        body: JSON.stringify({
+          id: 999998,
+          full_name: "SYSTEM_DAILY_OVERRIDES",
+          position: "SYSTEM",
+          location: JSON.stringify(overrides)
+        })
+      });
+      console.log("☁️ Synced daily overrides to Supabase Cloud");
+    } catch (err) {
+      console.error("Failed to sync daily overrides to cloud", err);
+    }
+  };
+
   // Supabase Config States
   const [supabaseUrl, setSupabaseUrl] = useState('https://vayvssbxuskhyujtbtyw.supabase.co');
   const [supabaseKey, setSupabaseKey] = useState('sb_publishable_yjyN0-SOXFwTPoOolSmKBw_QDyFe2rZ');
@@ -340,6 +364,7 @@ const DailyReportGenerator = ({ employeesData }) => {
           signeeDirector
         };
         localStorage.setItem('attendance_dashboard_daily_overrides', JSON.stringify(overrides));
+        syncOverridesToSupabase(overrides);
       } catch (e) {
         console.error("Auto-save daily overrides failed:", e);
       }
@@ -403,6 +428,7 @@ const DailyReportGenerator = ({ employeesData }) => {
         signeeDirector
       };
       localStorage.setItem('attendance_dashboard_daily_overrides', JSON.stringify(overrides));
+      syncOverridesToSupabase(overrides);
       setApiStatus(`✅ บันทึกรายงานประจำวันที่ ${formattedThaiDate} ลงในบราวเซอร์เรียบร้อยแล้ว!`);
     } catch (e) {
       console.error(e);
@@ -589,6 +615,7 @@ const DailyReportGenerator = ({ employeesData }) => {
           const overrides = JSON.parse(savedData);
           delete overrides[rawDate];
           localStorage.setItem('attendance_dashboard_daily_overrides', JSON.stringify(overrides));
+          syncOverridesToSupabase(overrides);
         } catch (e) {}
       }
       
