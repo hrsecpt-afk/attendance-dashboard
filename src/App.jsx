@@ -270,6 +270,7 @@ const safeAlert = (msg) => {
 
 function App() {
   const { currentUser, logout, users, updateProfile } = useAuth();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [selectedYear, setSelectedYear] = useState('2569');
 
   const [employeesData, setEmployeesData] = useState(() => {
@@ -1062,7 +1063,7 @@ function App() {
   return (
     <div className="dashboard-container">
       {/* ============================================================ Header */}
-      <header className={`dashboard-header animate-fade-in ${activeView === VIEWS.PRINT_SUMMARY ? 'no-print' : ''}`}>
+      <header className={`dashboard-header animate-fade-in ${activeView === VIEWS.PRINT_SUMMARY ? 'no-print' : ''}`} style={{ position: 'relative' }}>
         <div className="title-section">
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '4px' }}>
             <h1 style={{ margin: 0 }}>ระบบรายงานสถิติการปฏิบัติงานและการลา ({activeView === VIEWS.STATS_SUMMARY ? `ปีงบประมาณ ${selectedYear}` : activeMonthLabel})</h1>
@@ -1072,35 +1073,38 @@ function App() {
           </div>
           <p>แดชบอร์ดจำแนกข้อมูล ขาด ลา มาสาย รายบุคคล รายเดือน พร้อมระบบออกรายงาน PDF</p>
         </div>
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <button onClick={handleResetDatabase} style={{ padding: '10px 14px', background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.2)', color: 'var(--red)', borderRadius: '12px', cursor: 'pointer', fontWeight: 600, fontSize: '0.82rem' }}>🔄 รีเซ็ต</button>
-          <button onClick={handlePrintPDF} style={{ padding: '10px 14px', background: 'rgba(159, 122, 234, 0.08)', border: '1px solid rgba(159, 122, 234, 0.2)', color: 'var(--primary)', borderRadius: '12px', cursor: 'pointer', fontWeight: 600, fontSize: '0.82rem' }}>📄 PDF</button>
-          <button onClick={handleExportCSV} style={{ padding: '10px 14px', background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.2)', color: 'var(--green)', borderRadius: '12px', cursor: 'pointer', fontWeight: 600, fontSize: '0.82rem' }}>📥 CSV</button>
-          <button onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} style={{ padding: '10px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', color: 'var(--text-main)', borderRadius: '12px', cursor: 'pointer', fontSize: '1.1rem' }}>
-            {theme === 'dark' ? '☀️' : '🌙'}
-          </button>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           <NotificationBell onNavigate={(view) => setActiveView(view)} />
-          {currentUser && (
-            <button 
-              onClick={() => setIsProfileModalOpen(true)}
-              style={{ 
-                padding: '10px 14px', 
-                background: 'rgba(255, 255, 255, 0.05)', 
-                border: '1px solid var(--border-color)', 
-                color: 'var(--text-main)', 
-                borderRadius: '12px', 
-                cursor: 'pointer', 
-                fontWeight: 600, 
-                fontSize: '0.82rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px'
-              }}
-            >
-              ⚙️ ตั้งค่าบัญชี
+          <button className="mobile-menu-toggle" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>☰</button>
+          <div className={`header-actions ${isMobileMenuOpen ? 'open' : ''}`}>
+            <button onClick={handleResetDatabase} style={{ padding: '10px 14px', background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.2)', color: 'var(--red)', borderRadius: '12px', cursor: 'pointer', fontWeight: 600, fontSize: '0.82rem' }}>🔄 รีเซ็ต</button>
+            <button onClick={handlePrintPDF} style={{ padding: '10px 14px', background: 'rgba(159, 122, 234, 0.08)', border: '1px solid rgba(159, 122, 234, 0.2)', color: 'var(--primary)', borderRadius: '12px', cursor: 'pointer', fontWeight: 600, fontSize: '0.82rem' }}>📄 PDF</button>
+            <button onClick={handleExportCSV} style={{ padding: '10px 14px', background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.2)', color: 'var(--green)', borderRadius: '12px', cursor: 'pointer', fontWeight: 600, fontSize: '0.82rem' }}>📥 CSV</button>
+            <button onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} style={{ padding: '10px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', color: 'var(--text-main)', borderRadius: '12px', cursor: 'pointer', fontSize: '1.1rem' }}>
+              {theme === 'dark' ? '☀️' : '🌙'}
             </button>
-          )}
-          <button onClick={logout} style={{ padding: '10px 16px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: 'var(--red)', borderRadius: '12px', cursor: 'pointer', fontWeight: 600, fontSize: '0.82rem' }}>🚪 Logout</button>
+            {currentUser && (
+              <button 
+                onClick={() => setIsProfileModalOpen(true)}
+                style={{ 
+                  padding: '10px 14px', 
+                  background: 'rgba(255, 255, 255, 0.05)', 
+                  border: '1px solid var(--border-color)', 
+                  color: 'var(--text-main)', 
+                  borderRadius: '12px', 
+                  cursor: 'pointer', 
+                  fontWeight: 600, 
+                  fontSize: '0.82rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                ⚙️ ตั้งค่าบัญชี
+              </button>
+            )}
+            <button onClick={logout} style={{ padding: '10px 16px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: 'var(--red)', borderRadius: '12px', cursor: 'pointer', fontWeight: 600, fontSize: '0.82rem' }}>🚪 Logout</button>
+          </div>
         </div>
       </header>
 {currentUser?.role === 'admin' && <UserManagement employeesData={employeesData} />}
