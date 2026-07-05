@@ -275,26 +275,8 @@ function App() {
   const [selectedYear, setSelectedYear] = useState('2569');
 
   const [employeesData, setEmployeesData] = useState(() => {
-    try {
-      // 1. Try loading selected year data (2569)
-      const savedYear = localStorage.getItem('attendance_dashboard_data_v3_year_2569');
-      if (savedYear) {
-        try {
-          const parsed = JSON.parse(savedYear);
-          return sortEmployeesByUserListOrder(syncEmployeeDetailsWithRaw(parsed));
-        } catch (e) {}
-      }
-      // 2. Try loading legacy data for backward compatibility
-      const savedLegacy = localStorage.getItem('attendance_dashboard_data_v3');
-      if (savedLegacy) {
-        try {
-          const parsed = JSON.parse(savedLegacy);
-          return sortEmployeesByUserListOrder(syncEmployeeDetailsWithRaw(parsed));
-        } catch (e) {}
-      }
-    } catch (err) {
-      console.warn("localStorage access denied or unavailable", err);
-    }
+    // Supabase is the source of truth. This bundled dataset is only a
+    // temporary first-paint fallback while the remote data is loading.
     return sortEmployeesByUserListOrder(migrateToMonthly(attendanceRawData));
   });
 
@@ -367,15 +349,6 @@ function App() {
 
   // Auto-save and Cloud Sync when employeesData changes
   useEffect(() => {
-    try {
-      localStorage.setItem(`attendance_dashboard_data_v3_year_${selectedYear}`, JSON.stringify(employeesData));
-      if (selectedYear === '2569') {
-        localStorage.setItem('attendance_dashboard_data_v3', JSON.stringify(employeesData));
-      }
-    } catch (e) {
-      console.warn("localStorage.setItem failed for employeesData:", e);
-    }
-
     // Cloud Sync to Supabase (only after initial load has finished)
     if (!isInitialLoadCompleted) return;
 
@@ -476,14 +449,14 @@ function App() {
           String(emp.id) !== '99999999-9999-9999-9999-999999999998' && emp.id !== 999998
         );
 
+        let restoredCloudState = false;
         if (cloudStateEmp && cloudStateEmp.location) {
           try {
             const parsed = JSON.parse(cloudStateEmp.location);
             if (Array.isArray(parsed) && parsed.length > 0) {
               setEmployeesData(sortEmployeesByUserListOrder(syncEmployeeDetailsWithRaw(parsed)));
-              localStorage.setItem('attendance_dashboard_data_v3_year_2569', JSON.stringify(parsed));
-              localStorage.setItem('attendance_dashboard_data_v3', JSON.stringify(parsed));
               console.log("☁️ Restored employeesData from Supabase Cloud Sync");
+              restoredCloudState = true;
             }
           } catch (e) {
             console.error("Failed to parse Cloud Synced employeesData", e);
@@ -501,6 +474,8 @@ function App() {
             console.error("Failed to parse Cloud Synced daily_overrides", e);
           }
         }
+
+        if (restoredCloudState) return;
         
         // Filter out duplicate employees (วรรณเพ็ญ, ธนัญญา) to keep only the active ones in use
         const duplicateIdsToExclude = new Set([
@@ -528,55 +503,12 @@ function App() {
         });
 
         if (dbEmps && dbEmps.length > 0) {
-          // ── MERGE: ใช้ข้อมูลจาก localStorage เป็นหลัก (เพื่อรักษาการแก้ไขของผู้ใช้)
-          // แล้วเพิ่มเฉพาะรายชื่อใหม่จาก Supabase ที่ยังไม่มีใน local
-          const localKey = `attendance_dashboard_data_v3_year_2569`;
-          const localRaw = localStorage.getItem(localKey) || localStorage.getItem('attendance_dashboard_data_v3');
-          let localEmployees = [];
-          if (localRaw) {
-            try { localEmployees = JSON.parse(localRaw); } catch (e) {}
-          }
-
-          // กรองข้อมูล local ให้ไม่มีคนซ้ำกันตามชื่อก่อน เพื่อล้างข้อมูลเสียที่มีอยู่เดิม
-          const uniqueLocal = [];
-          const seenNames = new Set();
-          localEmployees.forEach(e => {
-            const cleanName = cleanNameForMatch(e.name);
-            if (cleanName && !seenNames.has(cleanName)) {
-              seenNames.add(cleanName);
-              uniqueLocal.push(e);
-            }
-          });
-          localEmployees = uniqueLocal;
-
-          const localById = {};
-          const localByName = {};
-          localEmployees.forEach(e => { 
-            localById[e.id] = e; 
-            const cleanName = cleanNameForMatch(e.name);
-            if (cleanName) {
-              localByName[cleanName] = e;
-            }
-          });
-
+          // Supabase-only mode: do not read browser-local employee snapshots.
           const mergedData = dbEmps.map(emp => {
             const bal = balMap[emp.id] || {};
             const cleanDbName = cleanNameForMatch(emp.full_name);
 
-            // ถ้ามีข้อมูลใน localStorage ให้ใช้เป็นหลัก (รักษาการแก้ไขของผู้ใช้)
-            // เช็คด้วย ID หรือชื่อ เพื่อรองรับกรณีที่ ID ฝั่ง local เป็น integer แต่ใน Supabase เป็น UUID
-            const localVersion = localById[emp.id] || localByName[cleanDbName];
-            if (localVersion) {
-              return {
-                ...localVersion,
-                id: emp.id, // ใช้ UUID จาก DB เพื่อความเป็นเอกภาพของข้อมูล
-                name: emp.full_name || localVersion.name,
-                position: emp.position || localVersion.position,
-                location: emp.location || localVersion.location
-              };
-            }
-
-            // ถ้าเป็นรายชื่อใหม่จาก Supabase ที่ยังไม่มีใน local → สร้างใหม่
+            // Build the app's monthly leave shape from Supabase rows.
             const leavesByMonth = {
               all: {
                 sick: { count: 0, days: 30 - (bal.sick_remaining ?? 30) },
@@ -634,14 +566,7 @@ function App() {
             };
           });
 
-          // รักษา local employees ที่ไม่มีใน Supabase และชื่อไม่ซ้ำกับใน Supabase
-          const dbIds = new Set(dbEmps.map(e => e.id));
-          const dbNames = new Set(dbEmps.map(e => cleanNameForMatch(e.full_name)));
-          const localOnlyEmps = localEmployees.filter(e => {
-            return !dbIds.has(e.id) && !dbNames.has(cleanNameForMatch(e.name));
-          });
-
-          setEmployeesData(sortEmployeesByUserListOrder([...mergedData, ...localOnlyEmps]));
+          setEmployeesData(sortEmployeesByUserListOrder(mergedData));
         }
       } catch (err) {
         console.error("Failed to sync employees from Supabase on mount", err);
@@ -669,34 +594,7 @@ function App() {
 
   // Synchronize year changes to avoid race conditions
   const handleYearChange = (newYear) => {
-    // Save current state first
-    try {
-      localStorage.setItem(`attendance_dashboard_data_v2_year_${selectedYear}`, JSON.stringify(employeesData));
-      if (selectedYear === '2569') {
-        localStorage.setItem('attendance_dashboard_data_v2', JSON.stringify(employeesData));
-      }
-    } catch (e) {
-      console.warn("localStorage.setItem failed in handleYearChange:", e);
-    }
-
-    // Load new state
-    const key = `attendance_dashboard_data_v2_year_${newYear}`;
-    const saved = localStorage.getItem(key);
-    let loadedData = null;
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        loadedData = syncEmployeeDetailsWithRaw(parsed);
-      } catch (e) {
-        console.error("Failed to parse year data", e);
-      }
-    }
-    if (!loadedData) {
-      loadedData = migrateToMonthly(attendanceRawData);
-    }
-
     setSelectedYear(newYear);
-    setEmployeesData(sortEmployeesByUserListOrder(loadedData));
   };
 
   const positionsList = Array.from(new Set(employeesData.map(emp => emp.position))).filter(Boolean).sort();
