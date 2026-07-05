@@ -1182,7 +1182,7 @@ function App() {
                 ⚙️ ตั้งค่าบัญชี
               </button>
             )}
-            <button onClick={logout} style={{ padding: '10px 16px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: 'var(--red)', borderRadius: '12px', cursor: 'pointer', fontWeight: 600, fontSize: '0.82rem' }}>🚪 Logout</button>
+            <button className="desktop-logout-btn" onClick={logout} style={{ padding: '10px 16px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: 'var(--red)', borderRadius: '12px', cursor: 'pointer', fontWeight: 600, fontSize: '0.82rem' }}>🚪 Logout</button>
           </div>
         </div>
       </header>

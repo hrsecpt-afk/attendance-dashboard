@@ -625,6 +625,12 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     align-items: center;
     gap: 4px;
   }
+
+  /* Avoid a duplicate logout: hide the in-menu one on mobile (the always-visible
+     .mobile-logout-btn covers it). */
+  .desktop-logout-btn {
+    display: none;
+  }
   
   .header-actions {
     position: fixed;
