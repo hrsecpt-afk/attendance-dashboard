@@ -190,16 +190,15 @@ const NotificationBell = ({ onNavigate }) => {
       {open && (
         <div style={{
           position: 'absolute',
-          top: 'calc(100% + 10px)',
-          right: 0,
+          top: '50px',
+          right: '0',
           width: '380px',
-          maxWidth: '90vw',
+          maxHeight: '480px',
           background: 'var(--bg-modal)',
-          backdropFilter: 'var(--glass-blur)',
-          WebkitBackdropFilter: 'var(--glass-blur)',
+          backdropFilter: 'blur(16px)',
           border: '1px solid var(--border-color)',
           borderRadius: '16px',
-          boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
+          boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
           overflow: 'hidden',
           zIndex: 9999,
           display: 'flex',
@@ -211,7 +210,7 @@ const NotificationBell = ({ onNavigate }) => {
             padding: '16px 20px',
             borderBottom: '1px solid var(--border-color)',
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            background: 'rgba(255, 255, 255, 0.02)'
+            background: 'var(--bg-card)'
           }}>
             <div>
               <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-main)' }}>

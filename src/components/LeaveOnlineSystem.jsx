@@ -1830,9 +1830,20 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
       {/* History and Status Tab */}
       {!loading && activeTab === 'history' && (() => {
         const filteredRequests = requests.filter(req => {
-          if (currentUser && currentUser.role === 'user' && currentUser.employeeId) {
-            if (String(req.employee_id) !== String(currentUser.employeeId)) return false;
+          // If the viewer is a normal user (not admin/director), they should only see their own requests
+          if (role === 'user') {
+            const clean = name => name ? name.replace(/^(นาย|นางสาว|นาง|ดร\.|ครูผู้ช่วย|ครู|ผอ\.|ผู้อำนวยการ)\s*/, '').replace(/\s+/g, '').trim().toLowerCase() : '';
+            
+            if (currentUser?.employeeId) {
+              if (String(req.employee_id) !== String(currentUser.employeeId)) return false;
+            } else if (currentUser?.displayName) {
+              // If not linked, allow viewing their display name match OR the currently selected employee in the form (for testing)
+              if (clean(req.employee_name) !== clean(currentUser.displayName) && String(req.employee_id) !== String(selectedEmployeeId)) return false;
+            } else {
+              if (String(req.employee_id) !== String(selectedEmployeeId)) return false;
+            }
           }
+
           if (role === 'director' && req.status !== 'pending') return false;
           if (historySearchName && !req.employee_name?.toLowerCase().includes(historySearchName.toLowerCase())) return false;
           if (historyFilterType !== 'all' && req.leave_type !== historyFilterType) return false;
