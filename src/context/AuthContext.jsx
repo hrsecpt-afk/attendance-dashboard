@@ -45,7 +45,11 @@ export const loadUsers = () => {
 };
 
 export const saveUsers = (users) => {
-  localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
+  try {
+    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
+  } catch (e) {
+    console.warn("saveUsers: localStorage.setItem failed", e);
+  }
 };
 
 export const getSupabaseConfig = () => {
@@ -210,10 +214,14 @@ export const AuthProvider = ({ children }) => {
               const found = mapped.find(u => u.id === session.id);
               if (found) {
                 setCurrentUser(found);
-                sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(found));
+                try {
+                  sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(found));
+                } catch (e) {}
               } else {
                 setCurrentUser(null);
-                sessionStorage.removeItem(SESSION_STORAGE_KEY);
+                try {
+                  sessionStorage.removeItem(SESSION_STORAGE_KEY);
+                } catch (e) {}
               }
             }
           } else {
@@ -296,7 +304,9 @@ export const AuthProvider = ({ children }) => {
     }
     const { password: _pw, ...safeUser } = found;
     setCurrentUser(safeUser);
-    sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(safeUser));
+    try {
+      sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(safeUser));
+    } catch (e) {}
     return true;
   };
 
@@ -335,7 +345,9 @@ export const AuthProvider = ({ children }) => {
       const updatedUser = updatedUsers.find(u => u.id === userId);
       const { password: _pw, ...safeUser } = updatedUser;
       setCurrentUser(safeUser);
-      sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(safeUser));
+      try {
+        sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(safeUser));
+      } catch (e) {}
     }
     await syncToSupabase(oldUsers, updatedUsers);
   };
