@@ -239,7 +239,7 @@ const NotificationBell = ({ onNavigate }) => {
           </div>
 
           {/* Summary chips */}
-          <div style={{ padding: '10px 16px', display: 'flex', gap: '8px', borderBottom: '1px solid rgba(159,122,234,0.15)', backgroundColor: '#05050a' }}>
+          <div style={{ padding: '10px 16px', display: 'flex', gap: '8px', borderBottom: '1px solid rgba(159,122,234,0.15)', background: 'transparent' }}>
             <span style={{
               background: unreadLeave > 0 ? 'rgba(239,68,68,0.12)' : 'rgba(255,255,255,0.04)',
               border: `1px solid ${unreadLeave > 0 ? 'rgba(239,68,68,0.3)' : 'var(--border-color)'}`,
@@ -265,7 +265,7 @@ const NotificationBell = ({ onNavigate }) => {
           </div>
 
           {/* Notification list */}
-          <div style={{ overflowY: 'auto', flex: 1, backgroundColor: '#05050a' }}>
+          <div style={{ overflowY: 'auto', flex: 1, background: 'transparent' }}>
             {loading && (
               <div style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                 ⏳ กำลังโหลดการแจ้งเตือน...
