@@ -683,3 +683,16 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     margin-right: 16px;
   }
 }
+
+/* Form Grids */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 768px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+

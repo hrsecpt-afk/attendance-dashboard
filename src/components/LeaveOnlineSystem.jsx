@@ -1348,7 +1348,7 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
           
           <form onSubmit={handleSubmitLeave} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div className="form-grid">
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px' }}>👤 ชื่อ - นามสกุล ผู้ขอลา</label>
                 <select 
@@ -2023,7 +2023,7 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
             {/* TABLE VIEW */}
             {filteredRequests.length > 0 && historyViewMode === 'table' && (
               <div className="glass-panel" style={{ overflowX: 'auto', padding: 0 }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', textAlign: 'left' }}>
+                <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', textAlign: 'left' }}>
                   <thead>
                     <tr style={{ borderBottom: '1px solid var(--border-color)', background: 'rgba(255,255,255,0.03)' }}>
                       <th style={{ padding: '12px 10px', fontWeight: 700 }}>วันที่ยื่น</th>
@@ -2042,16 +2042,16 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
                       const typeColor = getTypeColor(req.leave_type);
                       return (
                         <tr key={req.id || req.created_at + idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)', verticalAlign: 'middle' }}>
-                          <td style={{ padding: '10px', color: 'var(--text-muted)' }}>{formatDateThai(req.created_at)}</td>
-                          <td style={{ padding: '10px', fontWeight: 600 }}>{req.employee_name}</td>
-                          <td style={{ padding: '10px' }}><span style={{ color: typeColor, fontWeight: 700 }}>{req.leave_type}</span></td>
-                          <td style={{ padding: '10px', whiteSpace: 'nowrap' }}>{formatDateThai(req.start_date)} – {formatDateThai(req.end_date)}</td>
-                          <td style={{ padding: '10px', fontWeight: 'bold', color: typeColor }}>{req.days} วัน</td>
-                          <td style={{ padding: '10px', color: 'var(--text-muted)', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{req.reason || '-'}</td>
-                          <td style={{ padding: '10px' }}>
+                          <td data-label="วันที่ยื่น" style={{ padding: '10px', color: 'var(--text-muted)' }}>{formatDateThai(req.created_at)}</td>
+                          <td data-label="ชื่อ - สกุล" style={{ padding: '10px', fontWeight: 600 }}>{req.employee_name}</td>
+                          <td data-label="ประเภท" style={{ padding: '10px' }}><span style={{ color: typeColor, fontWeight: 700 }}>{req.leave_type}</span></td>
+                          <td data-label="วันที่ขอลา" style={{ padding: '10px', whiteSpace: 'nowrap' }}>{formatDateThai(req.start_date)} – {formatDateThai(req.end_date)}</td>
+                          <td data-label="จำนวน" style={{ padding: '10px', fontWeight: 'bold', color: typeColor }}>{req.days} วัน</td>
+                          <td data-label="เหตุผล" style={{ padding: '10px', color: 'var(--text-muted)', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{req.reason || '-'}</td>
+                          <td data-label="สถานะ" style={{ padding: '10px' }}>
                             <span style={{ color: si.color, background: si.bg, border: `1px solid ${si.border}`, padding: '3px 8px', borderRadius: '6px', fontSize: '0.70rem', fontWeight: 700 }}>{si.text}</span>
                           </td>
-                          <td style={{ padding: '10px' }}>
+                          <td data-label="จัดการ" style={{ padding: '10px' }}>
                             <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
                               {role === 'director' && req.status === 'pending' && (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '150px' }}>
@@ -2328,7 +2328,7 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
           )}
 
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', textAlign: 'left' }}>
+            <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', textAlign: 'left' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border-color)', background: 'rgba(255,255,255,0.02)' }}>
                   <th style={{ padding: '10px' }}>ชื่อ - สกุล</th>
@@ -2349,9 +2349,9 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
                   if (isEditingThis) {
                     return (
                       <tr key={emp.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)', background: 'rgba(255, 255, 255, 0.04)' }}>
-                        <td style={{ padding: '10px', fontWeight: 600 }}>{emp.name}</td>
-                        <td style={{ padding: '10px', color: 'var(--text-muted)' }}>{emp.position}</td>
-                        <td style={{ padding: '10px' }}>
+                        <td data-label="ชื่อ - สกุล" style={{ padding: '10px', fontWeight: 600 }}>{emp.name}</td>
+                        <td data-label="ตำแหน่ง" style={{ padding: '10px', color: 'var(--text-muted)' }}>{emp.position}</td>
+                        <td data-label="ลาป่วยคงเหลือ" style={{ padding: '10px' }}>
                           <input 
                             type="number" 
                             value={editForm.sick} 
@@ -2359,7 +2359,7 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
                             style={{ width: '65px', padding: '6px', border: '1px solid var(--border-color)', borderRadius: '6px', background: 'var(--bg-dark)', color: 'var(--text-main)', fontSize: '0.8rem' }}
                           />
                         </td>
-                        <td style={{ padding: '10px' }}>
+                        <td data-label="ลากิจคงเหลือ" style={{ padding: '10px' }}>
                           <input 
                             type="number" 
                             value={editForm.personal} 
@@ -2367,7 +2367,7 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
                             style={{ width: '65px', padding: '6px', border: '1px solid var(--border-color)', borderRadius: '6px', background: 'var(--bg-dark)', color: 'var(--text-main)', fontSize: '0.8rem' }}
                           />
                         </td>
-                        <td style={{ padding: '10px' }}>
+                        <td data-label="ลาคลอดคงเหลือ" style={{ padding: '10px' }}>
                           <input 
                             type="number" 
                             value={editForm.maternity} 
@@ -2375,7 +2375,7 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
                             style={{ width: '65px', padding: '6px', border: '1px solid var(--border-color)', borderRadius: '6px', background: 'var(--bg-dark)', color: 'var(--text-main)', fontSize: '0.8rem' }}
                           />
                         </td>
-                        <td style={{ padding: '10px' }}>
+                        <td data-label="ลาพักผ่อนคงเหลือ" style={{ padding: '10px' }}>
                           <input 
                             type="number" 
                             value={editForm.vacation} 
@@ -2383,7 +2383,7 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
                             style={{ width: '65px', padding: '6px', border: '1px solid var(--border-color)', borderRadius: '6px', background: 'var(--bg-dark)', color: 'var(--text-main)', fontSize: '0.8rem' }}
                           />
                         </td>
-                        <td style={{ padding: '10px' }}>
+                        <td data-label="ลาอุปสมบทคงเหลือ" style={{ padding: '10px' }}>
                           <input 
                             type="number" 
                             value={editForm.ordination} 
@@ -2391,7 +2391,7 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
                             style={{ width: '65px', padding: '6px', border: '1px solid var(--border-color)', borderRadius: '6px', background: 'var(--bg-dark)', color: 'var(--text-main)', fontSize: '0.8rem' }}
                           />
                         </td>
-                        <td style={{ padding: '10px', textAlign: 'center' }}>
+                        <td data-label="การจัดการ" style={{ padding: '10px', textAlign: 'center' }}>
                           <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
                             <button 
                               onClick={() => handleUpdateBalance(emp.id)}
@@ -2431,14 +2431,14 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
 
                   return (
                     <tr key={emp.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
-                      <td style={{ padding: '10px', fontWeight: 600 }}>{emp.name}</td>
-                      <td style={{ padding: '10px', color: 'var(--text-muted)' }}>{emp.position}</td>
-                      <td style={{ padding: '10px', color: 'var(--red)', fontWeight: 'bold' }}>{bal.sick} วัน</td>
-                      <td style={{ padding: '10px', color: 'var(--yellow)', fontWeight: 'bold' }}>{bal.personal} วัน</td>
-                      <td style={{ padding: '10px', color: 'var(--secondary)', fontWeight: 'bold' }}>{bal.maternity} วัน</td>
-                      <td style={{ padding: '10px', color: 'var(--cyan)', fontWeight: 'bold' }}>{bal.vacation} วัน</td>
-                      <td style={{ padding: '10px', color: 'var(--primary)', fontWeight: 'bold' }}>{bal.ordination} วัน</td>
-                      <td style={{ padding: '10px', textAlign: 'center' }}>
+                      <td data-label="ชื่อ - สกุล" style={{ padding: '10px', fontWeight: 600 }}>{emp.name}</td>
+                      <td data-label="ตำแหน่ง" style={{ padding: '10px', color: 'var(--text-muted)' }}>{emp.position}</td>
+                      <td data-label="ลาป่วยคงเหลือ" style={{ padding: '10px', color: 'var(--red)', fontWeight: 'bold' }}>{bal.sick} วัน</td>
+                      <td data-label="ลากิจคงเหลือ" style={{ padding: '10px', color: 'var(--yellow)', fontWeight: 'bold' }}>{bal.personal} วัน</td>
+                      <td data-label="ลาคลอดคงเหลือ" style={{ padding: '10px', color: 'var(--secondary)', fontWeight: 'bold' }}>{bal.maternity} วัน</td>
+                      <td data-label="ลาพักผ่อนคงเหลือ" style={{ padding: '10px', color: 'var(--cyan)', fontWeight: 'bold' }}>{bal.vacation} วัน</td>
+                      <td data-label="ลาอุปสมบทคงเหลือ" style={{ padding: '10px', color: 'var(--primary)', fontWeight: 'bold' }}>{bal.ordination} วัน</td>
+                      <td data-label="การจัดการ" style={{ padding: '10px', textAlign: 'center' }}>
                         <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
                           <button 
                             onClick={() => {
