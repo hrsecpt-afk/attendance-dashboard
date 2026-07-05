@@ -1144,6 +1144,14 @@ function App() {
         </div>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           <NotificationBell onNavigate={(view) => setActiveView(view)} />
+          <button
+            className="mobile-logout-btn"
+            onClick={logout}
+            title="ออกจากระบบ"
+            aria-label="ออกจากระบบ"
+          >
+            🚪 ออก
+          </button>
           <button className="mobile-menu-toggle" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
             {isMobileMenuOpen ? '✕' : '☰'}
           </button>
