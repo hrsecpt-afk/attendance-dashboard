@@ -541,7 +541,7 @@ function App() {
                 sick: { count: 0, days: 30 - (bal.sick_remaining ?? 30) },
                 personal: { count: 0, days: 45 - (bal.personal_remaining ?? 45) },
                 maternity: { count: 0, days: 90 - (bal.maternity_remaining ?? 90) },
-                vacation: { count: 0, days: 10 - (bal.vacation_remaining ?? 10), remaining: bal.vacation_remaining ?? 10 },
+                vacation: { count: 0, days: 30 - (bal.vacation_remaining ?? 30), remaining: bal.vacation_remaining ?? 30 },
                 ordination: { count: 0, days: 120 - (bal.ordination_remaining ?? 120) },
                 absent: 0,
                 wifeAssist: { count: 0, days: 0 },
@@ -564,7 +564,7 @@ function App() {
             months.forEach(m => {
               leavesByMonth[m] = {
                 sick: { count: 0, days: 0 },
-                vacation: { count: 0, days: 0, remaining: bal.vacation_remaining ?? 10 },
+                vacation: { count: 0, days: 0, remaining: bal.vacation_remaining ?? 30 },
                 personal: { count: 0, days: 0 },
                 absent: 0,
                 maternity: { count: 0, days: 0 },
