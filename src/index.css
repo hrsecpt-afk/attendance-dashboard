@@ -641,3 +641,45 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .view-mode-tabs::-webkit-scrollbar {
   display: none;
 }
+
+/* Responsive Data Tables */
+@media (max-width: 768px) {
+  table.responsive-table {
+    display: block;
+    width: 100%;
+  }
+  table.responsive-table thead {
+    display: none;
+  }
+  table.responsive-table tbody,
+  table.responsive-table tr,
+  table.responsive-table td {
+    display: block;
+    width: 100%;
+  }
+  table.responsive-table tr {
+    margin-bottom: 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 12px;
+  }
+  table.responsive-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    text-align: right;
+  }
+  table.responsive-table td:last-child {
+    border-bottom: none;
+  }
+  table.responsive-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--text-muted);
+    text-align: left;
+    margin-right: 16px;
+  }
+}
