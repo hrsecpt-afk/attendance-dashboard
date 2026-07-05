@@ -590,6 +590,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   color: var(--text-main);
   cursor: pointer;
   padding: 8px;
+  position: relative;
+  z-index: 1001;
 }
 
 .header-actions {
@@ -605,20 +607,24 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   }
   
   .header-actions {
-    display: none;
-    flex-direction: column;
-    width: 100%;
-    position: absolute;
-    top: 100%;
-    left: 0;
+    position: fixed;
+    top: 0;
+    right: -300px;
+    width: 250px;
+    height: 100vh;
     background: var(--bg-modal);
-    padding: 16px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    backdrop-filter: var(--glass-blur);
+    flex-direction: column;
+    padding: 70px 20px 20px 20px;
+    box-shadow: -4px 0 20px rgba(0,0,0,0.5);
     z-index: 1000;
+    transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: stretch;
   }
   
   .header-actions.open {
-    display: flex;
+    right: 0;
   }
 }
 

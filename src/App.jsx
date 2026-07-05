@@ -1075,7 +1075,9 @@ function App() {
         </div>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           <NotificationBell onNavigate={(view) => setActiveView(view)} />
-          <button className="mobile-menu-toggle" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>☰</button>
+          <button className="mobile-menu-toggle" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+            {isMobileMenuOpen ? '✕' : '☰'}
+          </button>
           <div className={`header-actions ${isMobileMenuOpen ? 'open' : ''}`}>
             <button onClick={handleResetDatabase} style={{ padding: '10px 14px', background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.2)', color: 'var(--red)', borderRadius: '12px', cursor: 'pointer', fontWeight: 600, fontSize: '0.82rem' }}>🔄 รีเซ็ต</button>
             <button onClick={handlePrintPDF} style={{ padding: '10px 14px', background: 'rgba(159, 122, 234, 0.08)', border: '1px solid rgba(159, 122, 234, 0.2)', color: 'var(--primary)', borderRadius: '12px', cursor: 'pointer', fontWeight: 600, fontSize: '0.82rem' }}>📄 PDF</button>
