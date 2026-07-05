@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import attendanceRawData from './data/attendance.json';
 import OverviewCards from './components/OverviewCards';
 import LeaveCharts from './components/LeaveCharts';
@@ -291,6 +291,9 @@ function App() {
     return VIEWS.DASHBOARD;
   });
   const [activeMonth, setActiveMonth] = useState('all');
+  // Bumped whenever daily_overrides are refreshed from the cloud, to force
+  // views that read them from localStorage to recompute.
+  const [overridesVersion, setOverridesVersion] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPosition, setSelectedPosition] = useState('');
   const [selectedLocation, setSelectedLocation] = useState('');
@@ -418,8 +421,19 @@ function App() {
     }
   }, []);
 
-  // Fetch employees and balances from Supabase on mount to sync local state
+  // Tracks the last cloud snapshot strings we applied, so a refresh that finds
+  // unchanged cloud data can skip redundant re-renders / re-uploads.
+  const lastCloudSnapshotRef = useRef(null);
+  const lastOverridesSnapshotRef = useRef(null);
+
+  // Fetch employees and balances from Supabase on mount AND whenever the tab
+  // becomes visible / focused again, so mobile and desktop stay in sync without
+  // a manual page refresh. We deliberately do NOT poll on an interval: refreshing
+  // only on visibility/focus avoids clobbering edits the user is actively making
+  // (an active tab is already visible, so no refresh fires mid-edit).
   useEffect(() => {
+    let lastFetchTs = 0;
+
     const fetchEmployeesFromSupabase = async () => {
       const configKey = 'attendance_dashboard_supabase_config';
       const saved = localStorage.getItem(configKey);
@@ -451,23 +465,33 @@ function App() {
 
         let restoredCloudState = false;
         if (cloudStateEmp && cloudStateEmp.location) {
-          try {
-            const parsed = JSON.parse(cloudStateEmp.location);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              setEmployeesData(sortEmployeesByUserListOrder(syncEmployeeDetailsWithRaw(parsed)));
-              console.log("☁️ Restored employeesData from Supabase Cloud Sync");
-              restoredCloudState = true;
+          // Skip re-applying if the cloud snapshot is identical to what we last applied.
+          if (cloudStateEmp.location === lastCloudSnapshotRef.current) {
+            restoredCloudState = true;
+          } else {
+            try {
+              const parsed = JSON.parse(cloudStateEmp.location);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                setEmployeesData(sortEmployeesByUserListOrder(syncEmployeeDetailsWithRaw(parsed)));
+                lastCloudSnapshotRef.current = cloudStateEmp.location;
+                console.log("☁️ Restored employeesData from Supabase Cloud Sync");
+                restoredCloudState = true;
+              }
+            } catch (e) {
+              console.error("Failed to parse Cloud Synced employeesData", e);
             }
-          } catch (e) {
-            console.error("Failed to parse Cloud Synced employeesData", e);
           }
         }
 
-        if (cloudOverridesEmp && cloudOverridesEmp.location) {
+        if (cloudOverridesEmp && cloudOverridesEmp.location &&
+            cloudOverridesEmp.location !== lastOverridesSnapshotRef.current) {
           try {
             const parsed = JSON.parse(cloudOverridesEmp.location);
             if (parsed) {
               localStorage.setItem('attendance_dashboard_daily_overrides', JSON.stringify(parsed));
+              lastOverridesSnapshotRef.current = cloudOverridesEmp.location;
+              // Bump version so views that read daily_overrides re-render.
+              setOverridesVersion(v => v + 1);
               console.log("☁️ Restored daily_overrides from Supabase Cloud Sync");
             }
           } catch (e) {
@@ -575,7 +599,26 @@ function App() {
       }
     };
 
+    // Refresh when the tab becomes visible / regains focus, debounced so rapid
+    // focus toggles don't spam the network.
+    const maybeRefresh = () => {
+      if (document.visibilityState !== 'visible') return;
+      const now = Date.now();
+      if (now - lastFetchTs < 3000) return;
+      lastFetchTs = now;
+      fetchEmployeesFromSupabase();
+    };
+
+    // Initial load
+    lastFetchTs = Date.now();
     fetchEmployeesFromSupabase();
+
+    document.addEventListener('visibilitychange', maybeRefresh);
+    window.addEventListener('focus', maybeRefresh);
+    return () => {
+      document.removeEventListener('visibilitychange', maybeRefresh);
+      window.removeEventListener('focus', maybeRefresh);
+    };
   }, []);
 
   useEffect(() => {
@@ -1015,7 +1058,7 @@ function App() {
       console.error("Failed to parse daily overrides in App level", e);
     }
     return cloned;
-  }, [employeesData, selectedYear, activeView]);
+  }, [employeesData, selectedYear, activeView, overridesVersion]);
 
   // Build flat "display" dataset for current active month
   const displayData = overriddenEmployeesData.map(emp => ({
