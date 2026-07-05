@@ -110,7 +110,9 @@ CREATE POLICY "Allow public read/write access" ON public.duty_requests FOR ALL U
 CREATE POLICY "Allow public read/write access" ON public.attendance_logs FOR ALL USING (true) WITH CHECK (true);
 
 -- 6. ตารางบัญชีผู้ใช้งานระบบ (users)
-CREATE TABLE IF NOT EXISTS public.users (
+ 
+ 
+ CREATE TABLE IF NOT EXISTS public.users (
     id BIGINT PRIMARY KEY, -- ใช้ BIGINT รองรับ ID สุ่มแบบ timestamp (Date.now())
     username TEXT UNIQUE NOT NULL,
     password TEXT NOT NULL,
@@ -122,3 +124,15 @@ CREATE TABLE IF NOT EXISTS public.users (
 
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow public read/write access" ON public.users FOR ALL USING (true) WITH CHECK (true);
+
+-- 7. ตารางสถานะรวมของแอป (app_state) — เก็บ JSON blob แบบ key-value
+--    ใช้ซิงค์ข้อมูลข้ามอุปกรณ์: employeesData, daily_overrides, การตั้งค่า, โลโก้
+--    keys ที่ใช้: 'employees_data', 'daily_overrides', 'app_settings', 'app_logo'
+CREATE TABLE IF NOT EXISTS public.app_state (
+    key TEXT PRIMARY KEY,
+    value TEXT,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.app_state ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public read/write access" ON public.app_state FOR ALL USING (true) WITH CHECK (true);

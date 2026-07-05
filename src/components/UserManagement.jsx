@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth, ROLE_LABELS, ROLE_COLORS } from '../context/AuthContext';
+import { pushSettingsToCloud } from '../utils/cloudSettings.js';
 
 const ROLE_OPTIONS = [
   { value: 'user', label: 'ผู้ใช้งาน' },
@@ -42,6 +43,9 @@ const UserManagement = ({ employeesData = [] }) => {
         setLogoBase64(reader.result);
         try {
           localStorage.setItem('app_logo_url', reader.result);
+          // Push to the cloud explicitly so other devices get the new logo,
+          // regardless of whether the localStorage patch fired.
+          pushSettingsToCloud();
           alert('บันทึกโลโก้เรียบร้อยแล้ว');
         } catch (e) {
           alert('ไม่สามารถบันทึกโลโก้ลงเบราว์เซอร์ได้ เนื่องจากหน่วยความจำเต็มหรือถูกปิดกั้น');
@@ -50,12 +54,13 @@ const UserManagement = ({ employeesData = [] }) => {
       reader.readAsDataURL(file);
     }
   };
-  
+
   const handleResetLogo = () => {
     if (window.confirm('คุณแน่ใจหรือไม่ว่าต้องการรีเซ็ตโลโก้กลับเป็นค่าเริ่มต้น?')) {
       setLogoBase64('');
       try {
         localStorage.removeItem('app_logo_url');
+        pushSettingsToCloud();
       } catch (e) {}
     }
   };

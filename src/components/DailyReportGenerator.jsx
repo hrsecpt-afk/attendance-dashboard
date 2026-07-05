@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { isAppleMobile, printHtmlDocument } from '../utils/exportDocument.js';
+import { setAppState } from '../utils/appState.js';
 
 // Helper to classify positions into the template categories
 const getPersonnelCategory = (position) => {
@@ -61,27 +62,8 @@ const DailyReportGenerator = ({ employeesData }) => {
   const [isSigneeModalOpen, setIsSigneeModalOpen] = useState(false);
 
   const syncOverridesToSupabase = async (overrides) => {
-    if (!isSupabaseConnected || !supabaseUrl || !supabaseKey) return;
-    try {
-      await fetch(`${supabaseUrl}/rest/v1/employees`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
-          'Prefer': 'resolution=merge-duplicates'
-        },
-        body: JSON.stringify({
-          id: '99999999-9999-9999-9999-999999999998',
-          full_name: "SYSTEM_DAILY_OVERRIDES",
-          position: "SYSTEM",
-          location: JSON.stringify(overrides)
-        })
-      });
-      console.log("☁️ Synced daily overrides to Supabase Cloud");
-    } catch (err) {
-      console.error("Failed to sync daily overrides to cloud", err);
-    }
+    const ok = await setAppState('daily_overrides', JSON.stringify(overrides));
+    if (ok) console.log("☁️ Synced daily overrides to Supabase Cloud");
   };
 
   // Supabase Config States

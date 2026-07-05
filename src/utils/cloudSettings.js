@@ -3,29 +3,22 @@
 // ----------------------------------------------------------------------------
 // Keeps device-local "settings" (logo, Telegram config, Google Calendar key,
 // notification read-state, holiday cache) in sync across devices by storing
-// them as JSON blobs in dedicated Supabase "system" rows, mirroring the pattern
-// already used for employeesData (…999) and daily_overrides (…998).
+// them in the Supabase `app_state` key-value table (see ./appState.js).
 //
-// Keys are split into buckets by size / change-frequency so that a frequent,
+// Keys are split into two buckets by size / change-frequency so that a frequent,
 // tiny change (e.g. marking a notification read) never re-uploads the large,
 // rarely-changed logo image:
 //
-//   • …997  SYSTEM_APP_SETTINGS – small, frequently-changed settings
-//   • …996  SYSTEM_APP_LOGO     – the (potentially multi-MB) logo image
+//   • app_state['app_settings'] – small, frequently-changed settings
+//   • app_state['app_logo']     – the (potentially multi-MB) logo image
 // ============================================================================
 
-// Fallback config identical to the one App.jsx auto-injects, so settings can be
-// synced even before that effect has run (e.g. on the very first paint).
-const DEFAULT_CONFIG = {
-  url: 'https://vayvssbxuskhyujtbtyw.supabase.co',
-  key: 'sb_publishable_yjyN0-SOXFwTPoOolSmKBw_QDyFe2rZ',
-};
+import { getAppState, setAppState } from './appState.js';
 
-// Each bucket = one Supabase system row holding a JSON blob of its keys.
+// Each bucket = one app_state key holding a JSON blob of its localStorage keys.
 const BUCKETS = [
   {
-    id: '99999999-9999-9999-9999-999999999997',
-    name: 'SYSTEM_APP_SETTINGS',
+    stateKey: 'app_settings',
     keys: [
       'leave_telegram_bot_token', // Telegram notification bot token
       'leave_telegram_chat_id',   // Telegram notification chat id
@@ -35,8 +28,7 @@ const BUCKETS = [
     ],
   },
   {
-    id: '99999999-9999-9999-9999-999999999996',
-    name: 'SYSTEM_APP_LOGO',
+    stateKey: 'app_logo',
     keys: ['app_logo_url'],       // app logo / branding (can be large base64)
   },
 ];
@@ -51,91 +43,49 @@ function bucketForKey(key) {
 // While true, writes performed BY restore itself must not re-trigger a push.
 let suspendSync = false;
 
-function getConfig() {
-  try {
-    const saved = localStorage.getItem('attendance_dashboard_supabase_config');
-    if (saved) {
-      const cfg = JSON.parse(saved);
-      if (cfg && cfg.url && cfg.key) return cfg;
-    }
-  } catch {
-    // fall through to default
-  }
-  return DEFAULT_CONFIG;
-}
-
 // Upload a single bucket's keys as one JSON blob. Absent keys are stored as null
 // so that a reset/removal on one device propagates to the others.
 async function pushBucket(bucket) {
-  const cfg = getConfig();
-  if (!cfg) return;
-  try {
-    const blob = {};
-    bucket.keys.forEach((k) => {
-      const v = localStorage.getItem(k);
-      blob[k] = v == null ? null : v;
-    });
-
-    await fetch(`${cfg.url}/rest/v1/employees`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        apikey: cfg.key,
-        Authorization: `Bearer ${cfg.key}`,
-        Prefer: 'resolution=merge-duplicates',
-      },
-      body: JSON.stringify({
-        id: bucket.id,
-        full_name: bucket.name,
-        position: 'SYSTEM',
-        location: JSON.stringify(blob),
-      }),
-    });
-    console.log(`☁️ Synced ${bucket.name} to Supabase Cloud`);
-  } catch (err) {
-    console.error(`Failed to sync ${bucket.name} to cloud`, err);
-  }
+  const blob = {};
+  bucket.keys.forEach((k) => {
+    const v = localStorage.getItem(k);
+    blob[k] = v == null ? null : v;
+  });
+  const ok = await setAppState(bucket.stateKey, JSON.stringify(blob));
+  if (ok) console.log(`☁️ Synced ${bucket.stateKey} to Supabase Cloud`);
 }
 
 // Download one bucket's blob and apply it to localStorage. Returns true if any
 // value actually changed.
 async function restoreBucket(bucket) {
-  const cfg = getConfig();
-  if (!cfg) return false;
+  const raw = await getAppState(bucket.stateKey);
+  if (!raw) return false;
+
+  let blob;
   try {
-    const res = await fetch(
-      `${cfg.url}/rest/v1/employees?id=eq.${bucket.id}&select=location`,
-      { headers: { apikey: cfg.key, Authorization: `Bearer ${cfg.key}` } }
-    );
-    if (!res.ok) return false;
-
-    const rows = await res.json();
-    if (!rows || !rows.length || !rows[0].location) return false;
-
-    const blob = JSON.parse(rows[0].location);
-    let changed = false;
-
-    suspendSync = true;
-    try {
-      bucket.keys.forEach((k) => {
-        if (!Object.prototype.hasOwnProperty.call(blob, k)) return;
-        const val = blob[k];
-        if (val == null) {
-          if (localStorage.getItem(k) !== null) {
-            try { localStorage.removeItem(k); changed = true; } catch {}
-          }
-        } else if (localStorage.getItem(k) !== val) {
-          try { localStorage.setItem(k, val); changed = true; } catch {}
-        }
-      });
-    } finally {
-      suspendSync = false;
-    }
-    return changed;
-  } catch (err) {
-    console.error(`Failed to restore ${bucket.name} from cloud`, err);
+    blob = JSON.parse(raw);
+  } catch {
     return false;
   }
+
+  let changed = false;
+  suspendSync = true;
+  try {
+    bucket.keys.forEach((k) => {
+      if (!Object.prototype.hasOwnProperty.call(blob, k)) return;
+      const val = blob[k];
+      if (val == null) {
+        if (localStorage.getItem(k) !== null) {
+          try { localStorage.removeItem(k); changed = true; } catch {}
+        }
+      } else if (localStorage.getItem(k) !== val) {
+        try { localStorage.setItem(k, val); changed = true; } catch {}
+      }
+    });
+  } finally {
+    suspendSync = false;
+  }
+  return changed;
 }
 
 // Restore every bucket. Dispatches an `app-settings-restored` event when any
@@ -162,11 +112,11 @@ export function schedulePush(key) {
   if (suspendSync) return;
   const bucket = bucketForKey(key);
   if (!bucket) return;
-  if (pushTimers.has(bucket.id)) clearTimeout(pushTimers.get(bucket.id));
+  if (pushTimers.has(bucket.stateKey)) clearTimeout(pushTimers.get(bucket.stateKey));
   pushTimers.set(
-    bucket.id,
+    bucket.stateKey,
     setTimeout(() => {
-      pushTimers.delete(bucket.id);
+      pushTimers.delete(bucket.stateKey);
       pushBucket(bucket);
     }, 1500)
   );

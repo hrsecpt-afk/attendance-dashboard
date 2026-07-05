@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { restoreSettingsFromCloud } from './utils/cloudSettings.js';
+import { getAppState, setAppState } from './utils/appState.js';
 import attendanceRawData from './data/attendance.json';
 import OverviewCards from './components/OverviewCards';
 import LeaveCharts from './components/LeaveCharts';
@@ -358,31 +359,13 @@ function App() {
 
     const syncToCloud = async () => {
       if (!employeesData || employeesData.length === 0) return;
-      const configKey = 'attendance_dashboard_supabase_config';
-      const savedConfig = localStorage.getItem(configKey);
-      if (!savedConfig) return;
-      try {
-        const cfg = JSON.parse(savedConfig);
-        if (!cfg.url || !cfg.key) return;
-
-        await fetch(`${cfg.url}/rest/v1/employees`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': cfg.key,
-            'Authorization': `Bearer ${cfg.key}`,
-            'Prefer': 'resolution=merge-duplicates'
-          },
-          body: JSON.stringify({
-            id: '99999999-9999-9999-9999-999999999999',
-            full_name: "SYSTEM_EMPLOYEES_DATA",
-            position: "SYSTEM",
-            location: JSON.stringify(employeesData)
-          })
-        });
+      const serialized = JSON.stringify(employeesData);
+      // Skip if this exact snapshot is the one we just restored from the cloud.
+      if (serialized === lastCloudSnapshotRef.current) return;
+      const ok = await setAppState('employees_data', serialized);
+      if (ok) {
+        lastCloudSnapshotRef.current = serialized;
         console.log("☁️ Synced employeesData to Supabase Cloud");
-      } catch (err) {
-        console.error("Cloud Sync failed", err);
       }
     };
 
@@ -454,11 +437,7 @@ function App() {
         }
         let dbEmps = await empRes.json();
 
-        // ─── NEW: Extract Cloud Synced States from Dummy Employee Rows ───
-        const cloudStateEmp = dbEmps.find(e => String(e.id) === '99999999-9999-9999-9999-999999999999' || e.id === 999999);
-        const cloudOverridesEmp = dbEmps.find(e => String(e.id) === '99999999-9999-9999-9999-999999999998' || e.id === 999998);
-
-        // Filter out dummy system rows from standard employee list
+        // Defensive: drop any legacy dummy system rows if they ever got created.
         dbEmps = dbEmps.filter(emp =>
           String(emp.id) !== '99999999-9999-9999-9999-999999999999' && emp.id !== 999999 &&
           String(emp.id) !== '99999999-9999-9999-9999-999999999998' && emp.id !== 999998 &&
@@ -466,39 +445,39 @@ function App() {
           String(emp.id) !== '99999999-9999-9999-9999-999999999996' && emp.id !== 999996
         );
 
+        // ─── Restore cloud-synced app state from the app_state key-value table ───
+        // Daily overrides (independent of employee data).
+        const cloudOverrides = await getAppState('daily_overrides');
+        if (cloudOverrides && cloudOverrides !== lastOverridesSnapshotRef.current) {
+          try {
+            JSON.parse(cloudOverrides); // validate before storing
+            localStorage.setItem('attendance_dashboard_daily_overrides', cloudOverrides);
+            lastOverridesSnapshotRef.current = cloudOverrides;
+            setOverridesVersion(v => v + 1);
+            console.log("☁️ Restored daily_overrides from Supabase Cloud Sync");
+          } catch (e) {
+            console.error("Failed to parse Cloud Synced daily_overrides", e);
+          }
+        }
+
+        // Full employee snapshot, if one has been synced to the cloud.
         let restoredCloudState = false;
-        if (cloudStateEmp && cloudStateEmp.location) {
-          // Skip re-applying if the cloud snapshot is identical to what we last applied.
-          if (cloudStateEmp.location === lastCloudSnapshotRef.current) {
+        const cloudEmployees = await getAppState('employees_data');
+        if (cloudEmployees) {
+          if (cloudEmployees === lastCloudSnapshotRef.current) {
             restoredCloudState = true;
           } else {
             try {
-              const parsed = JSON.parse(cloudStateEmp.location);
+              const parsed = JSON.parse(cloudEmployees);
               if (Array.isArray(parsed) && parsed.length > 0) {
                 setEmployeesData(sortEmployeesByUserListOrder(syncEmployeeDetailsWithRaw(parsed)));
-                lastCloudSnapshotRef.current = cloudStateEmp.location;
+                lastCloudSnapshotRef.current = cloudEmployees;
                 console.log("☁️ Restored employeesData from Supabase Cloud Sync");
                 restoredCloudState = true;
               }
             } catch (e) {
               console.error("Failed to parse Cloud Synced employeesData", e);
             }
-          }
-        }
-
-        if (cloudOverridesEmp && cloudOverridesEmp.location &&
-            cloudOverridesEmp.location !== lastOverridesSnapshotRef.current) {
-          try {
-            const parsed = JSON.parse(cloudOverridesEmp.location);
-            if (parsed) {
-              localStorage.setItem('attendance_dashboard_daily_overrides', JSON.stringify(parsed));
-              lastOverridesSnapshotRef.current = cloudOverridesEmp.location;
-              // Bump version so views that read daily_overrides re-render.
-              setOverridesVersion(v => v + 1);
-              console.log("☁️ Restored daily_overrides from Supabase Cloud Sync");
-            }
-          } catch (e) {
-            console.error("Failed to parse Cloud Synced daily_overrides", e);
           }
         }
 
