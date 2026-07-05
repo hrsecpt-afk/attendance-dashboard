@@ -696,3 +696,17 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   }
 }
 
+.notification-dropdown {
+  width: 380px;
+  max-width: 90vw;
+  right: 0;
+}
+@media (max-width: 768px) {
+  .notification-dropdown {
+    position: fixed !important;
+    top: 70px !important;
+    left: 5vw !important;
+    right: 5vw !important;
+    width: 90vw !important;
+  }
+}

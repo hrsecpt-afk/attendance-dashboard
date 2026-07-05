@@ -188,11 +188,9 @@ const NotificationBell = ({ onNavigate }) => {
 
       {/* ── Dropdown Panel ─── */}
       {open && (
-        <div style={{
+        <div className="notification-dropdown" style={{
           position: 'absolute',
           top: '50px',
-          right: '0',
-          width: '380px',
           maxHeight: '480px',
           background: 'var(--bg-modal)',
           backdropFilter: 'blur(16px)',
