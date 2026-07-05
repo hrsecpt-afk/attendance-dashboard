@@ -33,8 +33,12 @@ const UserManagement = ({ employeesData = [] }) => {
       const reader = new FileReader();
       reader.onloadend = () => {
         setLogoBase64(reader.result);
-        localStorage.setItem('app_logo_url', reader.result);
-        alert('บันทึกโลโก้เรียบร้อยแล้ว');
+        try {
+          localStorage.setItem('app_logo_url', reader.result);
+          alert('บันทึกโลโก้เรียบร้อยแล้ว');
+        } catch (e) {
+          alert('ไม่สามารถบันทึกโลโก้ลงเบราว์เซอร์ได้ เนื่องจากหน่วยความจำเต็มหรือถูกปิดกั้น');
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -43,7 +47,9 @@ const UserManagement = ({ employeesData = [] }) => {
   const handleResetLogo = () => {
     if (window.confirm('คุณแน่ใจหรือไม่ว่าต้องการรีเซ็ตโลโก้กลับเป็นค่าเริ่มต้น?')) {
       setLogoBase64('');
-      localStorage.removeItem('app_logo_url');
+      try {
+        localStorage.removeItem('app_logo_url');
+      } catch (e) {}
     }
   };
 
