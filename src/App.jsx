@@ -397,7 +397,7 @@ function App() {
             'Prefer': 'resolution=merge-duplicates'
           },
           body: JSON.stringify({
-            id: 999999,
+            id: '99999999-9999-9999-9999-999999999999',
             full_name: "SYSTEM_EMPLOYEES_DATA",
             position: "SYSTEM",
             location: JSON.stringify(employeesData)
@@ -467,11 +467,14 @@ function App() {
         let dbEmps = await empRes.json();
 
         // ─── NEW: Extract Cloud Synced States from Dummy Employee Rows ───
-        const cloudStateEmp = dbEmps.find(e => e.id === 999999);
-        const cloudOverridesEmp = dbEmps.find(e => e.id === 999998);
+        const cloudStateEmp = dbEmps.find(e => String(e.id) === '99999999-9999-9999-9999-999999999999' || e.id === 999999);
+        const cloudOverridesEmp = dbEmps.find(e => String(e.id) === '99999999-9999-9999-9999-999999999998' || e.id === 999998);
 
         // Filter out dummy system rows from standard employee list
-        dbEmps = dbEmps.filter(emp => emp.id !== 999999 && emp.id !== 999998);
+        dbEmps = dbEmps.filter(emp => 
+          String(emp.id) !== '99999999-9999-9999-9999-999999999999' && emp.id !== 999999 &&
+          String(emp.id) !== '99999999-9999-9999-9999-999999999998' && emp.id !== 999998
+        );
 
         if (cloudStateEmp && cloudStateEmp.location) {
           try {
@@ -533,16 +536,44 @@ function App() {
           if (localRaw) {
             try { localEmployees = JSON.parse(localRaw); } catch (e) {}
           }
+
+          // กรองข้อมูล local ให้ไม่มีคนซ้ำกันตามชื่อก่อน เพื่อล้างข้อมูลเสียที่มีอยู่เดิม
+          const uniqueLocal = [];
+          const seenNames = new Set();
+          localEmployees.forEach(e => {
+            const cleanName = cleanNameForMatch(e.name);
+            if (cleanName && !seenNames.has(cleanName)) {
+              seenNames.add(cleanName);
+              uniqueLocal.push(e);
+            }
+          });
+          localEmployees = uniqueLocal;
+
           const localById = {};
-          localEmployees.forEach(e => { localById[e.id] = e; });
+          const localByName = {};
+          localEmployees.forEach(e => { 
+            localById[e.id] = e; 
+            const cleanName = cleanNameForMatch(e.name);
+            if (cleanName) {
+              localByName[cleanName] = e;
+            }
+          });
 
           const mergedData = dbEmps.map(emp => {
             const bal = balMap[emp.id] || {};
+            const cleanDbName = cleanNameForMatch(emp.full_name);
 
             // ถ้ามีข้อมูลใน localStorage ให้ใช้เป็นหลัก (รักษาการแก้ไขของผู้ใช้)
-            const localVersion = localById[emp.id];
+            // เช็คด้วย ID หรือชื่อ เพื่อรองรับกรณีที่ ID ฝั่ง local เป็น integer แต่ใน Supabase เป็น UUID
+            const localVersion = localById[emp.id] || localByName[cleanDbName];
             if (localVersion) {
-              return localVersion;
+              return {
+                ...localVersion,
+                id: emp.id, // ใช้ UUID จาก DB เพื่อความเป็นเอกภาพของข้อมูล
+                name: emp.full_name || localVersion.name,
+                position: emp.position || localVersion.position,
+                location: emp.location || localVersion.location
+              };
             }
 
             // ถ้าเป็นรายชื่อใหม่จาก Supabase ที่ยังไม่มีใน local → สร้างใหม่
@@ -591,7 +622,6 @@ function App() {
               };
             });
 
-            const cleanDbName = cleanNameForMatch(emp.full_name);
             const rawEmp = attendanceRawData.find(r => cleanNameForMatch(r.name) === cleanDbName);
 
             return {
@@ -604,9 +634,12 @@ function App() {
             };
           });
 
-          // รักษา local employees ที่ไม่มีใน Supabase (เช่น เพิ่งเพิ่มแต่ยังไม่ sync)
+          // รักษา local employees ที่ไม่มีใน Supabase และชื่อไม่ซ้ำกับใน Supabase
           const dbIds = new Set(dbEmps.map(e => e.id));
-          const localOnlyEmps = localEmployees.filter(e => !dbIds.has(e.id));
+          const dbNames = new Set(dbEmps.map(e => cleanNameForMatch(e.full_name)));
+          const localOnlyEmps = localEmployees.filter(e => {
+            return !dbIds.has(e.id) && !dbNames.has(cleanNameForMatch(e.name));
+          });
 
           setEmployeesData(sortEmployeesByUserListOrder([...mergedData, ...localOnlyEmps]));
         }

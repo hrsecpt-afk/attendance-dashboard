@@ -71,7 +71,7 @@ const DailyReportGenerator = ({ employeesData }) => {
           'Prefer': 'resolution=merge-duplicates'
         },
         body: JSON.stringify({
-          id: 999998,
+          id: '99999999-9999-9999-9999-999999999998',
           full_name: "SYSTEM_DAILY_OVERRIDES",
           position: "SYSTEM",
           location: JSON.stringify(overrides)
