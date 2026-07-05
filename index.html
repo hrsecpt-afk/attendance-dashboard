@@ -5,6 +5,58 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>attendance-dashboard</title>
+    <script>
+      window.onerror = function (message, source, lineno, colno, error) {
+        var div = document.createElement('div');
+        div.style.position = 'fixed';
+        div.style.top = '0';
+        div.style.left = '0';
+        div.style.width = '100%';
+        div.style.zIndex = '999999';
+        div.style.backgroundColor = '#7a0000';
+        div.style.color = '#ffffff';
+        div.style.padding = '20px';
+        div.style.fontFamily = 'monospace';
+        div.style.fontSize = '12px';
+        div.style.wordBreak = 'break-all';
+        div.style.maxHeight = '80vh';
+        div.style.overflowY = 'auto';
+        div.style.boxShadow = '0 10px 30px rgba(0,0,0,0.5)';
+        div.innerHTML = '<h3>💥 App Crashed (Mobile Debugger)</h3>' +
+          '<strong>Error:</strong> ' + message + '<br>' +
+          '<strong>File:</strong> ' + source + '<br>' +
+          '<strong>Line:</strong> ' + lineno + ':' + colno + '<br><br>' +
+          '<strong>Stack Trace:</strong><br>' +
+          '<pre style="white-space: pre-wrap; font-size: 10px; margin-top: 5px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 5px;">' + (error && error.stack ? error.stack : 'No stack trace') + '</pre>';
+        document.body.appendChild(div);
+      };
+      
+      // Also catch unhandled promise rejections
+      window.addEventListener('unhandledrejection', function (event) {
+        var message = event.reason && event.reason.message ? event.reason.message : JSON.stringify(event.reason);
+        var stack = event.reason && event.reason.stack ? event.reason.stack : 'No stack trace';
+        var div = document.createElement('div');
+        div.style.position = 'fixed';
+        div.style.top = '0';
+        div.style.left = '0';
+        div.style.width = '100%';
+        div.style.zIndex = '999999';
+        div.style.backgroundColor = '#7a3e00';
+        div.style.color = '#ffffff';
+        div.style.padding = '20px';
+        div.style.fontFamily = 'monospace';
+        div.style.fontSize = '12px';
+        div.style.wordBreak = 'break-all';
+        div.style.maxHeight = '80vh';
+        div.style.overflowY = 'auto';
+        div.style.boxShadow = '0 10px 30px rgba(0,0,0,0.5)';
+        div.innerHTML = '<h3>💥 Unhandled Rejection (Promise)</h3>' +
+          '<strong>Message:</strong> ' + message + '<br><br>' +
+          '<strong>Stack Trace:</strong><br>' +
+          '<pre style="white-space: pre-wrap; font-size: 10px; margin-top: 5px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 5px;">' + stack + '</pre>';
+        document.body.appendChild(div);
+      });
+    </script>
   </head>
   <body>
     <div id="root"></div>
