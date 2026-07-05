@@ -21,6 +21,32 @@ const UserManagement = ({ employeesData = [] }) => {
   const [formError, setFormError] = useState('');
   const [showPassMap, setShowPassMap] = useState({});
 
+  const [logoBase64, setLogoBase64] = useState(localStorage.getItem('app_logo_url') || '');
+
+  const handleLogoUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        alert('ไฟล์ใหญ่เกินไป กรุณาใช้รูปภาพขนาดไม่เกิน 2MB');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoBase64(reader.result);
+        localStorage.setItem('app_logo_url', reader.result);
+        alert('บันทึกโลโก้เรียบร้อยแล้ว');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+  
+  const handleResetLogo = () => {
+    if (window.confirm('คุณแน่ใจหรือไม่ว่าต้องการรีเซ็ตโลโก้กลับเป็นค่าเริ่มต้น?')) {
+      setLogoBase64('');
+      localStorage.removeItem('app_logo_url');
+    }
+  };
+
   const resetForm = () => {
     setFormUsername(''); setFormPassword(''); setFormRole('user');
     setFormDisplayName(''); setFormEmployeeId(''); setFormError(''); setEditId(null);
@@ -135,7 +161,50 @@ const UserManagement = ({ employeesData = [] }) => {
   );
 
   return (
-    <div style={{ marginTop: '8px' }}>
+    <div className="no-print" style={{ marginTop: '8px' }}>
+      {/* Settings Section (Logo) */}
+      <div className="glass-panel" style={{ padding: '20px', marginBottom: '20px', borderRadius: '14px' }}>
+        <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, marginBottom: '12px', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>
+          🏫 ตั้งค่าโลโก้ระบบ (สำหรับหน้าล็อคอิน)
+        </h3>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+          <div style={{
+            width: '64px', height: '64px', borderRadius: '12px',
+            background: logoBase64 ? 'transparent' : 'linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '1.8rem', overflow: 'hidden'
+          }}>
+            {logoBase64 ? (
+              <img src={logoBase64} alt="App Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              '🏫'
+            )}
+          </div>
+          <div>
+            <label style={{
+              display: 'inline-block',
+              padding: '8px 16px', background: 'var(--primary)', color: '#fff',
+              borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600
+            }}>
+              อัปโหลดโลโก้ (PNG/JPG)
+              <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleLogoUpload} />
+            </label>
+            {logoBase64 && (
+              <button 
+                onClick={handleResetLogo}
+                style={{
+                  marginLeft: '8px', padding: '8px 16px', background: 'rgba(239,68,68,0.1)', color: 'var(--red)',
+                  border: '1px solid rgba(239,68,68,0.3)', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600
+                }}
+              >
+                รีเซ็ต
+              </button>
+            )}
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '6px' }}>แนะนำ: ขนาด 200x200px และไฟล์ไม่เกิน 2MB</div>
+          </div>
+        </div>
+      </div>
+
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
         <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700 }}>👥 จัดการบัญชีผู้ใช้งาน ({users.length} บัญชี)</h3>

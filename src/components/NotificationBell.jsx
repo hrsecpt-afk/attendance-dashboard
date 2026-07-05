@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-
-// ─────────────────────────────────────────────────
+import { useAuth } from '../context/AuthContext';// ─────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────
 const getSupabaseCfg = () => {
@@ -49,8 +48,12 @@ const NotificationBell = ({ onNavigate }) => {
   const [loading, setLoading] = useState(false);
   const panelRef = useRef(null);
 
+  const { currentUser } = useAuth();
+  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'director';
+
   // ── Load notifications ──────────────────────────
   const loadNotifications = useCallback(async () => {
+    if (!currentUser) return;
     setLoading(true);
     const cfg = getSupabaseCfg();
 
@@ -58,37 +61,67 @@ const NotificationBell = ({ onNavigate }) => {
     let dutyItems = [];
 
     if (cfg) {
-      // Fetch pending leave requests from Supabase
-      try {
-        const res = await fetch(`${cfg.url}/rest/v1/leave_requests?status=eq.pending&order=created_at.desc&limit=30`, {
-          headers: { 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` }
-        });
-        if (res.ok) leaveItems = await res.json();
-      } catch (e) { console.error('Notif: leave fetch failed', e); }
+      if (isAdmin) {
+        // Fetch pending requests for admins/directors
+        try {
+          const res = await fetch(`${cfg.url}/rest/v1/leave_requests?status=eq.pending&order=created_at.desc&limit=30`, {
+            headers: { 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` }
+          });
+          if (res.ok) leaveItems = await res.json();
+        } catch (e) { console.error('Notif: leave fetch failed', e); }
 
-      // Fetch pending duty requests from Supabase
-      try {
-        const res = await fetch(`${cfg.url}/rest/v1/duty_requests?status=eq.pending&order=created_at.desc&limit=30`, {
-          headers: { 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` }
-        });
-        if (res.ok) dutyItems = await res.json();
-      } catch (e) { console.error('Notif: duty fetch failed', e); }
+        try {
+          const res = await fetch(`${cfg.url}/rest/v1/duty_requests?status=eq.pending&order=created_at.desc&limit=30`, {
+            headers: { 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` }
+          });
+          if (res.ok) dutyItems = await res.json();
+        } catch (e) { console.error('Notif: duty fetch failed', e); }
+      } else {
+        // Fetch rejected requests for normal users
+        try {
+          const res = await fetch(`${cfg.url}/rest/v1/leave_requests?employee_id=eq.${currentUser.id}&status=eq.rejected&order=created_at.desc&limit=30`, {
+            headers: { 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` }
+          });
+          if (res.ok) leaveItems = await res.json();
+        } catch (e) { console.error('Notif: leave fetch failed', e); }
+
+        try {
+          const res = await fetch(`${cfg.url}/rest/v1/duty_requests?employee_id=eq.${currentUser.id}&status=eq.rejected&order=created_at.desc&limit=30`, {
+            headers: { 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` }
+          });
+          if (res.ok) dutyItems = await res.json();
+        } catch (e) { console.error('Notif: duty fetch failed', e); }
+      }
     } else {
       // Fallback to localStorage
       try {
         const lr = localStorage.getItem('attendance_dashboard_leave_requests') || localStorage.getItem('leave_requests_v2');
-        if (lr) leaveItems = JSON.parse(lr).filter(r => r.status === 'pending');
+        if (lr) {
+          const parsed = JSON.parse(lr);
+          if (isAdmin) {
+            leaveItems = parsed.filter(r => r.status === 'pending');
+          } else {
+            leaveItems = parsed.filter(r => String(r.employee_id) === String(currentUser.id) && r.status === 'rejected');
+          }
+        }
       } catch {}
       try {
         const dr = localStorage.getItem('duty_requests');
-        if (dr) dutyItems = JSON.parse(dr).filter(r => r.status === 'pending');
+        if (dr) {
+          const parsed = JSON.parse(dr);
+          if (isAdmin) {
+            dutyItems = parsed.filter(r => r.status === 'pending');
+          } else {
+            dutyItems = parsed.filter(r => String(r.employee_id) === String(currentUser.id) && r.status === 'rejected');
+          }
+        }
       } catch {}
     }
 
     setLeaveNotifs(leaveItems);
     setDutyNotifs(dutyItems);
     setLoading(false);
-  }, []);
+  }, [isAdmin, currentUser]);
 
   useEffect(() => {
     loadNotifications();
@@ -238,26 +271,26 @@ const NotificationBell = ({ onNavigate }) => {
           {/* Summary chips */}
           <div style={{ padding: '10px 16px', display: 'flex', gap: '8px', borderBottom: '1px solid rgba(159,122,234,0.15)', background: 'transparent' }}>
             <span style={{
-              background: unreadLeave > 0 ? 'rgba(239,68,68,0.12)' : 'rgba(255,255,255,0.04)',
-              border: `1px solid ${unreadLeave > 0 ? 'rgba(239,68,68,0.3)' : 'var(--border-color)'}`,
-              color: unreadLeave > 0 ? 'var(--red)' : 'var(--text-muted)',
+              background: unreadLeave > 0 ? (isAdmin ? 'rgba(239,68,68,0.12)' : 'rgba(245,158,11,0.12)') : 'rgba(255,255,255,0.04)',
+              border: `1px solid ${unreadLeave > 0 ? (isAdmin ? 'rgba(239,68,68,0.3)' : 'rgba(245,158,11,0.3)') : 'var(--border-color)'}`,
+              color: unreadLeave > 0 ? (isAdmin ? 'var(--red)' : 'var(--yellow)') : 'var(--text-muted)',
               borderRadius: '8px', padding: '4px 10px', fontSize: '0.72rem', fontWeight: 700,
               cursor: 'pointer'
             }}
-              onClick={() => { onNavigate && onNavigate('leave_system'); setOpen(false); }}
+              onClick={() => { onNavigate && onNavigate(isAdmin ? 'leave_system' : 'my_dashboard'); setOpen(false); }}
             >
-              📬 ใบลารอ {leaveNotifs.length} รายการ
+              📬 ใบลา{isAdmin ? 'รออนุมัติ' : 'ถูกตีกลับ'} {leaveNotifs.length} รายการ
             </span>
             <span style={{
-              background: unreadDuty > 0 ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.04)',
-              border: `1px solid ${unreadDuty > 0 ? 'rgba(245,158,11,0.3)' : 'var(--border-color)'}`,
-              color: unreadDuty > 0 ? 'var(--yellow)' : 'var(--text-muted)',
+              background: unreadDuty > 0 ? (isAdmin ? 'rgba(239,68,68,0.12)' : 'rgba(245,158,11,0.12)') : 'rgba(255,255,255,0.04)',
+              border: `1px solid ${unreadDuty > 0 ? (isAdmin ? 'rgba(239,68,68,0.3)' : 'rgba(245,158,11,0.3)') : 'var(--border-color)'}`,
+              color: unreadDuty > 0 ? (isAdmin ? 'var(--red)' : 'var(--yellow)') : 'var(--text-muted)',
               borderRadius: '8px', padding: '4px 10px', fontSize: '0.72rem', fontWeight: 700,
               cursor: 'pointer'
             }}
-              onClick={() => { onNavigate && onNavigate('out_of_office'); setOpen(false); }}
+              onClick={() => { onNavigate && onNavigate(isAdmin ? 'out_of_office' : 'my_dashboard'); setOpen(false); }}
             >
-              🚗 ออกนอกพื้นที่รอ {dutyNotifs.length} รายการ
+              🚗 ออกนอกพื้นที่{isAdmin ? 'รออนุมัติ' : 'ถูกตีกลับ'} {dutyNotifs.length} รายการ
             </span>
           </div>
 
@@ -325,13 +358,34 @@ const NotificationBell = ({ onNavigate }) => {
                         : `ออกนอกสถานที่ — ${item.destination || item.objective || '?'}`
                       }
                     </div>
+                    {item.director_comment && item.status === 'rejected' && !isAdmin && (
+                      <div style={{ fontSize: '0.72rem', color: 'var(--red)', background: 'rgba(239,68,68,0.05)', padding: '4px 6px', borderRadius: '4px', border: '1px solid rgba(239,68,68,0.15)', marginTop: '4px' }}>
+                        เหตุผล: {item.director_comment}
+                      </div>
+                    )}
                     <div style={{ display: 'flex', gap: '8px', marginTop: '4px', alignItems: 'center' }}>
-                      <span style={{
-                        background: isLeave ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.1)',
-                        color: isLeave ? 'var(--red)' : 'var(--yellow)',
-                        border: `1px solid ${isLeave ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.2)'}`,
-                        borderRadius: '5px', padding: '1px 6px', fontSize: '0.65rem', fontWeight: 700
-                      }}>⏳ รออนุมัติ</span>
+                      {item.status === 'pending' ? (
+                        <span style={{
+                          background: isLeave ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.1)',
+                          color: isLeave ? 'var(--red)' : 'var(--yellow)',
+                          border: `1px solid ${isLeave ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.2)'}`,
+                          borderRadius: '5px', padding: '1px 6px', fontSize: '0.65rem', fontWeight: 700
+                        }}>⏳ รออนุมัติ</span>
+                      ) : item.status === 'rejected' ? (
+                        <span style={{
+                          background: 'rgba(239,68,68,0.12)',
+                          color: 'var(--red)',
+                          border: '1px solid rgba(239,68,68,0.3)',
+                          borderRadius: '5px', padding: '1px 6px', fontSize: '0.65rem', fontWeight: 700
+                        }}>❌ ไม่อนุมัติ (ตีกลับ)</span>
+                      ) : (
+                        <span style={{
+                          background: 'rgba(16,185,129,0.12)',
+                          color: 'var(--green)',
+                          border: '1px solid rgba(16,185,129,0.3)',
+                          borderRadius: '5px', padding: '1px 6px', fontSize: '0.65rem', fontWeight: 700
+                        }}>✅ อนุมัติแล้ว</span>
+                      )}
                       <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{timeAgo(item.created_at)}</span>
                     </div>
                   </div>

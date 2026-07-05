@@ -51,17 +51,22 @@ const LoginPage = () => {
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <div style={{
             width: '72px', height: '72px', borderRadius: '20px', margin: '0 auto 16px',
-            background: 'linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)',
+            background: localStorage.getItem('app_logo_url') ? 'transparent' : 'linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '2rem', boxShadow: '0 8px 32px rgba(159,122,234,0.35)'
+            fontSize: '2rem', boxShadow: localStorage.getItem('app_logo_url') ? 'none' : '0 8px 32px rgba(159,122,234,0.35)',
+            overflow: 'hidden'
           }}>
-            🏫
+            {localStorage.getItem('app_logo_url') ? (
+              <img src={localStorage.getItem('app_logo_url')} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              '🏫'
+            )}
           </div>
           <h1 style={{ fontSize: '1.35rem', fontWeight: 800, margin: '0 0 6px', color: 'var(--text-main)' }}>
             ระบบบริหารงานบุคคล
           </h1>
           <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: 0 }}>
-            ศูนย์การศึกษาพิเศษประจำจังหวัด
+            ศูนย์การศึกษาพิเศษประจำจังหวัดปทุมธานี
           </p>
         </div>
 
