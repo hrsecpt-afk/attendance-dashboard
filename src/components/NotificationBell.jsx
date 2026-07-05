@@ -150,14 +150,22 @@ const NotificationBell = ({ onNavigate }) => {
     leaveNotifs.forEach(n => newIds.add(`leave_${n.id}`));
     dutyNotifs.forEach(n => newIds.add(`duty_${n.id}`));
     setReadIds(newIds);
-    localStorage.setItem('notif_read_ids', JSON.stringify([...newIds]));
+    try {
+      localStorage.setItem('notif_read_ids', JSON.stringify([...newIds]));
+    } catch (e) {
+      console.warn("NotificationBell: localStorage.setItem failed", e);
+    }
   };
 
   const markRead = (key) => {
     const newIds = new Set(readIds);
     newIds.add(key);
     setReadIds(newIds);
-    localStorage.setItem('notif_read_ids', JSON.stringify([...newIds]));
+    try {
+      localStorage.setItem('notif_read_ids', JSON.stringify([...newIds]));
+    } catch (e) {
+      console.warn("NotificationBell: localStorage.setItem failed", e);
+    }
   };
 
   const handleLeaveClick = (item) => {
