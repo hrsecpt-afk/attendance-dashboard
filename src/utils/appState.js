@@ -15,26 +15,22 @@
 //     on public.app_state for all using (true) with check (true);
 //
 // Keys in use: 'employees_data', 'daily_overrides', 'app_settings', 'app_logo'.
+//
+// IMPORTANT: the app talks to TWO Supabase projects. The `app_state` table
+// lives in the MAIN project (obxgfqztkbmoqyicjjuk). The other project
+// (vayvssbxuskhyujtbtyw, stored in the 'attendance_dashboard_supabase_config'
+// localStorage key) is ONLY a read source for attendance check-in times and
+// must never be written to — so this module deliberately does NOT read that
+// config and always uses the main project below.
 // ============================================================================
 
-// Fallback config identical to the one App.jsx auto-injects, so state can sync
-// even before that effect runs (e.g. on the very first paint / login screen).
-const DEFAULT_CONFIG = {
-  url: 'https://vayvssbxuskhyujtbtyw.supabase.co',
-  key: 'sb_publishable_yjyN0-SOXFwTPoOolSmKBw_QDyFe2rZ',
+const APP_STATE_CONFIG = {
+  url: 'https://obxgfqztkbmoqyicjjuk.supabase.co',
+  key: 'sb_publishable_HzHy2N6TJe9cFPvsRJ7YHw_d3J8-NXn',
 };
 
 function getConfig() {
-  try {
-    const saved = localStorage.getItem('attendance_dashboard_supabase_config');
-    if (saved) {
-      const cfg = JSON.parse(saved);
-      if (cfg && cfg.url && cfg.key) return cfg;
-    }
-  } catch {
-    // fall through to default
-  }
-  return DEFAULT_CONFIG;
+  return APP_STATE_CONFIG;
 }
 
 // Read a single key's stored string value (or null if missing / on error).
@@ -46,7 +42,15 @@ export async function getAppState(key) {
       `${cfg.url}/rest/v1/app_state?key=eq.${encodeURIComponent(key)}&select=value`,
       { headers: { apikey: cfg.key, Authorization: `Bearer ${cfg.key}` } }
     );
-    if (!res.ok) return null;
+    if (!res.ok) {
+      if (res.status === 404) {
+        console.error(
+          `getAppState(${key}) failed: ตาราง app_state ยังไม่ถูกสร้างใน Supabase — ` +
+          'รัน SQL ในไฟล์ supabase_schema.sql (ส่วน app_state) ผ่าน SQL Editor ก่อน'
+        );
+      }
+      return null;
+    }
     const rows = await res.json();
     if (Array.isArray(rows) && rows.length > 0) return rows[0].value ?? null;
     return null;
@@ -71,6 +75,15 @@ export async function setAppState(key, value) {
       },
       body: JSON.stringify({ key, value }),
     });
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      console.error(
+        `setAppState(${key}) failed: HTTP ${res.status}. ` +
+        (res.status === 404
+          ? 'ตาราง app_state ยังไม่ถูกสร้างใน Supabase — รัน SQL ในไฟล์ supabase_schema.sql (ส่วน app_state) ผ่าน SQL Editor ก่อน'
+          : body)
+      );
+    }
     return res.ok;
   } catch (err) {
     console.error(`setAppState(${key}) failed`, err);
