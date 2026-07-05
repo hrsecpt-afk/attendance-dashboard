@@ -240,6 +240,49 @@ const MyDashboard = ({ currentUser, employeesData = [] }) => {
     maternity: { days: 0 }
   };
 
+  // Compute today's true status combining attendance, leave, and duty
+  let computedStatus = todayStatus;
+  let leaveLabel = '';
+  const todayStr = getTodayDateString();
+  const todayTimestamp = new Date(todayStr).getTime();
+  
+  if (computedStatus === 'absent' && !loading && !checkingTodayStatus) {
+    const isDuty = dutyRequests.some(r => (r.status === 'approved' || r.status === 'completed') && r.duty_date === todayStr);
+    const leave = leaveRequests.find(r => {
+      if (r.status !== 'approved') return false;
+      const start = new Date(r.start_date).getTime();
+      const end = new Date(r.end_date).getTime();
+      return todayTimestamp >= start && todayTimestamp <= end;
+    });
+
+    if (isDuty) {
+      computedStatus = 'gov';
+    } else if (leave) {
+      if (leave.leave_type.includes('ป่วย')) {
+        computedStatus = 'sick';
+      } else {
+        computedStatus = 'leave';
+        leaveLabel = leave.leave_type;
+      }
+    } else {
+      // Check if it's weekend or holiday
+      const dow = new Date(todayStr).getDay();
+      if (dow === 0 || dow === 6) {
+        computedStatus = 'holiday';
+        leaveLabel = 'วันหยุดสุดสัปดาห์';
+      } else {
+        try {
+          const holidays = JSON.parse(localStorage.getItem('thai_public_holidays') || '[]');
+          const hol = holidays.find(h => h.date === todayStr);
+          if (hol) {
+            computedStatus = 'holiday';
+            leaveLabel = hol.name;
+          }
+        } catch {}
+      }
+    }
+  }
+
   return (
     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       
@@ -309,28 +352,34 @@ const MyDashboard = ({ currentUser, employeesData = [] }) => {
             width: '56px',
             height: '56px',
             borderRadius: '16px',
-            background: todayStatus === 'present' ? 'rgba(16, 185, 129, 0.12)' :
-                        todayStatus === 'late' ? 'rgba(245, 158, 11, 0.12)' :
-                        todayStatus === 'gov' ? 'rgba(6, 182, 212, 0.12)' :
-                        todayStatus === 'sick' ? 'rgba(239, 68, 68, 0.12)' :
+            background: computedStatus === 'present' ? 'rgba(16, 185, 129, 0.12)' :
+                        computedStatus === 'late' ? 'rgba(245, 158, 11, 0.12)' :
+                        computedStatus === 'gov' ? 'rgba(6, 182, 212, 0.12)' :
+                        computedStatus === 'sick' ? 'rgba(239, 68, 68, 0.12)' :
+                        computedStatus === 'leave' ? 'rgba(245, 158, 11, 0.12)' :
+                        computedStatus === 'holiday' ? 'rgba(139, 92, 246, 0.12)' :
                         'rgba(239, 68, 68, 0.12)',
             border: `1px solid ${
-                        todayStatus === 'present' ? 'var(--green)' :
-                        todayStatus === 'late' ? 'var(--yellow)' :
-                        todayStatus === 'gov' ? 'var(--cyan)' :
-                        todayStatus === 'sick' ? 'var(--red)' :
+                        computedStatus === 'present' ? 'var(--green)' :
+                        computedStatus === 'late' ? 'var(--yellow)' :
+                        computedStatus === 'gov' ? 'var(--cyan)' :
+                        computedStatus === 'sick' ? 'var(--red)' :
+                        computedStatus === 'leave' ? 'var(--yellow)' :
+                        computedStatus === 'holiday' ? 'var(--primary)' :
                         'var(--red)'
                     }`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             fontSize: '1.65rem',
-            boxShadow: todayStatus === 'present' ? '0 0 12px rgba(16, 185, 129, 0.15)' : 'none'
+            boxShadow: computedStatus === 'present' ? '0 0 12px rgba(16, 185, 129, 0.15)' : 'none'
           }}>
-            {todayStatus === 'present' ? '🟢' :
-             todayStatus === 'late' ? '⏰' :
-             todayStatus === 'gov' ? '🚗' :
-             todayStatus === 'sick' ? '🤕' :
+            {computedStatus === 'present' ? '🟢' :
+             computedStatus === 'late' ? '⏰' :
+             computedStatus === 'gov' ? '🚗' :
+             computedStatus === 'sick' ? '🤕' :
+             computedStatus === 'leave' ? '📌' :
+             computedStatus === 'holiday' ? '🎉' :
              '🔴'}
           </div>
           <div>
@@ -339,21 +388,29 @@ const MyDashboard = ({ currentUser, employeesData = [] }) => {
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '6px', flexWrap: 'wrap' }}>
               <span style={{ fontSize: '1.2rem', fontWeight: 800, color: 
-                todayStatus === 'present' ? 'var(--green)' :
-                todayStatus === 'late' ? 'var(--yellow)' :
-                todayStatus === 'gov' ? 'var(--cyan)' :
-                todayStatus === 'sick' ? 'var(--red)' :
+                computedStatus === 'present' ? 'var(--green)' :
+                computedStatus === 'late' ? 'var(--yellow)' :
+                computedStatus === 'gov' ? 'var(--cyan)' :
+                computedStatus === 'sick' ? 'var(--red)' :
+                computedStatus === 'leave' ? 'var(--yellow)' :
+                computedStatus === 'holiday' ? 'var(--primary)' :
                 'var(--red)'
               }}>
-                {checkingTodayStatus ? 'กำลังตรวจสอบ...' :
-                 todayStatus === 'present' ? 'มาปฏิบัติราชการปกติ' :
-                 todayStatus === 'late' ? 'มาสาย' :
-                 todayStatus === 'gov' ? 'ไปราชการ' :
-                 todayStatus === 'sick' ? 'ลาป่วย' :
+                {checkingTodayStatus || loading ? 'กำลังตรวจสอบ...' :
+                 computedStatus === 'present' ? 'มาปฏิบัติราชการปกติ' :
+                 computedStatus === 'late' ? 'มาสาย' :
+                 computedStatus === 'gov' ? 'ไปราชการ' :
+                 computedStatus === 'sick' ? 'ลาป่วย' :
+                 computedStatus === 'leave' ? leaveLabel :
+                 computedStatus === 'holiday' ? 'วันหยุด' :
                  'ขาดงาน'}
               </span>
               <span className="badge badge-primary" style={{ fontSize: '0.78rem', padding: '4px 10px', borderRadius: '6px', fontWeight: 600 }}>
-                {checkingTodayStatus ? '...' : `เวลาลงทำงาน: ${todayTime}`}
+                {checkingTodayStatus || loading ? '...' : 
+                 (computedStatus === 'present' || computedStatus === 'late') ? `เวลาลงทำงาน: ${todayTime}` : 
+                 computedStatus === 'gov' ? 'ไปราชการนอกสถานที่' :
+                 computedStatus === 'holiday' ? leaveLabel :
+                 'ไม่ได้สแกนเข้าหน้าเครื่อง'}
               </span>
             </div>
           </div>
@@ -361,11 +418,13 @@ const MyDashboard = ({ currentUser, employeesData = [] }) => {
 
         {/* Status indicator message */}
         <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', maxWidth: '340px', lineHeight: 1.4 }}>
-          {checkingTodayStatus ? 'กำลังโหลดข้อความ...' :
-           todayStatus === 'present' ? '👍 ยอดเยี่ยม! รักษาเวลาในการมาปฏิบัติหน้าที่ราชการอย่างสม่ำเสมอครับ' :
-           todayStatus === 'late' ? '⚠️ วันนี้คุณสแกนหน้าเข้างานสาย โปรดรักษาเวลาในวันทำการถัดไปนะครับ' :
-           todayStatus === 'gov' ? '🚗 ปฏิบัติภารกิจนอกสถานที่ราชการ ขอให้เดินทางและทำงานอย่างปลอดภัยครับ' :
-           todayStatus === 'sick' ? '🤕 พักผ่อนและรักษาตัวให้แข็งแรง ขอให้หายป่วยในเร็ววันครับ' :
+          {checkingTodayStatus || loading ? 'กำลังโหลดข้อความ...' :
+           computedStatus === 'present' ? '👍 ยอดเยี่ยม! รักษาเวลาในการมาปฏิบัติหน้าที่ราชการอย่างสม่ำเสมอครับ' :
+           computedStatus === 'late' ? '⚠️ วันนี้คุณสแกนหน้าเข้างานสาย โปรดรักษาเวลาในวันทำการถัดไปนะครับ' :
+           computedStatus === 'gov' ? '🚗 ปฏิบัติภารกิจนอกสถานที่ราชการ ขอให้เดินทางและทำงานอย่างปลอดภัยครับ' :
+           computedStatus === 'sick' ? '🤕 พักผ่อนและรักษาตัวให้แข็งแรง ขอให้หายป่วยในเร็ววันครับ' :
+           computedStatus === 'leave' ? '📌 ขอให้ใช้วันลาอย่างมีความสุขและจัดการธุระส่วนตัวให้เรียบร้อยครับ' :
+           computedStatus === 'holiday' ? '🎉 สุขสันต์วันหยุด พักผ่อนเติมพลังให้เต็มที่นะครับ!' :
            '❌ ยังไม่มีข้อมูลสแกนเข้างานในวันนี้ หากมาปฏิบัติหน้าที่แล้ว โปรดแจ้งแอดมินเพื่อแก้ไขบันทึกครับ'}
         </div>
       </div>
