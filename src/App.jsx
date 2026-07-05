@@ -1110,7 +1110,7 @@ function App() {
 {currentUser?.role === 'admin' && <UserManagement employeesData={employeesData} />}
 
       {/* ============================================================ View Mode Toggle */}
-      <div className="no-print" style={{ display: 'flex', gap: '8px', marginBottom: '24px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '14px', padding: '6px', width: 'fit-content', flexWrap: 'wrap' }}>
+      <div className="no-print view-mode-tabs">
         {currentUser?.role === 'user' ? (
           <>
             <button

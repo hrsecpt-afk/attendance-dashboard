@@ -621,3 +621,23 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     display: flex;
   }
 }
+
+/* Horizontal Scroll Tabs */
+.view-mode-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 6px;
+  width: fit-content;
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: nowrap;
+  flex-wrap: nowrap;
+}
+
+.view-mode-tabs::-webkit-scrollbar {
+  display: none;
+}
