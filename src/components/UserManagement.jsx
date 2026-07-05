@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth, ROLE_LABELS, ROLE_COLORS } from '../context/AuthContext';
 
 const ROLE_OPTIONS = [
@@ -22,6 +22,13 @@ const UserManagement = ({ employeesData = [] }) => {
   const [showPassMap, setShowPassMap] = useState({});
 
   const [logoBase64, setLogoBase64] = useState(localStorage.getItem('app_logo_url') || '');
+
+  // Reflect a logo restored from the cloud without requiring a reload.
+  useEffect(() => {
+    const onRestored = () => setLogoBase64(localStorage.getItem('app_logo_url') || '');
+    window.addEventListener('app-settings-restored', onRestored);
+    return () => window.removeEventListener('app-settings-restored', onRestored);
+  }, []);
 
   const handleLogoUpload = (e) => {
     const file = e.target.files[0];

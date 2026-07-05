@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { restoreSettingsFromCloud } from './utils/cloudSettings.js';
 import attendanceRawData from './data/attendance.json';
 import OverviewCards from './components/OverviewCards';
 import LeaveCharts from './components/LeaveCharts';
@@ -458,9 +459,11 @@ function App() {
         const cloudOverridesEmp = dbEmps.find(e => String(e.id) === '99999999-9999-9999-9999-999999999998' || e.id === 999998);
 
         // Filter out dummy system rows from standard employee list
-        dbEmps = dbEmps.filter(emp => 
+        dbEmps = dbEmps.filter(emp =>
           String(emp.id) !== '99999999-9999-9999-9999-999999999999' && emp.id !== 999999 &&
-          String(emp.id) !== '99999999-9999-9999-9999-999999999998' && emp.id !== 999998
+          String(emp.id) !== '99999999-9999-9999-9999-999999999998' && emp.id !== 999998 &&
+          String(emp.id) !== '99999999-9999-9999-9999-999999999997' && emp.id !== 999997 &&
+          String(emp.id) !== '99999999-9999-9999-9999-999999999996' && emp.id !== 999996
         );
 
         let restoredCloudState = false;
@@ -607,6 +610,7 @@ function App() {
       if (now - lastFetchTs < 3000) return;
       lastFetchTs = now;
       fetchEmployeesFromSupabase();
+      restoreSettingsFromCloud();
     };
 
     // Initial load

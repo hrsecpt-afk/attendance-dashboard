@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth, ROLE_LABELS, ROLE_COLORS } from '../context/AuthContext';
 
 const LoginPage = () => {
@@ -8,6 +8,13 @@ const LoginPage = () => {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [shake, setShake] = useState(false);
+  // Re-render when the logo is restored from the cloud so it appears without reload.
+  const [, forceLogoRefresh] = useState(0);
+  useEffect(() => {
+    const onRestored = () => forceLogoRefresh(v => v + 1);
+    window.addEventListener('app-settings-restored', onRestored);
+    return () => window.removeEventListener('app-settings-restored', onRestored);
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
