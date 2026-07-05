@@ -6,6 +6,96 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>attendance-dashboard</title>
     <script>
+      // 🚀 Global Storage.prototype Polyfill/Fallback for Mobile Safari Private mode and In-App WebViews
+      (function() {
+        var isLocalStorageBlocked = false;
+        try {
+          var x = '__storage_test__';
+          window.localStorage.setItem(x, x);
+          window.localStorage.removeItem(x);
+        } catch (e) {
+          isLocalStorageBlocked = true;
+        }
+
+        var isSessionStorageBlocked = false;
+        try {
+          var x = '__storage_test__';
+          window.sessionStorage.setItem(x, x);
+          window.sessionStorage.removeItem(x);
+        } catch (e) {
+          isSessionStorageBlocked = true;
+        }
+
+        var localMemoryStore = {};
+        var sessionMemoryStore = {};
+
+        if (typeof Storage !== 'undefined') {
+          var originalGetItem = Storage.prototype.getItem;
+          var originalSetItem = Storage.prototype.setItem;
+          var originalRemoveItem = Storage.prototype.removeItem;
+
+          Storage.prototype.getItem = function(key) {
+            if (this === window.localStorage && isLocalStorageBlocked) {
+              return localMemoryStore.hasOwnProperty(key) ? localMemoryStore[key] : null;
+            }
+            if (this === window.sessionStorage && isSessionStorageBlocked) {
+              return sessionMemoryStore.hasOwnProperty(key) ? sessionMemoryStore[key] : null;
+            }
+            try {
+              return originalGetItem.call(this, key);
+            } catch (e) {
+              return this === window.localStorage ? 
+                (localMemoryStore.hasOwnProperty(key) ? localMemoryStore[key] : null) :
+                (sessionMemoryStore.hasOwnProperty(key) ? sessionMemoryStore[key] : null);
+            }
+          };
+
+          Storage.prototype.setItem = function(key, value) {
+            if (this === window.localStorage && isLocalStorageBlocked) {
+              localMemoryStore[key] = String(value);
+              return;
+            }
+            if (this === window.sessionStorage && isSessionStorageBlocked) {
+              sessionMemoryStore[key] = String(value);
+              return;
+            }
+            try {
+              originalSetItem.call(this, key, value);
+            } catch (e) {
+              // Switch to memory mode upon write error (like QuotaExceededError)
+              if (this === window.localStorage) {
+                isLocalStorageBlocked = true;
+                localMemoryStore[key] = String(value);
+              } else {
+                isSessionStorageBlocked = true;
+                sessionMemoryStore[key] = String(value);
+              }
+              console.warn("Storage write failed, falling back to memory:", key, e);
+            }
+          };
+
+          Storage.prototype.removeItem = function(key) {
+            if (this === window.localStorage && isLocalStorageBlocked) {
+              delete localMemoryStore[key];
+              return;
+            }
+            if (this === window.sessionStorage && isSessionStorageBlocked) {
+              delete sessionMemoryStore[key];
+              return;
+            }
+            try {
+              originalRemoveItem.call(this, key);
+            } catch (e) {
+              if (this === window.localStorage) {
+                delete localMemoryStore[key];
+              } else {
+                delete sessionMemoryStore[key];
+              }
+            }
+          };
+        }
+      })();
+
       window.onerror = function (message, source, lineno, colno, error) {
         var div = document.createElement('div');
         div.style.position = 'fixed';
