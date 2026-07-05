@@ -94,6 +94,16 @@ export default function IndividualLeaveSummaryReport({
   const [endMonthIdx, setEndMonthIdx] = useState(8);     // Default: June (index 8)
   const [customEndDay, setCustomEndDay] = useState('');
 
+  // Month-range selectors. Keep the end month at or after the start month.
+  const handleStartMonthChange = (e) => {
+    const v = parseInt(e.target.value, 10);
+    setStartMonthIdx(v);
+    if (endMonthIdx < v) setEndMonthIdx(v);
+  };
+  const handleEndMonthChange = (e) => {
+    setEndMonthIdx(parseInt(e.target.value, 10));
+  };
+
   // Column checkboxes
   const [checkedCats, setCheckedCats] = useState({
     absent: true,
