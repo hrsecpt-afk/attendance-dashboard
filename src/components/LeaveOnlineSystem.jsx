@@ -1906,6 +1906,7 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
                       <option value="pending">รออนุมัติ</option>
                       <option value="approved">อนุมัติแล้ว</option>
                       <option value="rejected">ไม่อนุมัติ</option>
+                      <option value="cancelled">ยกเลิกคำขอ</option>
                     </select>
                   </div>
                 )}

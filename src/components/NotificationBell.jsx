@@ -192,27 +192,26 @@ const NotificationBell = ({ onNavigate }) => {
           position: 'absolute',
           top: 'calc(100% + 10px)',
           right: 0,
-          width: '360px',
-          maxHeight: '500px',
-          backgroundColor: '#05050a',
-          border: '1px solid rgba(159,122,234,0.3)',
-          borderRadius: '18px',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.9)',
+          width: '380px',
+          maxWidth: '90vw',
+          background: 'var(--bg-modal)',
+          backdropFilter: 'var(--glass-blur)',
+          WebkitBackdropFilter: 'var(--glass-blur)',
+          border: '1px solid var(--border-color)',
+          borderRadius: '16px',
+          boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
+          overflow: 'hidden',
           zIndex: 9999,
           display: 'flex',
           flexDirection: 'column',
-          overflow: 'hidden',
-          animation: 'fadeIn 0.18s ease',
-          isolation: 'isolate',
-          opacity: 1,
-          backdropFilter: 'none',
+          animation: 'fadeSlideUp 0.3s ease-out',
         }}>
           {/* Header */}
           <div style={{
-            padding: '16px 18px',
-            borderBottom: '1px solid rgba(159,122,234,0.2)',
+            padding: '16px 20px',
+            borderBottom: '1px solid var(--border-color)',
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            backgroundColor: '#0a0914',
+            background: 'rgba(255, 255, 255, 0.02)'
           }}>
             <div>
               <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-main)' }}>
@@ -290,12 +289,12 @@ const NotificationBell = ({ onNavigate }) => {
                     padding: '12px 16px',
                     borderBottom: idx < allNotifs.length - 1 ? '1px solid var(--border-color)' : 'none',
                     cursor: 'pointer',
-                    backgroundColor: isRead ? '#05050a' : '#110f20',
+                    background: isRead ? 'transparent' : 'rgba(159, 122, 234, 0.08)',
                     transition: 'background-color 0.15s',
                     display: 'flex', gap: '12px', alignItems: 'flex-start',
                   }}
-                  onMouseEnter={e => e.currentTarget.style.backgroundColor = '#18152d'}
-                  onMouseLeave={e => e.currentTarget.style.backgroundColor = isRead ? '#05050a' : '#110f20'}
+                  onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)'}
+                  onMouseLeave={e => e.currentTarget.style.backgroundColor = isRead ? 'transparent' : 'rgba(159, 122, 234, 0.08)'}
                 >
                   {/* Icon */}
                   <div style={{
