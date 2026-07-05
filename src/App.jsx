@@ -366,9 +366,13 @@ function App() {
 
   // Auto-save when employeesData changes
   useEffect(() => {
-    localStorage.setItem(`attendance_dashboard_data_v3_year_${selectedYear}`, JSON.stringify(employeesData));
-    if (selectedYear === '2569') {
-      localStorage.setItem('attendance_dashboard_data_v3', JSON.stringify(employeesData));
+    try {
+      localStorage.setItem(`attendance_dashboard_data_v3_year_${selectedYear}`, JSON.stringify(employeesData));
+      if (selectedYear === '2569') {
+        localStorage.setItem('attendance_dashboard_data_v3', JSON.stringify(employeesData));
+      }
+    } catch (e) {
+      console.warn("localStorage.setItem failed for employeesData:", e);
     }
   }, [employeesData, selectedYear]);
 
@@ -393,10 +397,14 @@ function App() {
     }
 
     if (needsUpdate) {
-      localStorage.setItem(configKey, JSON.stringify({
-        url: targetUrl,
-        key: targetKey
-      }));
+      try {
+        localStorage.setItem(configKey, JSON.stringify({
+          url: targetUrl,
+          key: targetKey
+        }));
+      } catch (e) {
+        console.warn("localStorage.setItem failed for supabase config:", e);
+      }
     }
   }, []);
 
@@ -554,9 +562,13 @@ function App() {
   // Synchronize year changes to avoid race conditions
   const handleYearChange = (newYear) => {
     // Save current state first
-    localStorage.setItem(`attendance_dashboard_data_v2_year_${selectedYear}`, JSON.stringify(employeesData));
-    if (selectedYear === '2569') {
-      localStorage.setItem('attendance_dashboard_data_v2', JSON.stringify(employeesData));
+    try {
+      localStorage.setItem(`attendance_dashboard_data_v2_year_${selectedYear}`, JSON.stringify(employeesData));
+      if (selectedYear === '2569') {
+        localStorage.setItem('attendance_dashboard_data_v2', JSON.stringify(employeesData));
+      }
+    } catch (e) {
+      console.warn("localStorage.setItem failed in handleYearChange:", e);
     }
 
     // Load new state
