@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { isAppleMobile, printHtmlDocument } from '../utils/exportDocument.js';
 
 // Helper to classify positions into the template categories
 const getPersonnelCategory = (position) => {
@@ -978,6 +979,12 @@ const DailyReportGenerator = ({ employeesData }) => {
     const link = document.createElement('a');
     link.href = url;
     link.setAttribute('download', `แบบสรุปการปฏิบัติหน้าที่_${rawDate}.doc`);
+    // iOS/iPadOS ignores the download attribute — open a printable window instead.
+    if (isAppleMobile()) {
+      URL.revokeObjectURL(url);
+      printHtmlDocument(htmlContent, 'แบบสรุปการปฏิบัติหน้าที่');
+      return;
+    }
     document.body.appendChild(link);
     link.click();
     setTimeout(() => {
@@ -1179,6 +1186,12 @@ const DailyReportGenerator = ({ employeesData }) => {
     const link = document.createElement('a');
     link.href = url;
     link.setAttribute('download', `รายงานการลงเวลาปฏิบัติงาน_${rawDate}.doc`);
+    // iOS/iPadOS ignores the download attribute — open a printable window instead.
+    if (isAppleMobile()) {
+      URL.revokeObjectURL(url);
+      printHtmlDocument(htmlContent, 'รายงานการลงเวลาปฏิบัติงาน');
+      return;
+    }
     document.body.appendChild(link);
     link.click();
     setTimeout(() => {
