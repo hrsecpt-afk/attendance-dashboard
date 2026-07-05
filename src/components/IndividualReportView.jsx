@@ -222,6 +222,38 @@ const DetailPanel = ({ employee, onClose }) => {
 // ==========================================
 // Individual Report View Main Component
 // ==========================================
+const positionOrder = {
+  "ผู้อำนวยการ": 1,
+  "รองผู้อำนวยการ": 2,
+  "ครู": 3,
+  "ครูผู้ช่วย": 4,
+  "พนักงานราชการ": 5,
+  "ลูกจ้างชั่วคราว ตำแหน่ง ครูผู้ช่วย": 6,
+  "ครูอัตราจ้าง": 7,
+  "พนักงานธุรการ": 8,
+  "พี่เลี้ยงเด็กพิการ": 9,
+  "จ้างเหมาบริการ (ภารโรง)": 10,
+  "จ้างเหมาบริการ (ยาม)": 11,
+  "จ้างเหมาบริการ (คนงาน)": 12,
+  "จ้างเหมาบริการ (คนครัว)": 13
+};
+
+const getPositionRank = (pos) => positionOrder[pos] || 99;
+
+const getLocationRank = (loc) => {
+  if (!loc) return 999;
+  const l = loc.trim();
+  if (l.includes("ศูนย์การศึกษาพิเศษ")) return 1;
+  if (l.includes("หน่วยฯเมืองปทุม")) return 2;
+  if (l.includes("หน่วยฯธัญบุรี")) return 3;
+  if (l.includes("หน่วยฯคลองหลวง")) return 4;
+  if (l.includes("หน่วยฯลำลูกกา")) return 5;
+  if (l.includes("หน่วยฯหนองเสือ")) return 6;
+  if (l.startsWith("โรงเรียน")) return 10;
+  if (l.startsWith("รพ.")) return 20;
+  return 100;
+};
+
 const IndividualReportView = ({ data }) => {
   const [search, setSearch] = useState('');
   const [filterPosition, setFilterPosition] = useState('');
@@ -249,13 +281,43 @@ const IndividualReportView = ({ data }) => {
     });
 
     result = [...result].sort((a, b) => {
+      if (sortBy === 'position') {
+        const posA = getPositionRank(a.position);
+        const posB = getPositionRank(b.position);
+        if (posA !== posB) return posA - posB;
+        const locA = getLocationRank(a.location);
+        const locB = getLocationRank(b.location);
+        if (locA !== locB) return locA - locB;
+        if (locA >= 10 && a.location !== b.location) {
+          return a.location.localeCompare(b.location, 'th');
+        }
+        return a.name.localeCompare(b.name, 'th');
+      }
+      if (sortBy === 'location') {
+        const locA = getLocationRank(a.location);
+        const locB = getLocationRank(b.location);
+        if (locA !== locB) return locA - locB;
+        if (locA >= 10 && a.location !== b.location) {
+          const locComp = a.location.localeCompare(b.location, 'th');
+          if (locComp !== 0) return locComp;
+        }
+        const posA = getPositionRank(a.position);
+        const posB = getPositionRank(b.position);
+        if (posA !== posB) return posA - posB;
+        return a.name.localeCompare(b.name, 'th');
+      }
       if (sortBy === 'absent') return b.leaves.absent - a.leaves.absent;
       if (sortBy === 'late') return b.leaves.late.count - a.leaves.late.count;
       if (sortBy === 'sick') return b.leaves.sick.days - a.leaves.sick.days;
       if (sortBy === 'vacation') return b.leaves.vacation.days - a.leaves.vacation.days;
       if (sortBy === 'outOfArea') return b.leaves.outOfArea.count - a.leaves.outOfArea.count;
       if (sortBy === 'total') return b.leaves.total.days - a.leaves.total.days;
-      return a.id - b.id;
+      const indexA = a.sortIndex !== undefined ? a.sortIndex : (typeof a.id === 'number' ? a.id : 999);
+      const indexB = b.sortIndex !== undefined ? b.sortIndex : (typeof b.id === 'number' ? b.id : 999);
+      if (indexA !== indexB) {
+        return indexA - indexB;
+      }
+      return a.name.localeCompare(b.name, 'th');
     });
 
     return result;
@@ -346,6 +408,8 @@ const IndividualReportView = ({ data }) => {
 
         <select className="select-input" value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ minWidth: '160px' }}>
           <option value="id">เรียงตามลำดับ</option>
+          <option value="position">เรียงตามตำแหน่ง</option>
+          <option value="location">เรียงตามสถานที่ทำงาน</option>
           <option value="absent">ขาดงานมากสุด</option>
           <option value="late">มาสายมากสุด</option>
           <option value="sick">ลาป่วยมากสุด</option>

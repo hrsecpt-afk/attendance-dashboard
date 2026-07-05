@@ -70,6 +70,8 @@ const Filters = ({
             onChange={(e) => setSortBy(e.target.value)}
           >
             <option value="id">เรียงตามลำดับรายชื่อ</option>
+            <option value="position-asc">เรียงตามตำแหน่ง</option>
+            <option value="location-asc">เรียงตามสถานที่ทำงาน</option>
             <option value="sick-desc">ลาป่วยสูงสุด</option>
             <option value="vacation-desc">ลาพักผ่อนสูงสุด</option>
             <option value="personal-desc">ลากิจสูงสุด</option>

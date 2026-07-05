@@ -328,7 +328,14 @@ const PersonnelManager = ({ employeesData, setEmployeesData }) => {
       const matchPos = !filterPosition || emp.position === filterPosition;
       const matchLoc = !filterLocation || emp.location === filterLocation;
       return matchSearch && matchPos && matchLoc;
-    }).sort((a, b) => a.id - b.id);
+    }).sort((a, b) => {
+      const indexA = a.sortIndex !== undefined ? a.sortIndex : (typeof a.id === 'number' ? a.id : 999);
+      const indexB = b.sortIndex !== undefined ? b.sortIndex : (typeof b.id === 'number' ? b.id : 999);
+      if (indexA !== indexB) {
+        return indexA - indexB;
+      }
+      return a.name.localeCompare(b.name, 'th');
+    });
   }, [employeesData, searchQuery, filterPosition, filterLocation]);
 
   // ── ADD Employee ──────────────────────────────────────
@@ -354,7 +361,7 @@ const PersonnelManager = ({ employeesData, setEmployeesData }) => {
     if (cfg) {
       try {
         const table = cfg.employeesTable || 'employees';
-        const cols = cfg.supabaseColumns || { id: 'id', fullName: 'full_name', position: 'position', location: 'location' };
+        const cols = cfg.supabaseColumns || { id: 'id', fullName: 'full_name', position: 'position', location: 'department' };
         await fetch(`${cfg.url}/rest/v1/${table}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` },
@@ -383,7 +390,7 @@ const PersonnelManager = ({ employeesData, setEmployeesData }) => {
     if (cfg) {
       try {
         const table = cfg.employeesTable || 'employees';
-        const cols = cfg.supabaseColumns || { id: 'id', fullName: 'full_name', position: 'position', location: 'location' };
+        const cols = cfg.supabaseColumns || { id: 'id', fullName: 'full_name', position: 'position', location: 'department' };
         await fetch(`${cfg.url}/rest/v1/${table}?${cols.id}=eq.${editTarget.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json', 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` },
@@ -586,7 +593,7 @@ const PersonnelManager = ({ employeesData, setEmployeesData }) => {
                   onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 >
-                  <td style={{ padding: '14px 16px', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>{emp.id}</td>
+                  <td style={{ padding: '14px 16px', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>{idx + 1}</td>
                   <td style={{ padding: '14px 16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <div style={{

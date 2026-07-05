@@ -51,9 +51,12 @@ const PrintableDutyPdf = ({ request, onClose }) => {
       }}>
         
         {/* Header Section */}
-        <div style={{ textAlign: 'right', marginBottom: '20px' }}>
-          <div>เขียนที่ {request.location || 'ศูนย์การศึกษาพิเศษประจำจังหวัด'}</div>
-          <div>วันที่ {formatDateThai(request.created_at || new Date())}</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+          <div><strong>เลขที่เอกสาร:</strong> {request.id || `REQ-${Date.now()}`}</div>
+          <div style={{ textAlign: 'right' }}>
+            <div>เขียนที่ {request.location || 'ศูนย์การศึกษาพิเศษประจำจังหวัด'}</div>
+            <div>วันที่ {formatDateThai(request.created_at || new Date())}</div>
+          </div>
         </div>
 
         <div style={{ marginBottom: '15px' }}>
@@ -154,6 +157,19 @@ const PrintableDutyPdf = ({ request, onClose }) => {
             </div>
           </div>
 
+        </div>
+
+        {/* QR Code Section */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
+          <div style={{ textAlign: 'center' }}>
+            <img 
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(window.location.origin + '?verify_duty=' + request.id)}`} 
+              alt="QR Code" 
+              style={{ width: '70px', height: '70px', padding: '2px', border: '1px solid #000', borderRadius: '4px' }} 
+            />
+            <div style={{ fontSize: '10pt', marginTop: '4px' }}>สแกนเพื่อตรวจสอบ</div>
+            <div style={{ fontSize: '9pt', color: '#666' }}>Ref: {request.id?.toString().substring(0, 8)}</div>
+          </div>
         </div>
 
       </div>

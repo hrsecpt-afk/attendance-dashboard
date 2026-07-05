@@ -548,7 +548,7 @@ export default function LeaveSummaryDashboard({
 
           {/* Location Selector */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>สถานที่ราชการ</label>
+            <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>ฝ่าย</label>
             <select
               value={selectedLocation}
               onChange={e => setSelectedLocation(e.target.value)}
@@ -602,7 +602,7 @@ export default function LeaveSummaryDashboard({
                 <th style={{ padding: '12px 16px', fontWeight: 700, width: '60px' }}>ลำดับ</th>
                 <th style={{ padding: '12px 16px', fontWeight: 700 }}>ชื่อ - สกุล</th>
                 <th style={{ padding: '12px 16px', fontWeight: 700 }}>ตำแหน่ง</th>
-                <th style={{ padding: '12px 16px', fontWeight: 700 }}>สถานที่</th>
+                <th style={{ padding: '12px 16px', fontWeight: 700 }}>ฝ่าย</th>
                 {FISCAL_MONTHS.map(m => (
                   <th key={m.key} style={{ padding: '12px 8px', fontWeight: 700, textAlign: 'center', width: '50px' }}>
                     {m.label}

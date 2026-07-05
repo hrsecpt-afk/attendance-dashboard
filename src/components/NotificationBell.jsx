@@ -194,24 +194,25 @@ const NotificationBell = ({ onNavigate }) => {
           right: 0,
           width: '360px',
           maxHeight: '500px',
-          background: 'var(--bg-dark, #1a1a2e)',
-          border: '1px solid var(--border-color)',
+          backgroundColor: '#05050a',
+          border: '1px solid rgba(159,122,234,0.3)',
           borderRadius: '18px',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.8)',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.9)',
           zIndex: 9999,
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
           animation: 'fadeIn 0.18s ease',
           isolation: 'isolate',
+          opacity: 1,
+          backdropFilter: 'none',
         }}>
           {/* Header */}
           <div style={{
             padding: '16px 18px',
-            borderBottom: '1px solid var(--border-color)',
+            borderBottom: '1px solid rgba(159,122,234,0.2)',
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            background: 'rgba(159,122,234,0.12)',
-            backdropFilter: 'none'
+            backgroundColor: '#0a0914',
           }}>
             <div>
               <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-main)' }}>
@@ -239,7 +240,7 @@ const NotificationBell = ({ onNavigate }) => {
           </div>
 
           {/* Summary chips */}
-          <div style={{ padding: '10px 16px', display: 'flex', gap: '8px', borderBottom: '1px solid var(--border-color)' }}>
+          <div style={{ padding: '10px 16px', display: 'flex', gap: '8px', borderBottom: '1px solid rgba(159,122,234,0.15)', backgroundColor: '#05050a' }}>
             <span style={{
               background: unreadLeave > 0 ? 'rgba(239,68,68,0.12)' : 'rgba(255,255,255,0.04)',
               border: `1px solid ${unreadLeave > 0 ? 'rgba(239,68,68,0.3)' : 'var(--border-color)'}`,
@@ -265,7 +266,7 @@ const NotificationBell = ({ onNavigate }) => {
           </div>
 
           {/* Notification list */}
-          <div style={{ overflowY: 'auto', flex: 1 }}>
+          <div style={{ overflowY: 'auto', flex: 1, backgroundColor: '#05050a' }}>
             {loading && (
               <div style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                 ⏳ กำลังโหลดการแจ้งเตือน...
@@ -289,12 +290,12 @@ const NotificationBell = ({ onNavigate }) => {
                     padding: '12px 16px',
                     borderBottom: idx < allNotifs.length - 1 ? '1px solid var(--border-color)' : 'none',
                     cursor: 'pointer',
-                    background: isRead ? 'transparent' : 'rgba(159,122,234,0.05)',
-                    transition: 'background 0.15s',
+                    backgroundColor: isRead ? '#05050a' : '#110f20',
+                    transition: 'background-color 0.15s',
                     display: 'flex', gap: '12px', alignItems: 'flex-start',
                   }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
-                  onMouseLeave={e => e.currentTarget.style.background = isRead ? 'transparent' : 'rgba(159,122,234,0.05)'}
+                  onMouseEnter={e => e.currentTarget.style.backgroundColor = '#18152d'}
+                  onMouseLeave={e => e.currentTarget.style.backgroundColor = isRead ? '#05050a' : '#110f20'}
                 >
                   {/* Icon */}
                   <div style={{
@@ -346,8 +347,8 @@ const NotificationBell = ({ onNavigate }) => {
           {/* Footer */}
           {allNotifs.length > 0 && (
             <div style={{
-              padding: '10px 16px', borderTop: '1px solid var(--border-color)',
-              textAlign: 'center'
+              padding: '10px 16px', borderTop: '1px solid rgba(159,122,234,0.2)',
+              textAlign: 'center', backgroundColor: '#0a0914'
             }}>
               <button
                 onClick={() => { onNavigate && onNavigate('leave_system'); setOpen(false); }}

@@ -273,6 +273,51 @@ const PrintableLeavePdf = ({ request, onClose }) => {
 
         </div>
 
+        {/* Attachment Preview Section */}
+        {request.attachment_url && (
+          <div style={{ marginTop: '24px', borderTop: '1px solid #ccc', paddingTop: '16px' }}>
+            <div style={{ fontWeight: 'bold', fontSize: '13pt', marginBottom: '10px' }}>
+              📎 เอกสารแนบ (ใบรับรองแพทย์ / หลักฐานประกอบ)
+            </div>
+            {request.attachment_url.startsWith('data:image') ? (
+              <div style={{ textAlign: 'center' }}>
+                <img
+                  src={request.attachment_url}
+                  alt="เอกสารแนบ"
+                  style={{
+                    maxWidth: '100%',
+                    maxHeight: '400px',
+                    objectFit: 'contain',
+                    border: '1px solid #ddd',
+                    borderRadius: '6px',
+                    display: 'block',
+                    margin: '0 auto'
+                  }}
+                />
+              </div>
+            ) : request.attachment_url.startsWith('data:application/pdf') ? (
+              <div style={{ padding: '12px', background: '#f5f5f5', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '2rem' }}>📄</span>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: '11.5pt' }}>ไฟล์ PDF แนบมาด้วย</div>
+                  <a
+                    href={request.attachment_url}
+                    download="เอกสารแนบ.pdf"
+                    style={{ color: '#2563eb', fontSize: '10.5pt', textDecoration: 'underline' }}
+                    className="no-print"
+                  >
+                    คลิกเพื่อดาวน์โหลดไฟล์ PDF
+                  </a>
+                </div>
+              </div>
+            ) : (
+              <div style={{ padding: '10px', background: '#f5f5f5', borderRadius: '6px', fontSize: '11pt', color: '#555' }}>
+                📁 ชื่อไฟล์: {request.attachment_url.replace('file://', '')}
+              </div>
+            )}
+          </div>
+        )}
+
       </div>
 
       {/* Printing Styles Injection */}

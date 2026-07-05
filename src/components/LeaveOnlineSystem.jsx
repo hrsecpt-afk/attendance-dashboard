@@ -67,6 +67,31 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
     } catch {}
     return '';
   });
+
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const validById = currentUser.employeeId && employeesData.find(e => String(e.id) === String(currentUser.employeeId));
+    if (validById) {
+      setSelectedEmployeeId(String(validById.id));
+      return;
+    }
+
+    if (currentUser.displayName) {
+      const cleanName = (n) => (n || '').replace(/^(นาย|นางสาว|นาง|ดร\.|ครูผู้ช่วย|ครู|ผอ\.|ผู้อำนวยการ)\s*/, '').replace(/\s+/g, '').toLowerCase();
+      const target = cleanName(currentUser.displayName);
+      const matched = employeesData.find(e => cleanName(e.name) === target);
+      if (matched) {
+        setSelectedEmployeeId(String(matched.id));
+        return;
+      }
+    }
+
+    // If current selectedEmployeeId is not found in employeesData, reset it to empty
+    if (selectedEmployeeId && !employeesData.some(e => String(e.id) === String(selectedEmployeeId))) {
+      setSelectedEmployeeId('');
+    }
+  }, [currentUser, employeesData]);
   const [leaveType, setLeaveType] = useState('ลาป่วย');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -74,6 +99,9 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [attachmentName, setAttachmentName] = useState(''); // Simulated file
+  const [attachmentFile, setAttachmentFile] = useState(null); // Actual file object
+  const [attachmentPreview, setAttachmentPreview] = useState(null); // Base64 preview
+  const [attachmentDragOver, setAttachmentDragOver] = useState(false); // Drag state
   const [formError, setFormError] = useState('');
   const [formSuccess, setFormSuccess] = useState('');
   const [leaveTimeSlot, setLeaveTimeSlot] = useState('full'); // 'full', 'morning', 'afternoon'
@@ -364,24 +392,71 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
   // Director feedback state
   const [directorComment, setDirectorComment] = useState('');
 
-  // Cancel a leave request (requester only, pending only)
+  // Cancel a leave request (requester only, pending or approved)
   const handleCancelRequest = async (reqId) => {
+    const reqToCancel = requests.find(r => r.id === reqId);
+    if (!reqToCancel) return;
+
     if (!safeConfirm('🚫 ยืนยันการยกเลิกใบลานี้? การดำเนินการนี้ไม่สามารถกู้คืนได้')) return;
     setLoading(true);
     try {
       if (supabaseConnected) {
         const res = await fetch(`${supabaseUrl}/rest/v1/leave_requests?id=eq.${reqId}`, {
-          method: 'DELETE',
-          headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` }
+          method: 'PATCH',
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation'
+          },
+          body: JSON.stringify({ status: 'cancelled' })
         });
         if (!res.ok) throw new Error(await res.text());
+
+        // Refund balance if it was already approved
+        if (reqToCancel.status === 'approved') {
+          const balKey = getBalanceField(reqToCancel.leave_type);
+          const currentEmpBal = balances[reqToCancel.employee_id] || { sick: 30, personal: 45, maternity: 90, vacation: 30, ordination: 120 };
+          const newBalVal = currentEmpBal[balKey] + reqToCancel.days;
+          
+          const colMap = {
+            sick: 'sick_remaining',
+            personal: 'personal_remaining',
+            maternity: 'maternity_remaining',
+            vacation: 'vacation_remaining',
+            ordination: 'ordination_remaining'
+          };
+          
+          await fetch(`${supabaseUrl}/rest/v1/leave_balances?employee_id=eq.${reqToCancel.employee_id}`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': supabaseKey,
+              'Authorization': `Bearer ${supabaseKey}`
+            },
+            body: JSON.stringify({ [colMap[balKey]]: newBalVal })
+          });
+        }
         await fetchSupabaseRequests();
+        await fetchSupabaseBalances();
       } else {
-        const updatedList = requests.filter(r => r.id !== reqId);
+        const updatedList = requests.map(r => r.id === reqId ? { ...r, status: 'cancelled' } : r);
         setRequests(updatedList);
         localStorage.setItem('attendance_dashboard_leave_requests', JSON.stringify(updatedList));
+
+        // Refund balance locally
+        if (reqToCancel.status === 'approved') {
+          const balKey = getBalanceField(reqToCancel.leave_type);
+          const updatedBals = { ...balances };
+          if (!updatedBals[reqToCancel.employee_id]) {
+            updatedBals[reqToCancel.employee_id] = { sick: 30, personal: 45, maternity: 90, vacation: 30, ordination: 120 };
+          }
+          updatedBals[reqToCancel.employee_id][balKey] += reqToCancel.days;
+          setBalances(updatedBals);
+          localStorage.setItem('attendance_dashboard_leave_balances', JSON.stringify(updatedBals));
+        }
       }
-      safeAlert('✅ ยกเลิกใบลาเรียบร้อยแล้ว');
+      safeAlert('✅ ยกเลิกใบลาเรียบร้อยแล้ว (คืนสิทธิ์วันลาเรียบร้อย)');
     } catch (err) {
       safeAlert(`❌ ยกเลิกใบลาล้มเหลว: ${err.message}`);
     } finally {
@@ -445,11 +520,11 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
       return;
     }
 
-    const empId = parseInt(selectedEmployeeId);
+    const empIdStr = String(selectedEmployeeId);
     
     // 1. Calculate last leave (from approved requests)
     const empRequests = requests
-      .filter(r => parseInt(r.employee_id) === empId && ['ลาป่วย', 'ลากิจ', 'ลาคลอด'].includes(r.leave_type))
+      .filter(r => String(r.employee_id) === empIdStr && ['ลาป่วย', 'ลากิจ', 'ลาคลอด'].includes(r.leave_type))
       .sort((a, b) => new Date(b.created_at || b.start_date) - new Date(a.created_at || a.start_date));
 
     if (empRequests.length > 0) {
@@ -466,7 +541,7 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
     }
 
     // 2. Calculate vacation leave statistics
-    const balObj = balances[empId] || { vacation: 10 };
+    const balObj = balances[empIdStr] || { vacation: 10 };
     const currentVacationBal = balObj.vacation || 0;
     
     // Default current year quota is 10 days
@@ -476,7 +551,7 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
 
     // Calculate vacation taken so far this year
     const vacationHistory = requests.filter(r => 
-      parseInt(r.employee_id) === empId && 
+      String(r.employee_id) === empIdStr && 
       r.status === 'approved' && 
       r.leave_type?.startsWith('ลาพักผ่อน')
     );
@@ -707,7 +782,7 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
 
     const tempRequest = {
       id: `temp-preview`,
-      employee_id: parseInt(selectedEmployeeId),
+      employee_id: selectedEmployee?.id || selectedEmployeeId,
       employee_name: selectedEmployee?.name || '',
       position: selectedEmployee?.position || '',
       location: selectedEmployee?.location || '',
@@ -718,7 +793,7 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
       reason: reason.trim() || 'ยื่นคำขอลาออนไลน์เพื่อประกอบการพิจารณา',
       phone: phone.trim() || '-',
       address: address.trim() || '-',
-      attachment_url: attachmentName ? `file://${attachmentName}` : null,
+      attachment_url: attachmentPreview || (attachmentName ? `file://${attachmentName}` : null),
       status: 'pending',
       director_comment: '',
       created_at: new Date().toISOString(),
@@ -745,8 +820,8 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
     setFormError('');
     setFormSuccess('');
 
-    if (!selectedEmployeeId) {
-      setFormError('❌ โปรดเลือกชื่อผู้ขอลา');
+    if (!selectedEmployeeId || !selectedEmployee) {
+      setFormError('❌ โปรดเลือกชื่อผู้ขอลาให้ถูกต้อง (ไม่พบข้อมูลในระบบ)');
       return;
     }
     if (!startDate || !endDate) {
@@ -773,10 +848,10 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
 
     const newRequest = {
       id: supabaseConnected ? undefined : `local-${Date.now()}`,
-      employee_id: parseInt(selectedEmployeeId),
-      employee_name: selectedEmployee.name,
-      position: selectedEmployee.position,
-      location: selectedEmployee.location,
+      employee_id: selectedEmployee?.id || selectedEmployeeId,
+      employee_name: selectedEmployee?.name || '',
+      position: selectedEmployee?.position || '',
+      location: selectedEmployee?.location || '',
       leave_type: finalLeaveType,
       start_date: startDate,
       end_date: endDate,
@@ -784,7 +859,7 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
       reason: reason.trim(),
       phone: phone.trim(),
       address: address.trim(),
-      attachment_url: attachmentName ? `file://${attachmentName}` : null,
+      attachment_url: attachmentPreview || (attachmentName ? `file://${attachmentName}` : null),
       status: 'pending',
       director_comment: '',
       created_at: new Date().toISOString(),
@@ -805,17 +880,50 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
     setLoading(true);
     try {
       if (supabaseConnected) {
-        // Save request on Supabase
-        const res = await fetch(`${supabaseUrl}/rest/v1/leave_requests`, {
+        // Save request on Supabase — fallback: ถ้า column ไม่มีใน DB ให้ retry เฉพาะ column หลัก
+        const postHeaders = {
+          'Content-Type': 'application/json',
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`
+        };
+        let res = await fetch(`${supabaseUrl}/rest/v1/leave_requests`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': supabaseKey,
-            'Authorization': `Bearer ${supabaseKey}`
-          },
+          headers: postHeaders,
           body: JSON.stringify(newRequest)
         });
-        if (!res.ok) throw new Error(await res.text());
+        // ถ้า column ไม่มีใน schema ให้ retry ด้วย payload เฉพาะ column หลัก
+        if (!res.ok) {
+          const errText = await res.text();
+          let errObj = {};
+          try { errObj = JSON.parse(errText); } catch (_) {}
+          if (errObj.code === 'PGRST204') {
+            // Retry with base columns only
+            const baseRequest = {
+              employee_id: newRequest.employee_id,
+              employee_name: newRequest.employee_name,
+              position: newRequest.position,
+              location: newRequest.location,
+              leave_type: newRequest.leave_type,
+              start_date: newRequest.start_date,
+              end_date: newRequest.end_date,
+              days: newRequest.days,
+              reason: newRequest.reason,
+              phone: newRequest.phone,
+              address: newRequest.address,
+              attachment_url: newRequest.attachment_url,
+              status: newRequest.status,
+              director_comment: newRequest.director_comment,
+            };
+            res = await fetch(`${supabaseUrl}/rest/v1/leave_requests`, {
+              method: 'POST',
+              headers: postHeaders,
+              body: JSON.stringify(baseRequest)
+            });
+            if (!res.ok) throw new Error(await res.text());
+          } else {
+            throw new Error(errText);
+          }
+        }
         await fetchSupabaseRequests();
       } else {
         // Local Save
@@ -1246,12 +1354,13 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
                 <select 
                   value={selectedEmployeeId} 
                   onChange={(e) => setSelectedEmployeeId(e.target.value)}
-                  disabled={currentUser?.role === 'user' && currentUser?.employeeId}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-dark)', color: 'var(--text-main)', cursor: (currentUser?.role === 'user' && currentUser?.employeeId) ? 'not-allowed' : 'default' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-dark)', color: 'var(--text-main)', cursor: 'pointer' }}
                 >
-                  <option value="">-- ค้นหา / เลือกรายชื่อพนักงาน --</option>
+                  <option value="" style={{ background: '#1e293b', color: '#f8fafc' }}>-- ค้นหา / เลือกรายชื่อพนักงาน --</option>
                   {employeesData.map(emp => (
-                    <option key={emp.id} value={emp.id}>{emp.name} ({emp.position})</option>
+                    <option key={emp.id} value={String(emp.id)} style={{ background: '#1e293b', color: '#f8fafc' }}>
+                      {emp.name} ({emp.position})
+                    </option>
                   ))}
                 </select>
               </div>
@@ -1596,14 +1705,92 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px' }}>📁 แนบเอกสารเพิ่มเติม (เช่น ใบรับรองแพทย์ / ไฟล์ภาพ)</label>
-              <input 
-                type="text" 
-                value={attachmentName} 
-                onChange={(e) => setAttachmentName(e.target.value)}
-                placeholder="จำลองชื่อเอกสารแนบ เช่น medical_certificate.pdf"
-                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-dark)', color: 'var(--text-main)' }}
-              />
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '8px' }}>📁 แนบเอกสารเพิ่มเติม (เช่น ใบรับรองแพทย์ / ไฟล์ภาพ)</label>
+              {/* Drop Zone */}
+              <div
+                onDragOver={(e) => { e.preventDefault(); setAttachmentDragOver(true); }}
+                onDragLeave={() => setAttachmentDragOver(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setAttachmentDragOver(false);
+                  const file = e.dataTransfer.files[0];
+                  if (!file) return;
+                  setAttachmentFile(file);
+                  setAttachmentName(file.name);
+                  const reader = new FileReader();
+                  reader.onload = (ev) => setAttachmentPreview(ev.target.result);
+                  reader.readAsDataURL(file);
+                }}
+                onClick={() => document.getElementById('attachment-file-input').click()}
+                style={{
+                  border: `2px dashed ${attachmentDragOver ? 'var(--primary)' : 'var(--border-color)'}`,
+                  borderRadius: '12px',
+                  padding: '20px',
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  background: attachmentDragOver ? 'rgba(159,122,234,0.08)' : 'var(--bg-dark)',
+                  transition: 'all 0.2s',
+                  position: 'relative'
+                }}
+              >
+                <input
+                  id="attachment-file-input"
+                  type="file"
+                  accept="image/*,application/pdf"
+                  style={{ display: 'none' }}
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    setAttachmentFile(file);
+                    setAttachmentName(file.name);
+                    const reader = new FileReader();
+                    reader.onload = (ev) => setAttachmentPreview(ev.target.result);
+                    reader.readAsDataURL(file);
+                  }}
+                />
+                {attachmentPreview ? (
+                  <div style={{ position: 'relative', display: 'inline-block' }}>
+                    {attachmentPreview.startsWith('data:image') ? (
+                      <img
+                        src={attachmentPreview}
+                        alt="ตัวอย่างเอกสาร"
+                        style={{ maxWidth: '100%', maxHeight: '180px', borderRadius: '8px', objectFit: 'contain', display: 'block', margin: '0 auto' }}
+                      />
+                    ) : (
+                      <div style={{ fontSize: '3rem', marginBottom: '6px' }}>📄</div>
+                    )}
+                    <div style={{ marginTop: '8px', fontSize: '0.8rem', color: 'var(--text-muted)', wordBreak: 'break-all' }}>{attachmentName}</div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setAttachmentFile(null);
+                        setAttachmentPreview(null);
+                        setAttachmentName('');
+                      }}
+                      style={{
+                        marginTop: '10px',
+                        padding: '4px 14px',
+                        background: 'rgba(239,68,68,0.1)',
+                        border: '1px solid rgba(239,68,68,0.3)',
+                        color: 'var(--red)',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontSize: '0.78rem',
+                        fontWeight: 600
+                      }}
+                    >
+                      ✕ ลบไฟล์
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <div style={{ fontSize: '2.5rem', marginBottom: '8px' }}>📎</div>
+                    <div style={{ fontSize: '0.88rem', color: 'var(--text-main)', fontWeight: 600 }}>คลิกหรือลากไฟล์มาวางที่นี่</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>รองรับ: รูปภาพ (JPG, PNG, HEIC) และ PDF</div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {formError && <div style={{ color: 'var(--red)', fontSize: '0.85rem', fontWeight: 500 }}>{formError}</div>}
@@ -1658,6 +1845,7 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
         const getStatusInfo = (status) => {
           if (status === 'approved') return { color: 'var(--green)', bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.3)', text: '✅ อนุมัติแล้ว' };
           if (status === 'rejected') return { color: 'var(--red)', bg: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.3)', text: '❌ ไม่อนุมัติ' };
+          if (status === 'cancelled') return { color: 'var(--text-muted)', bg: 'rgba(255,255,255,0.05)', border: 'rgba(255,255,255,0.1)', text: '🚫 ยกเลิกคำขอ' };
           return { color: 'var(--yellow)', bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.3)', text: '⏳ รออนุมัติ' };
         };
 
@@ -1810,7 +1998,7 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
                           </>
                         )}
                         <button onClick={() => setActivePrintRequest(req)} style={{ padding: '5px 12px', background: 'rgba(6,182,212,0.08)', border: '1px solid rgba(6,182,212,0.25)', color: 'var(--cyan)', borderRadius: '6px', fontWeight: 'bold', fontSize: '0.75rem', cursor: 'pointer' }} title="ดูตัวอย่างใบลาก่อนสั่งพิมพ์">👁️ พรีวิวใบลา</button>
-                        {role === 'requester' && req.status === 'pending' && (
+                        {(req.status === 'pending' || req.status === 'approved') && (
                           <button onClick={() => handleCancelRequest(req.id)} style={{ padding: '5px 12px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: 'var(--red)', borderRadius: '6px', fontWeight: 'bold', fontSize: '0.75rem', cursor: 'pointer' }}>🚫 ยกเลิกใบลา</button>
                         )}
                       </div>
@@ -1869,8 +2057,8 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
                                 </>
                               )}
                               <button onClick={() => setActivePrintRequest(req)} style={{ padding: '5px 8px', background: 'rgba(6,182,212,0.08)', border: '1px solid rgba(6,182,212,0.25)', color: 'var(--cyan)', borderRadius: '6px', fontSize: '0.70rem', cursor: 'pointer' }} title="ดูตัวอย่างใบลาก่อนสั่งพิมพ์">👁️</button>
-                              {role === 'requester' && req.status === 'pending' && (
-                                <button onClick={() => handleCancelRequest(req.id)} style={{ padding: '5px 8px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: 'var(--red)', borderRadius: '6px', fontSize: '0.70rem', cursor: 'pointer' }}>🚫</button>
+                              {(req.status === 'pending' || req.status === 'approved') && (
+                                <button onClick={() => handleCancelRequest(req.id)} style={{ padding: '5px 8px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: 'var(--red)', borderRadius: '6px', fontSize: '0.70rem', cursor: 'pointer' }} title="ยกเลิกใบลา">🚫</button>
                               )}
                             </div>
                           </td>

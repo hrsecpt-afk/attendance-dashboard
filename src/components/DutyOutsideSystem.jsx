@@ -375,6 +375,30 @@ const DutyOutsideSystem = ({ employeesData, setEmployeesData }) => {
     } catch {}
     return '';
   });
+
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const validById = currentUser.employeeId && employeesData.find(e => String(e.id) === String(currentUser.employeeId));
+    if (validById) {
+      setSelectedEmployeeId(String(validById.id));
+      return;
+    }
+
+    if (currentUser.displayName) {
+      const cleanName = (n) => (n || '').replace(/^(นาย|นางสาว|นาง|ดร\.|ครูผู้ช่วย|ครู|ผอ\.|ผู้อำนวยการ)\s*/, '').replace(/\s+/g, '').toLowerCase();
+      const target = cleanName(currentUser.displayName);
+      const matched = employeesData.find(e => cleanName(e.name) === target);
+      if (matched) {
+        setSelectedEmployeeId(String(matched.id));
+        return;
+      }
+    }
+
+    if (selectedEmployeeId && !employeesData.some(e => String(e.id) === String(selectedEmployeeId))) {
+      setSelectedEmployeeId('');
+    }
+  }, [currentUser, employeesData]);
   const [department, setDepartment] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -558,7 +582,7 @@ const DutyOutsideSystem = ({ employeesData, setEmployeesData }) => {
   };
 
   const buildRequest = (status) => {
-    const emp = employeesData.find(e => e.id === parseInt(selectedEmployeeId));
+    const emp = employeesData.find(e => String(e.id) === String(selectedEmployeeId));
     if (!emp) return null;
     const typeStr = dutyType === 'อื่น ๆ' ? `อื่น ๆ (${otherDutyType.trim()})` : dutyType;
     return {
@@ -591,7 +615,7 @@ const DutyOutsideSystem = ({ employeesData, setEmployeesData }) => {
     const errorMsg = validateForm();
     if (errorMsg) { setFormError(`❌ ${errorMsg}`); return; }
 
-    const emp = employeesData.find(e => e.id === parseInt(selectedEmployeeId));
+    const emp = employeesData.find(e => String(e.id) === String(selectedEmployeeId));
     if (!emp) { setFormError('❌ ไม่พบข้อมูลพนักงาน'); return; }
     const typeStr = dutyType === 'อื่น ๆ' ? `อื่น ๆ (${otherDutyType.trim()})` : dutyType;
 
@@ -623,7 +647,7 @@ const DutyOutsideSystem = ({ employeesData, setEmployeesData }) => {
 
   const handleSaveDraft = async (e) => {
     e.preventDefault();
-    const emp = employeesData.find(emp => emp.id === parseInt(selectedEmployeeId));
+    const emp = employeesData.find(emp => String(emp.id) === String(selectedEmployeeId));
     if (!emp) { setFormError('โปรดเลือกชื่อผู้ขออนุญาต'); return; }
     if (!dutyDate) { setFormError('โปรดระบุวันที่เดินทาง'); return; }
     const req = buildRequest('draft');
@@ -1031,12 +1055,13 @@ const DutyOutsideSystem = ({ employeesData, setEmployeesData }) => {
                 <select 
                   value={selectedEmployeeId} 
                   onChange={e => setSelectedEmployeeId(e.target.value)} 
-                  disabled={currentUser?.role === 'user' && currentUser?.employeeId}
-                  style={{ ...inputStyle, cursor: (currentUser?.role === 'user' && currentUser?.employeeId) ? 'not-allowed' : 'default' }}
+                  style={{ ...inputStyle, cursor: 'pointer' }}
                 >
-                  <option value="">-- โปรดเลือกบุคลากร --</option>
+                  <option value="" style={{ background: '#1e293b', color: '#f8fafc' }}>-- โปรดเลือกบุคลากร --</option>
                   {employeesData.map(emp => (
-                    <option key={emp.id} value={emp.id}>{emp.name} ({emp.position})</option>
+                    <option key={emp.id} value={String(emp.id)} style={{ background: '#1e293b', color: '#f8fafc' }}>
+                      {emp.name} ({emp.position})
+                    </option>
                   ))}
                 </select>
               </div>

@@ -106,6 +106,7 @@ ALTER TABLE public.attendance_logs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow public read/write access" ON public.employees FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public read/write access" ON public.leave_balances FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public read/write access" ON public.leave_requests FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public read/write access" ON public.duty_requests FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public read/write access" ON public.attendance_logs FOR ALL USING (true) WITH CHECK (true);
 
 -- 6. ตารางบัญชีผู้ใช้งานระบบ (users)

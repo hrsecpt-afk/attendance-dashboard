@@ -1000,14 +1000,14 @@ const DailyReportGenerator = ({ employeesData }) => {
         rowsHtml += `
           <tr>
             <!-- Left Column -->
-            <td style="text-align: center;">${l ? l.id : ''}</td>
+            <td style="text-align: center;">${l ? (i * 2 + 1) : ''}</td>
             <td class="text-left">${l ? l.name : ''}</td>
             <td style="text-align: center;">${l ? leftTime : ''}</td>
             <td style="text-align: center;">${l ? leftStatus : ''}</td>
             <td style="text-align: center;">${l ? '-' : ''}</td>
             
             <!-- Right Column -->
-            <td style="text-align: center;">${r ? r.id : ''}</td>
+            <td style="text-align: center;">${r ? (i * 2 + 2) : ''}</td>
             <td class="text-left">${r ? r.name : ''}</td>
             <td style="text-align: center;">${r ? rightTime : ''}</td>
             <td style="text-align: center;">${r ? rightStatus : ''}</td>

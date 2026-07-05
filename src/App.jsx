@@ -94,6 +94,83 @@ const recalculateAccumulatedLeaves = (leavesByMonth) => {
   return accumulated;
 };
 
+const positionOrder = {
+  "ผู้อำนวยการ": 1,
+  "รองผู้อำนวยการ": 2,
+  "ครู": 3,
+  "ครูผู้ช่วย": 4,
+  "พนักงานราชการ": 5,
+  "ลูกจ้างชั่วคราว ตำแหน่ง ครูผู้ช่วย": 6,
+  "ครูอัตราจ้าง": 7,
+  "พนักงานธุรการ": 8,
+  "พี่เลี้ยงเด็กพิการ": 9,
+  "จ้างเหมาบริการ (ภารโรง)": 10,
+  "จ้างเหมาบริการ (ยาม)": 11,
+  "จ้างเหมาบริการ (คนงาน)": 12,
+  "จ้างเหมาบริการ (คนครัว)": 13
+};
+
+const getPositionRank = (pos) => positionOrder[pos] || 99;
+
+const getLocationRank = (loc) => {
+  if (!loc) return 999;
+  const l = loc.trim();
+  if (l.includes("ศูนย์การศึกษาพิเศษ")) return 1;
+  if (l.includes("หน่วยฯเมืองปทุม")) return 2;
+  if (l.includes("หน่วยฯธัญบุรี")) return 3;
+  if (l.includes("หน่วยฯคลองหลวง")) return 4;
+  if (l.includes("หน่วยฯลำลูกกา")) return 5;
+  if (l.includes("หน่วยฯหนองเสือ")) return 6;
+  if (l.startsWith("โรงเรียน")) return 10;
+  if (l.startsWith("รพ.")) return 20;
+  return 100;
+};
+
+const cleanNameForMatch = (nameStr) => {
+  if (!nameStr) return '';
+  nameStr = nameStr.replace(/\s*\(.*?\)\s*/g, '');
+  let clean = String(nameStr).replace(/\s+/g, '');
+  const prefixes = ['นาย', 'นางสาว', 'นาง', 'เด็กชาย', 'เด็กหญิง', 'ด.ช.', 'ด.ญ.', 'ครู', 'ผอ.', 'ผอ', 'รองผอ.', 'รองผอ'];
+  for (const pref of prefixes) {
+    if (clean.startsWith(pref)) {
+      clean = clean.substring(pref.length);
+      break;
+    }
+  }
+  return clean;
+};
+
+const syncEmployeeDetailsWithRaw = (employeesList) => {
+  if (!employeesList || !Array.isArray(employeesList)) return employeesList;
+  return employeesList.map(emp => {
+    // If name, position, or location is missing, populate from raw data.
+    // Otherwise, keep the existing values to preserve user edits!
+    if (!emp.name || !emp.position || !emp.location) {
+      const cleanDbName = cleanNameForMatch(emp.name);
+      const localEmp = attendanceRawData.find(r => cleanNameForMatch(r.name) === cleanDbName);
+      if (localEmp) {
+        return {
+          ...emp,
+          name: emp.name || localEmp.name,
+          position: emp.position || localEmp.position,
+          location: emp.location || localEmp.location
+        };
+      }
+    }
+    return emp;
+  });
+};
+
+const sortEmployeesByUserListOrder = (employeesList) => {
+  if (!employeesList || !Array.isArray(employeesList)) return employeesList;
+  return [...employeesList].sort((a, b) => {
+    const indexA = a.sortIndex !== undefined ? a.sortIndex : (typeof a.id === 'number' ? a.id : 999);
+    const indexB = b.sortIndex !== undefined ? b.sortIndex : (typeof b.id === 'number' ? b.id : 999);
+    if (indexA !== indexB) return indexA - indexB;
+    return a.name.localeCompare(b.name, 'th');
+  });
+};
+
 const migrateToMonthly = (rawData) => {
   return rawData.map(emp => {
     if (emp.leaves && emp.leaves.all) return emp;
@@ -197,16 +274,22 @@ function App() {
 
   const [employeesData, setEmployeesData] = useState(() => {
     // 1. Try loading selected year data (2569)
-    const savedYear = localStorage.getItem('attendance_dashboard_data_v2_year_2569');
+    const savedYear = localStorage.getItem('attendance_dashboard_data_v3_year_2569');
     if (savedYear) {
-      try { return JSON.parse(savedYear); } catch (e) {}
+      try {
+        const parsed = JSON.parse(savedYear);
+        return sortEmployeesByUserListOrder(syncEmployeeDetailsWithRaw(parsed));
+      } catch (e) {}
     }
     // 2. Try loading legacy data for backward compatibility
-    const savedLegacy = localStorage.getItem('attendance_dashboard_data_v2');
+    const savedLegacy = localStorage.getItem('attendance_dashboard_data_v3');
     if (savedLegacy) {
-      try { return JSON.parse(savedLegacy); } catch (e) {}
+      try {
+        const parsed = JSON.parse(savedLegacy);
+        return sortEmployeesByUserListOrder(syncEmployeeDetailsWithRaw(parsed));
+      } catch (e) {}
     }
-    return migrateToMonthly(attendanceRawData);
+    return sortEmployeesByUserListOrder(migrateToMonthly(attendanceRawData));
   });
 
   // ── Deep-link: อ่าน ?view= จาก URL เพื่อนำทางอัตโนมัติ (สำหรับลิ้ง Telegram)
@@ -278,9 +361,9 @@ function App() {
 
   // Auto-save when employeesData changes
   useEffect(() => {
-    localStorage.setItem(`attendance_dashboard_data_v2_year_${selectedYear}`, JSON.stringify(employeesData));
+    localStorage.setItem(`attendance_dashboard_data_v3_year_${selectedYear}`, JSON.stringify(employeesData));
     if (selectedYear === '2569') {
-      localStorage.setItem('attendance_dashboard_data_v2', JSON.stringify(employeesData));
+      localStorage.setItem('attendance_dashboard_data_v3', JSON.stringify(employeesData));
     }
   }, [employeesData, selectedYear]);
 
@@ -328,7 +411,14 @@ function App() {
           headers: { 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` }
         });
         if (!empRes.ok) return;
-        const dbEmps = await empRes.json();
+        let dbEmps = await empRes.json();
+        
+        // Filter out duplicate employees (วรรณเพ็ญ, ธนัญญา) to keep only the active ones in use
+        const duplicateIdsToExclude = new Set([
+          '6cafa178-dbf3-40ad-8a08-df4114ce6398', // duplicate of วรรณเพ็ญ ปิ่นประดับ
+          '43be2720-90a9-4a43-ab25-eb2ddfb89f4f'  // duplicate of ธนัญญา สวัสดี
+        ]);
+        dbEmps = dbEmps.filter(emp => !duplicateIdsToExclude.has(emp.id));
 
         // 2. Fetch leave balances (resilient fetch)
         let dbBals = [];
@@ -349,9 +439,27 @@ function App() {
         });
 
         if (dbEmps && dbEmps.length > 0) {
-          const syncedData = dbEmps.map(emp => {
+          // ── MERGE: ใช้ข้อมูลจาก localStorage เป็นหลัก (เพื่อรักษาการแก้ไขของผู้ใช้)
+          // แล้วเพิ่มเฉพาะรายชื่อใหม่จาก Supabase ที่ยังไม่มีใน local
+          const localKey = `attendance_dashboard_data_v3_year_2569`;
+          const localRaw = localStorage.getItem(localKey) || localStorage.getItem('attendance_dashboard_data_v3');
+          let localEmployees = [];
+          if (localRaw) {
+            try { localEmployees = JSON.parse(localRaw); } catch (e) {}
+          }
+          const localById = {};
+          localEmployees.forEach(e => { localById[e.id] = e; });
+
+          const mergedData = dbEmps.map(emp => {
             const bal = balMap[emp.id] || {};
-            
+
+            // ถ้ามีข้อมูลใน localStorage ให้ใช้เป็นหลัก (รักษาการแก้ไขของผู้ใช้)
+            const localVersion = localById[emp.id];
+            if (localVersion) {
+              return localVersion;
+            }
+
+            // ถ้าเป็นรายชื่อใหม่จาก Supabase ที่ยังไม่มีใน local → สร้างใหม่
             const leavesByMonth = {
               all: {
                 sick: { count: 0, days: 30 - (bal.sick_remaining ?? 30) },
@@ -397,15 +505,24 @@ function App() {
               };
             });
 
+            const cleanDbName = cleanNameForMatch(emp.full_name);
+            const rawEmp = attendanceRawData.find(r => cleanNameForMatch(r.name) === cleanDbName);
+
             return {
               id: emp.id,
-              name: emp.full_name,
-              position: emp.position,
-              location: emp.location,
+              name: emp.full_name || (rawEmp ? rawEmp.name : ''),
+              position: emp.position || (rawEmp ? rawEmp.position : ''),
+              location: emp.department || emp.location || (rawEmp ? rawEmp.location : 'ศูนย์การศึกษาพิเศษฯ'),
+              sortIndex: rawEmp ? rawEmp.id : 999,
               leaves: leavesByMonth
             };
           });
-          setEmployeesData(syncedData);
+
+          // รักษา local employees ที่ไม่มีใน Supabase (เช่น เพิ่งเพิ่มแต่ยังไม่ sync)
+          const dbIds = new Set(dbEmps.map(e => e.id));
+          const localOnlyEmps = localEmployees.filter(e => !dbIds.has(e.id));
+
+          setEmployeesData(sortEmployeesByUserListOrder([...mergedData, ...localOnlyEmps]));
         }
       } catch (err) {
         console.error("Failed to sync employees from Supabase on mount", err);
@@ -443,7 +560,8 @@ function App() {
     let loadedData = null;
     if (saved) {
       try {
-        loadedData = JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        loadedData = syncEmployeeDetailsWithRaw(parsed);
       } catch (e) {
         console.error("Failed to parse year data", e);
       }
@@ -453,7 +571,7 @@ function App() {
     }
 
     setSelectedYear(newYear);
-    setEmployeesData(loadedData);
+    setEmployeesData(sortEmployeesByUserListOrder(loadedData));
   };
 
   const positionsList = Array.from(new Set(employeesData.map(emp => emp.position))).filter(Boolean).sort();
@@ -496,7 +614,7 @@ function App() {
         const parsed = JSON.parse(saved);
         if (parsed.url && parsed.key) {
           const table = parsed.employeesTable || 'employees';
-          const cols = parsed.supabaseColumns || { id: 'id', fullName: 'full_name', position: 'position', location: 'location' };
+          const cols = parsed.supabaseColumns || { id: 'id', fullName: 'full_name', position: 'position', location: 'department' };
           
           await fetch(`${parsed.url}/rest/v1/${table}`, {
             method: 'POST',
@@ -559,7 +677,7 @@ function App() {
         const parsed = JSON.parse(saved);
         if (parsed.url && parsed.key) {
           const table = parsed.employeesTable || 'employees';
-          const cols = parsed.supabaseColumns || { id: 'id', fullName: 'full_name', position: 'position', location: 'location' };
+          const cols = parsed.supabaseColumns || { id: 'id', fullName: 'full_name', position: 'position', location: 'department' };
           
           await fetch(`${parsed.url}/rest/v1/${table}?${cols.id}=eq.${empId}`, {
             method: 'DELETE',
@@ -625,7 +743,7 @@ function App() {
         const cfg = JSON.parse(savedConfig);
         if (cfg.url && cfg.key) {
           const table = cfg.employeesTable || 'employees';
-          const cols = cfg.supabaseColumns || { id: 'id', fullName: 'full_name', position: 'position', location: 'location' };
+          const cols = cfg.supabaseColumns || { id: 'id', fullName: 'full_name', position: 'position', location: 'department' };
           fetch(`${cfg.url}/rest/v1/${table}?${cols.id}=eq.${updatedEmpForActiveMonth.id}`, {
             method: 'PATCH',
             headers: { 
@@ -891,13 +1009,45 @@ function App() {
     })
     .sort((a, b) => {
       switch (sortBy) {
+        case 'position-asc': {
+          const posA = getPositionRank(a.position);
+          const posB = getPositionRank(b.position);
+          if (posA !== posB) return posA - posB;
+          const locA = getLocationRank(a.location);
+          const locB = getLocationRank(b.location);
+          if (locA !== locB) return locA - locB;
+          if (locA >= 10 && a.location !== b.location) {
+            return a.location.localeCompare(b.location, 'th');
+          }
+          return a.name.localeCompare(b.name, 'th');
+        }
+        case 'location-asc': {
+          const locA = getLocationRank(a.location);
+          const locB = getLocationRank(b.location);
+          if (locA !== locB) return locA - locB;
+          if (locA >= 10 && a.location !== b.location) {
+            const locComp = a.location.localeCompare(b.location, 'th');
+            if (locComp !== 0) return locComp;
+          }
+          const posA = getPositionRank(a.position);
+          const posB = getPositionRank(b.position);
+          if (posA !== posB) return posA - posB;
+          return a.name.localeCompare(b.name, 'th');
+        }
         case 'sick-desc': return b.leaves.sick.days - a.leaves.sick.days;
         case 'vacation-desc': return b.leaves.vacation.days - a.leaves.vacation.days;
         case 'personal-desc': return b.leaves.personal.days - a.leaves.personal.days;
         case 'absent-desc': return b.leaves.absent - a.leaves.absent;
         case 'late-desc': return b.leaves.late.count - a.leaves.late.count;
         case 'total-desc': return b.leaves.total.days - a.leaves.total.days;
-        default: return a.id - b.id;
+        default: {
+          const indexA = a.sortIndex !== undefined ? a.sortIndex : (typeof a.id === 'number' ? a.id : 999);
+          const indexB = b.sortIndex !== undefined ? b.sortIndex : (typeof b.id === 'number' ? b.id : 999);
+          if (indexA !== indexB) {
+            return indexA - indexB;
+          }
+          return a.name.localeCompare(b.name, 'th');
+        }
       }
     });
 
