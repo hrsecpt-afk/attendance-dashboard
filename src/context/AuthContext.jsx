@@ -38,7 +38,9 @@ export const loadUsers = () => {
     if (raw) return JSON.parse(raw);
   } catch {}
   // First time: seed defaults
-  localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(DEFAULT_USERS));
+  try {
+    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(DEFAULT_USERS));
+  } catch {}
   return DEFAULT_USERS;
 };
 

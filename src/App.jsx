@@ -274,21 +274,25 @@ function App() {
   const [selectedYear, setSelectedYear] = useState('2569');
 
   const [employeesData, setEmployeesData] = useState(() => {
-    // 1. Try loading selected year data (2569)
-    const savedYear = localStorage.getItem('attendance_dashboard_data_v3_year_2569');
-    if (savedYear) {
-      try {
-        const parsed = JSON.parse(savedYear);
-        return sortEmployeesByUserListOrder(syncEmployeeDetailsWithRaw(parsed));
-      } catch (e) {}
-    }
-    // 2. Try loading legacy data for backward compatibility
-    const savedLegacy = localStorage.getItem('attendance_dashboard_data_v3');
-    if (savedLegacy) {
-      try {
-        const parsed = JSON.parse(savedLegacy);
-        return sortEmployeesByUserListOrder(syncEmployeeDetailsWithRaw(parsed));
-      } catch (e) {}
+    try {
+      // 1. Try loading selected year data (2569)
+      const savedYear = localStorage.getItem('attendance_dashboard_data_v3_year_2569');
+      if (savedYear) {
+        try {
+          const parsed = JSON.parse(savedYear);
+          return sortEmployeesByUserListOrder(syncEmployeeDetailsWithRaw(parsed));
+        } catch (e) {}
+      }
+      // 2. Try loading legacy data for backward compatibility
+      const savedLegacy = localStorage.getItem('attendance_dashboard_data_v3');
+      if (savedLegacy) {
+        try {
+          const parsed = JSON.parse(savedLegacy);
+          return sortEmployeesByUserListOrder(syncEmployeeDetailsWithRaw(parsed));
+        } catch (e) {}
+      }
+    } catch (err) {
+      console.warn("localStorage access denied or unavailable", err);
     }
     return sortEmployeesByUserListOrder(migrateToMonthly(attendanceRawData));
   });

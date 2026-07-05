@@ -36,7 +36,9 @@ export const loadHolidays = () => {
     const saved = localStorage.getItem(HOLIDAYS_STORAGE_KEY);
     if (saved) return JSON.parse(saved);
   } catch {}
-  localStorage.setItem(HOLIDAYS_STORAGE_KEY, JSON.stringify(DEFAULT_HOLIDAYS_2025));
+  try {
+    localStorage.setItem(HOLIDAYS_STORAGE_KEY, JSON.stringify(DEFAULT_HOLIDAYS_2025));
+  } catch {}
   return DEFAULT_HOLIDAYS_2025;
 };
 
