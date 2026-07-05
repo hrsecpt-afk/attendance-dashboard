@@ -1200,7 +1200,7 @@ function App() {
           </div>
         </div>
       </header>
-{currentUser?.role === 'admin' && <UserManagement employeesData={employeesData} />}
+{(currentUser?.role === 'admin' || currentUser?.role === 'director') && <UserManagement employeesData={employeesData} />}
 
       {/* ============================================================ View Mode Toggle */}
       <div className="no-print view-mode-tabs">
@@ -1379,7 +1379,7 @@ function App() {
             >
               🚗 ออกนอกสถานที่
             </button>
-            {currentUser?.role === 'admin' && (
+            {(currentUser?.role === 'admin' || currentUser?.role === 'director') && (
               <button
                 onClick={() => setActiveView(VIEWS.PERSONNEL)}
                 style={{
