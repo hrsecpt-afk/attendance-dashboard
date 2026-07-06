@@ -41,6 +41,23 @@ const getPersonnelCategory = (position) => {
   return 'เจ้าหน้าที่';
 };
 
+// Only these positions are entitled to vacation leave (ลาพักผ่อน):
+// ผู้อำนวยการ, รองผู้อำนวยการ, ครู, ครู คศ.1, ครู คศ.2, ครูผู้ช่วย, พนักงานราชการ
+const canTakeVacation = (position) => {
+  if (!position) return false;
+  const cleanPos = position.trim();
+  if (cleanPos.includes('ผู้อำนวยการ')) return true; // ผู้อำนวยการ / รองผู้อำนวยการ
+  if (cleanPos.includes('พนักงานราชการ')) return true;
+  // ครู, ครู คศ.1, ครู คศ.2, ครูผู้ช่วย — but not ครูพิเศษ / ครูอัตราจ้าง / ครูพี่เลี้ยง
+  if (
+    cleanPos.includes('ครู') &&
+    !cleanPos.includes('พิเศษ') &&
+    !cleanPos.includes('จ้าง') &&
+    !cleanPos.includes('พี่เลี้ยง')
+  ) return true;
+  return false;
+};
+
 const DailyReportGenerator = ({ employeesData }) => {
   const [rawDate, setRawDate] = useState(() => {
     const today = new Date();
@@ -324,6 +341,8 @@ const DailyReportGenerator = ({ employeesData }) => {
             if (rawStatus === 'late' || rawStatus === 'สาย') status = 'late';
             else if (rawStatus === 'gov' || rawStatus === 'ไปราชการ') status = 'gov';
             else if (rawStatus === 'sick' || rawStatus === 'ลาป่วย') status = 'sick';
+            else if (rawStatus === 'vacation' || rawStatus === 'ลาพักผ่อน') status = 'vacation';
+            else if (rawStatus === 'maternity' || rawStatus === 'ลาคลอด') status = 'maternity';
             else if (rawStatus === 'ontime' || rawStatus === 'present' || rawStatus === 'normal' || rawStatus === 'มาปกติ') status = 'present';
           }
 
@@ -654,6 +673,8 @@ const DailyReportGenerator = ({ employeesData }) => {
       late: initialGroup(),
       gov: initialGroup(),
       sick: initialGroup(),
+      vacation: initialGroup(),
+      maternity: initialGroup(),
       absent: initialGroup(),
       present: initialGroup()
     };
@@ -674,16 +695,22 @@ const DailyReportGenerator = ({ employeesData }) => {
       } else if (status === 'sick') {
         result.sick[cat]++;
         result.sick.all++;
+      } else if (status === 'vacation') {
+        result.vacation[cat]++;
+        result.vacation.all++;
+      } else if (status === 'maternity') {
+        result.maternity[cat]++;
+        result.maternity.all++;
       } else if (status === 'absent') {
         result.absent[cat]++;
         result.absent.all++;
       }
     });
-    
-    // Present = Total - Gov - Sick - Absent (Late counts as present)
+
+    // Present = Total - Gov - Sick - Vacation - Maternity - Absent (Late counts as present)
     categories.forEach(cat => {
-      result.present[cat] = result.total[cat] - (result.gov[cat] || 0) - (result.sick[cat] || 0) - (result.absent[cat] || 0);
-      result.present.all = result.total.all - (result.gov.all || 0) - (result.sick.all || 0) - (result.absent.all || 0);
+      result.present[cat] = result.total[cat] - (result.gov[cat] || 0) - (result.sick[cat] || 0) - (result.vacation[cat] || 0) - (result.maternity[cat] || 0) - (result.absent[cat] || 0);
+      result.present.all = result.total.all - (result.gov.all || 0) - (result.sick.all || 0) - (result.vacation.all || 0) - (result.maternity.all || 0) - (result.absent.all || 0);
     });
     
     return result;
@@ -695,6 +722,8 @@ const DailyReportGenerator = ({ employeesData }) => {
       late: [],
       gov: [],
       sick: [],
+      vacation: [],
+      maternity: [],
       absent: []
     };
     employeesData.forEach(emp => {
@@ -702,6 +731,8 @@ const DailyReportGenerator = ({ employeesData }) => {
       if (status === 'late') lists.late.push(emp.name);
       else if (status === 'gov') lists.gov.push(emp.name);
       else if (status === 'sick') lists.sick.push(emp.name);
+      else if (status === 'vacation') lists.vacation.push(emp.name);
+      else if (status === 'maternity') lists.maternity.push(emp.name);
       else if (status === 'absent') lists.absent.push(emp.name);
     });
     return lists;
@@ -890,7 +921,25 @@ const DailyReportGenerator = ({ employeesData }) => {
               <td class="bold">${displayVal(stats.sick.all)}</td>
             </tr>
             <tr>
-              <td class="text-left">5. ขาดงาน</td>
+              <td class="text-left">5. ลาพักผ่อน</td>
+              <td>${displayVal(stats.vacation.ข้าราชการครู)}</td>
+              <td>${displayVal(stats.vacation.ครูพิเศษ)}</td>
+              <td>${displayVal(stats.vacation.เจ้าหน้าที่)}</td>
+              <td>${displayVal(stats.vacation.ลูกจ้างประจำ)}</td>
+              <td>${displayVal(stats.vacation.ลูกจ้างชั่วคราว)}</td>
+              <td class="bold">${displayVal(stats.vacation.all)}</td>
+            </tr>
+            <tr>
+              <td class="text-left">6. ลาคลอด</td>
+              <td>${displayVal(stats.maternity.ข้าราชการครู)}</td>
+              <td>${displayVal(stats.maternity.ครูพิเศษ)}</td>
+              <td>${displayVal(stats.maternity.เจ้าหน้าที่)}</td>
+              <td>${displayVal(stats.maternity.ลูกจ้างประจำ)}</td>
+              <td>${displayVal(stats.maternity.ลูกจ้างชั่วคราว)}</td>
+              <td class="bold">${displayVal(stats.maternity.all)}</td>
+            </tr>
+            <tr>
+              <td class="text-left">7. ขาดงาน</td>
               <td>${displayVal(stats.absent.ข้าราชการครู)}</td>
               <td>${displayVal(stats.absent.ครูพิเศษ)}</td>
               <td>${displayVal(stats.absent.เจ้าหน้าที่)}</td>
@@ -926,7 +975,15 @@ const DailyReportGenerator = ({ employeesData }) => {
             ${namesList.sick.length > 0 ? namesList.sick.map((name, i) => `${i+1}.${name}`).join(' &nbsp;&nbsp;&nbsp;&nbsp; ') : '-'}
           </div>
           <div class="list-item" style="margin-top: 6px;">
-            <span class="bold">4. ขาดงาน</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+            <span class="bold">4. ลาพักผ่อน</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            ${namesList.vacation.length > 0 ? namesList.vacation.map((name, i) => `${i+1}.${name}`).join(' &nbsp;&nbsp;&nbsp;&nbsp; ') : '-'}
+          </div>
+          <div class="list-item" style="margin-top: 6px;">
+            <span class="bold">5. ลาคลอด</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            ${namesList.maternity.length > 0 ? namesList.maternity.map((name, i) => `${i+1}.${name}`).join(' &nbsp;&nbsp;&nbsp;&nbsp; ') : '-'}
+          </div>
+          <div class="list-item" style="margin-top: 6px;">
+            <span class="bold">6. ขาดงาน</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
             ${namesList.absent.length > 0 ? namesList.absent.map((name, i) => `${i+1}.${name}`).join(' &nbsp;&nbsp;&nbsp;&nbsp; ') : '-'}
           </div>
         </div>
@@ -987,6 +1044,8 @@ const DailyReportGenerator = ({ employeesData }) => {
       if (status === 'late') return 'สาย';
       if (status === 'gov') return 'ไปราชการ';
       if (status === 'sick') return 'ลาป่วย';
+      if (status === 'vacation') return 'ลาพักผ่อน';
+      if (status === 'maternity') return 'ลาคลอด';
       if (status === 'absent') return 'ขาดงาน';
       return 'มาปกติ';
     };
@@ -1407,8 +1466,26 @@ const DailyReportGenerator = ({ employeesData }) => {
                 <td style={{ textAlign: 'center' }}>{stats.sick.ลูกจ้างชั่วคราว || '-'}</td>
                 <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{stats.sick.all || '-'}</td>
               </tr>
+              <tr style={{ color: 'var(--cyan)' }}>
+                <td style={{ fontWeight: '600' }}>5. ลาพักผ่อน</td>
+                <td style={{ textAlign: 'center' }}>{stats.vacation.ข้าราชการครู || '-'}</td>
+                <td style={{ textAlign: 'center' }}>{stats.vacation.ครูพิเศษ || '-'}</td>
+                <td style={{ textAlign: 'center' }}>{stats.vacation.เจ้าหน้าที่ || '-'}</td>
+                <td style={{ textAlign: 'center' }}>{stats.vacation.ลูกจ้างประจำ || '-'}</td>
+                <td style={{ textAlign: 'center' }}>{stats.vacation.ลูกจ้างชั่วคราว || '-'}</td>
+                <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{stats.vacation.all || '-'}</td>
+              </tr>
+              <tr style={{ color: 'var(--secondary)' }}>
+                <td style={{ fontWeight: '600' }}>6. ลาคลอด</td>
+                <td style={{ textAlign: 'center' }}>{stats.maternity.ข้าราชการครู || '-'}</td>
+                <td style={{ textAlign: 'center' }}>{stats.maternity.ครูพิเศษ || '-'}</td>
+                <td style={{ textAlign: 'center' }}>{stats.maternity.เจ้าหน้าที่ || '-'}</td>
+                <td style={{ textAlign: 'center' }}>{stats.maternity.ลูกจ้างประจำ || '-'}</td>
+                <td style={{ textAlign: 'center' }}>{stats.maternity.ลูกจ้างชั่วคราว || '-'}</td>
+                <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{stats.maternity.all || '-'}</td>
+              </tr>
               <tr style={{ color: 'var(--red)' }}>
-                <td style={{ fontWeight: '600' }}>5. ขาดงาน</td>
+                <td style={{ fontWeight: '600' }}>7. ขาดงาน</td>
                 <td style={{ textAlign: 'center' }}>{stats.absent.ข้าราชการครู || '-'}</td>
                 <td style={{ textAlign: 'center' }}>{stats.absent.ครูพิเศษ || '-'}</td>
                 <td style={{ textAlign: 'center' }}>{stats.absent.เจ้าหน้าที่ || '-'}</td>
@@ -1456,8 +1533,22 @@ const DailyReportGenerator = ({ employeesData }) => {
             }
           </div>
           <div>
-            <span style={{ fontWeight: 'bold', color: 'var(--red)', marginRight: '10px' }}>4. ขาดงาน:</span>
-            {namesList.absent.length > 0 
+            <span style={{ fontWeight: 'bold', color: 'var(--cyan)', marginRight: '10px' }}>4. ลาพักผ่อน:</span>
+            {namesList.vacation.length > 0
+              ? namesList.vacation.map((n, i) => <span key={i} style={{ marginRight: '12px' }}>{i + 1}.{n}</span>)
+              : <span style={{ color: 'var(--text-muted)' }}>- ไม่มีพนักงานลาพักผ่อน -</span>
+            }
+          </div>
+          <div>
+            <span style={{ fontWeight: 'bold', color: 'var(--secondary)', marginRight: '10px' }}>5. ลาคลอด:</span>
+            {namesList.maternity.length > 0
+              ? namesList.maternity.map((n, i) => <span key={i} style={{ marginRight: '12px' }}>{i + 1}.{n}</span>)
+              : <span style={{ color: 'var(--text-muted)' }}>- ไม่มีพนักงานลาคลอด -</span>
+            }
+          </div>
+          <div>
+            <span style={{ fontWeight: 'bold', color: 'var(--red)', marginRight: '10px' }}>6. ขาดงาน:</span>
+            {namesList.absent.length > 0
               ? namesList.absent.map((n, i) => <span key={i} style={{ marginRight: '12px' }}>{i + 1}.{n}</span>)
               : <span style={{ color: 'var(--text-muted)' }}>- ไม่มีพนักงานขาดงาน -</span>
             }
@@ -1514,13 +1605,13 @@ const DailyReportGenerator = ({ employeesData }) => {
                         type="text"
                         value={currentCheckIn}
                         onChange={(e) => handleTimeChange(emp.id, e.target.value)}
-                        disabled={currentStatus === 'gov' || currentStatus === 'sick' || currentStatus === 'absent'}
+                        disabled={['gov', 'sick', 'vacation', 'maternity', 'absent'].includes(currentStatus)}
                         style={{
                           width: '82px',
                           padding: '6px',
                           textAlign: 'center',
-                          background: currentStatus === 'gov' || currentStatus === 'sick' || currentStatus === 'absent' ? 'transparent' : 'rgba(255,255,255,0.05)',
-                          border: currentStatus === 'gov' || currentStatus === 'sick' || currentStatus === 'absent' ? 'none' : '1px solid var(--border-color)',
+                          background: ['gov', 'sick', 'vacation', 'maternity', 'absent'].includes(currentStatus) ? 'transparent' : 'rgba(255,255,255,0.05)',
+                          border: ['gov', 'sick', 'vacation', 'maternity', 'absent'].includes(currentStatus) ? 'none' : '1px solid var(--border-color)',
                           borderRadius: '6px',
                           color: currentStatus === 'late' ? 'var(--yellow)' : currentStatus === 'absent' ? 'var(--red)' : 'var(--text-main)',
                           fontSize: '0.8rem',
@@ -1601,6 +1692,44 @@ const DailyReportGenerator = ({ employeesData }) => {
                           }}
                         >
                           🤕 ลาป่วย
+                        </button>
+
+                        {/* Status button vacation — only for positions entitled to vacation leave */}
+                        {canTakeVacation(emp.position) && (
+                          <button
+                            onClick={() => handleStatusChange(emp.id, 'vacation')}
+                            style={{
+                              padding: '6px 10px',
+                              background: currentStatus === 'vacation' ? 'rgba(6, 182, 212, 0.15)' : 'rgba(255,255,255,0.02)',
+                              border: `1px solid ${currentStatus === 'vacation' ? 'var(--cyan)' : 'var(--border-color)'}`,
+                              color: currentStatus === 'vacation' ? 'var(--cyan)' : 'var(--text-muted)',
+                              borderRadius: '8px',
+                              cursor: 'pointer',
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                              transition: 'var(--transition-smooth)'
+                            }}
+                          >
+                            🏖️ ลาพักผ่อน
+                          </button>
+                        )}
+
+                        {/* Status button maternity */}
+                        <button
+                          onClick={() => handleStatusChange(emp.id, 'maternity')}
+                          style={{
+                            padding: '6px 10px',
+                            background: currentStatus === 'maternity' ? 'rgba(236, 72, 153, 0.15)' : 'rgba(255,255,255,0.02)',
+                            border: `1px solid ${currentStatus === 'maternity' ? 'var(--secondary)' : 'var(--border-color)'}`,
+                            color: currentStatus === 'maternity' ? 'var(--secondary)' : 'var(--text-muted)',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            transition: 'var(--transition-smooth)'
+                          }}
+                        >
+                          🤱 ลาคลอด
                         </button>
 
                         {/* Status button absent */}

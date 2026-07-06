@@ -945,6 +945,7 @@ function App() {
               sick: 0,
               late: 0,
               vacation: 0,
+              maternity: 0,
               outOfArea: 0,
               work: 0,
               personal: 0
@@ -963,6 +964,8 @@ function App() {
             agg[empId][details.monthKey].personal += 1;
           } else if (status === 'vacation') {
             agg[empId][details.monthKey].vacation += 1;
+          } else if (status === 'maternity') {
+            agg[empId][details.monthKey].maternity += 1;
           }
         });
       });
@@ -987,6 +990,7 @@ function App() {
             emp.leaves[monthKey].sick = { ...emp.leaves[monthKey].sick, count: stats.sick, days: stats.sick };
             emp.leaves[monthKey].personal = { ...emp.leaves[monthKey].personal, count: stats.personal, days: stats.personal };
             emp.leaves[monthKey].vacation = { ...emp.leaves[monthKey].vacation, count: stats.vacation, days: stats.vacation };
+            emp.leaves[monthKey].maternity = { ...emp.leaves[monthKey].maternity, count: stats.maternity, days: stats.maternity };
             emp.leaves[monthKey].late = { ...emp.leaves[monthKey].late, count: stats.late, days: stats.late };
             emp.leaves[monthKey].work = { ...emp.leaves[monthKey].work, count: stats.work, days: stats.work };
             emp.leaves[monthKey].outOfArea = { ...emp.leaves[monthKey].outOfArea, count: stats.work, days: stats.work };
@@ -1021,6 +1025,8 @@ function App() {
             all.personal.count += mObj.personal?.count || 0;
             all.vacation.days += mObj.vacation?.days || 0;
             all.vacation.count += mObj.vacation?.count || 0;
+            all.maternity.days += mObj.maternity?.days || 0;
+            all.maternity.count += mObj.maternity?.count || 0;
             all.outOfArea.count += mObj.outOfArea?.count || 0;
             all.outOfArea.days += mObj.outOfArea?.days || 0;
           }
@@ -1032,6 +1038,7 @@ function App() {
           sick: { count: all.sick.count, days: all.sick.days },
           personal: { count: all.personal.count, days: all.personal.days },
           vacation: { count: all.vacation.count, days: all.vacation.days, remaining: parseFloat((30 - all.vacation.days).toFixed(1)) },
+          maternity: { count: all.maternity.count, days: all.maternity.days },
           late: { count: all.late.count, days: all.late.count },
           work: { count: all.work.count, days: all.work.days },
           outOfArea: { count: all.outOfArea.count, hours: emp.leaves.all?.outOfArea?.hours ?? 0, days: all.outOfArea.days }
