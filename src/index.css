@@ -547,6 +547,27 @@ button, input, select {
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
+
+  .print-container {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding: 12px 8px 4px !important;
+    overflow: visible !important;
+  }
+
+  .print-columns,
+  .print-column {
+    overflow: visible !important;
+  }
+
+  .print-column table {
+    page-break-inside: auto !important;
+  }
+
+  .print-column tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
 }
 
 /* --- OCR Custom Inputs --- */
