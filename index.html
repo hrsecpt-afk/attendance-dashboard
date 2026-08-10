@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/attendance-dashboard/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>attendance-dashboard</title>
+    <script>
+      // 🚀 Global Storage.prototype Polyfill/Fallback for Mobile Safari Private mode and In-App WebViews
+      (function() {
+        var isLocalStorageBlocked = false;
+        try {
+          var x = '__storage_test__';
+          window.localStorage.setItem(x, x);
+          window.localStorage.removeItem(x);
+        } catch (e) {
+          isLocalStorageBlocked = true;
+        }
+
+        var isSessionStorageBlocked = false;
+        try {
+          var x = '__storage_test__';
+          window.sessionStorage.setItem(x, x);
+          window.sessionStorage.removeItem(x);
+        } catch (e) {
+          isSessionStorageBlocked = true;
+        }
+
+        var localMemoryStore = {};
+        var sessionMemoryStore = {};
+
+        if (typeof Storage !== 'undefined') {
+          var originalGetItem = Storage.prototype.getItem;
+          var originalSetItem = Storage.prototype.setItem;
+          var originalRemoveItem = Storage.prototype.removeItem;
+
+          Storage.prototype.getItem = function(key) {
+            if (this === window.localStorage && isLocalStorageBlocked) {
+              return localMemoryStore.hasOwnProperty(key) ? localMemoryStore[key] : null;
+            }
+            if (this === window.sessionStorage && isSessionStorageBlocked) {
+              return sessionMemoryStore.hasOwnProperty(key) ? sessionMemoryStore[key] : null;
+            }
+            try {
+              return originalGetItem.call(this, key);
+            } catch (e) {
+              return this === window.localStorage ? 
+                (localMemoryStore.hasOwnProperty(key) ? localMemoryStore[key] : null) :
+                (sessionMemoryStore.hasOwnProperty(key) ? sessionMemoryStore[key] : null);
+            }
+          };
+
+          Storage.prototype.setItem = function(key, value) {
+            if (this === window.localStorage && isLocalStorageBlocked) {
+              localMemoryStore[key] = String(value);
+              return;
+            }
+            if (this === window.sessionStorage && isSessionStorageBlocked) {
+              sessionMemoryStore[key] = String(value);
+              return;
+            }
+            try {
+              originalSetItem.call(this, key, value);
+            } catch (e) {
+              // Switch to memory mode upon write error (like QuotaExceededError)
+              if (this === window.localStorage) {
+                isLocalStorageBlocked = true;
+                localMemoryStore[key] = String(value);
+              } else {
+                isSessionStorageBlocked = true;
+                sessionMemoryStore[key] = String(value);
+              }
+              console.warn("Storage write failed, falling back to memory:", key, e);
+            }
+          };
+
+          Storage.prototype.removeItem = function(key) {
+            if (this === window.localStorage && isLocalStorageBlocked) {
+              delete localMemoryStore[key];
+              return;
+            }
+            if (this === window.sessionStorage && isSessionStorageBlocked) {
+              delete sessionMemoryStore[key];
+              return;
+            }
+            try {
+              originalRemoveItem.call(this, key);
+            } catch (e) {
+              if (this === window.localStorage) {
+                delete localMemoryStore[key];
+              } else {
+                delete sessionMemoryStore[key];
+              }
+            }
+          };
+        }
+      })();
+
+      window.onerror = function (message, source, lineno, colno, error) {
+        var div = document.createElement('div');
+        div.style.position = 'fixed';
+        div.style.top = '0';
+        div.style.left = '0';
+        div.style.width = '100%';
+        div.style.zIndex = '999999';
+        div.style.backgroundColor = '#7a0000';
+        div.style.color = '#ffffff';
+        div.style.padding = '20px';
+        div.style.fontFamily = 'monospace';
+        div.style.fontSize = '12px';
+        div.style.wordBreak = 'break-all';
+        div.style.maxHeight = '80vh';
+        div.style.overflowY = 'auto';
+        div.style.boxShadow = '0 10px 30px rgba(0,0,0,0.5)';
+        div.innerHTML = '<h3>💥 App Crashed (Mobile Debugger)</h3>' +
+          '<strong>Error:</strong> ' + message + '<br>' +
+          '<strong>File:</strong> ' + source + '<br>' +
+          '<strong>Line:</strong> ' + lineno + ':' + colno + '<br><br>' +
+          '<strong>Stack Trace:</strong><br>' +
+          '<pre style="white-space: pre-wrap; font-size: 10px; margin-top: 5px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 5px;">' + (error && error.stack ? error.stack : 'No stack trace') + '</pre>';
+        document.body.appendChild(div);
+      };
+      
+      // Also catch unhandled promise rejections
+      window.addEventListener('unhandledrejection', function (event) {
+        var message = event.reason && event.reason.message ? event.reason.message : JSON.stringify(event.reason);
+        var stack = event.reason && event.reason.stack ? event.reason.stack : 'No stack trace';
+        var div = document.createElement('div');
+        div.style.position = 'fixed';
+        div.style.top = '0';
+        div.style.left = '0';
+        div.style.width = '100%';
+        div.style.zIndex = '999999';
+        div.style.backgroundColor = '#7a3e00';
+        div.style.color = '#ffffff';
+        div.style.padding = '20px';
+        div.style.fontFamily = 'monospace';
+        div.style.fontSize = '12px';
+        div.style.wordBreak = 'break-all';
+        div.style.maxHeight = '80vh';
+        div.style.overflowY = 'auto';
+        div.style.boxShadow = '0 10px 30px rgba(0,0,0,0.5)';
+        div.innerHTML = '<h3>💥 Unhandled Rejection (Promise)</h3>' +
+          '<strong>Message:</strong> ' + message + '<br><br>' +
+          '<strong>Stack Trace:</strong><br>' +
+          '<pre style="white-space: pre-wrap; font-size: 10px; margin-top: 5px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 5px;">' + stack + '</pre>';
+        document.body.appendChild(div);
+      });
+    </script>
+    <script type="module" crossorigin src="/attendance-dashboard/assets/index-BgpztkLb.js"></script>
+    <link rel="stylesheet" crossorigin href="/attendance-dashboard/assets/index-CvxShPMA.css">
+    <script type="module">import'data:text/javascript,if(!import.meta.resolve)throw Error("import.meta.resolve not supported")';import.meta.url;import("_").catch(()=>1);(async function*(){})().next();window.__vite_is_modern_browser=true</script>
+    <script type="module">!function(){if(window.__vite_is_modern_browser)return;console.warn("vite: loading legacy chunks, syntax error above and the same error below should be ignored");var e=document.getElementById("vite-legacy-polyfill"),n=document.createElement("script");n.src=e.src,n.onload=function(){System.import(document.getElementById('vite-legacy-entry').getAttribute('data-src'))},document.body.appendChild(n)}();</script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script nomodule>!function(){var e=document,t=e.createElement("script");if(!("noModule"in t)&&"onbeforeload"in t){var n=!1;e.addEventListener("beforeload",(function(e){if(e.target===t)n=!0;else if(!e.target.hasAttribute("nomodule")||!n)return;e.preventDefault()}),!0),t.type="module",t.src=".",e.head.appendChild(t),t.remove()}}();</script>
+    <script nomodule crossorigin id="vite-legacy-polyfill" src="/attendance-dashboard/assets/polyfills-legacy-Mx9PatxF.js"></script>
+    <script nomodule crossorigin id="vite-legacy-entry" data-src="/attendance-dashboard/assets/index-legacy-C7L2eTH8.js">System.import(document.getElementById('vite-legacy-entry').getAttribute('data-src'))</script>
+  </body>
+</html>
