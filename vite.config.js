@@ -7,6 +7,7 @@ const env = process.env;
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: '/attendance-dashboard/',
   plugins: [
     react(),
     legacy({
