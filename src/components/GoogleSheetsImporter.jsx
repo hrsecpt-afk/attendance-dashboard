@@ -331,25 +331,6 @@ const GoogleSheetsImporter = ({ onImportData, employeesData }) => {
     setEmployeesPreview(preview);
   }, [mapping, csvData, headers]);
 
-  // Create empty leaves helper (unused or legacy)
-  const createEmptyLeave = (vacationRemaining = 30) => ({
-    sick: { count: 0, days: 0 },
-    vacation: { count: 0, days: 0, remaining: vacationRemaining },
-    personal: { count: 0, days: 0 },
-    absent: 0,
-    maternity: { count: 0, days: 0 },
-    wifeAssist: { count: 0, days: 0 },
-    ordination: { count: 0, days: 0 },
-    military: { count: 0, days: 0 },
-    study: { count: 0, days: 0 },
-    work: { count: 0, days: 0 },
-    follow: { count: 0, days: 0 },
-    rehab: { count: 0, days: 0 },
-    total: { count: 0, days: 0 },
-    late: { count: 0, days: 0 },
-    outOfArea: { count: 0, hours: 0, days: 0 }
-  });
-
   // Local Save options
   const handleSaveLocally = (append = false) => {
     if (employeesPreview.length === 0) {

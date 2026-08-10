@@ -217,6 +217,70 @@ const PrintableDutyPdf = ({ request, onClose }) => {
         .printable-document {
           box-sizing: border-box;
         }
+        @media (max-width: 768px) {
+          .print-modal-overlay {
+            display: block;
+            padding: 12px;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+          }
+          .print-modal-actions {
+            position: sticky !important;
+            top: 8px !important;
+            right: auto !important;
+            left: auto !important;
+            width: calc(100vw - 24px);
+            max-width: 100%;
+            margin: 0 auto 12px auto;
+            padding: 10px !important;
+            display: grid !important;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px !important;
+            border-radius: 10px !important;
+          }
+          .print-modal-actions span {
+            grid-column: 1 / -1;
+            font-size: 0.78rem !important;
+            line-height: 1.35 !important;
+          }
+          .print-modal-actions button {
+            width: 100%;
+            min-height: 44px;
+            padding: 8px 10px !important;
+            white-space: normal;
+            line-height: 1.25;
+          }
+          #print-area.printable-document {
+            width: 100% !important;
+            min-height: auto !important;
+            margin: 0 auto 20px auto !important;
+            padding: 18px 14px !important;
+            font-size: 12.5pt !important;
+            line-height: 1.55 !important;
+            overflow-wrap: anywhere;
+            word-break: normal;
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.22) !important;
+          }
+          #print-area [style*="display: flex"] {
+            flex-wrap: wrap;
+          }
+          #print-area [style*="width: 250px"],
+          #print-area [style*="width: 45%"],
+          #print-area [style*="width: 55%"] {
+            width: 100% !important;
+          }
+          #print-area [style*="min-width"] {
+            min-width: 0 !important;
+            max-width: 100%;
+          }
+          #print-area [style*="text-indent"] {
+            text-indent: 0 !important;
+          }
+          #print-area img {
+            max-width: 100%;
+            height: auto;
+          }
+        }
       `}} />
     </div>
   );

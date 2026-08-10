@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import PrintableLeavePdf from './PrintableLeavePdf';
 import { useAuth } from '../context/AuthContext';
-import HolidayCalendar, { loadHolidays, countWorkingDays, countHolidaysInRange } from './HolidayCalendar';
+import HolidayCalendar, { loadHolidays, countWorkingDays } from './HolidayCalendar';
 
 const safeConfirm = (msg) => {
   if (window.navigator.webdriver) return true;
@@ -15,6 +15,42 @@ const safeAlert = (msg) => {
   }
   alert(msg);
 };
+
+const cleanPersonName = (name) => {
+  if (!name) return '';
+  let clean = String(name).replace(/\s+/g, '');
+  const prefixes = [
+    'นาย', 'นางสาว', 'นาง', 'ดร.', 'ครูผู้ช่วย', 'ครู', 'ผอ.', 'ผู้อำนวยการ',
+    'à¸™à¸²à¸¢', 'à¸™à¸²à¸‡à¸ªà¸²à¸§', 'à¸™à¸²à¸‡', 'à¸”à¸£.', 'à¸„à¸£à¸¹à¸œà¸¹à¹‰à¸Šà¹ˆà¸§à¸¢', 'à¸„à¸£à¸¹', 'à¸œà¸­.', 'à¸œà¸¹à¹‰à¸­à¸³à¸™à¸§à¸¢à¸à¸²à¸£'
+  ];
+  for (const pref of prefixes) {
+    if (clean.startsWith(pref)) {
+      clean = clean.substring(pref.length);
+      break;
+    }
+  }
+  return clean.trim().toLowerCase();
+};
+
+const isUuidValue = (value) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ''));
+
+const createEmptyLeave = (vacationRemaining = 30) => ({
+  sick: { count: 0, days: 0 },
+  vacation: { count: 0, days: 0, remaining: vacationRemaining },
+  personal: { count: 0, days: 0 },
+  absent: 0,
+  maternity: { count: 0, days: 0 },
+  wifeAssist: { count: 0, days: 0 },
+  ordination: { count: 0, days: 0 },
+  military: { count: 0, days: 0 },
+  study: { count: 0, days: 0 },
+  work: { count: 0, days: 0 },
+  follow: { count: 0, days: 0 },
+  rehab: { count: 0, days: 0 },
+  total: { count: 0, days: 0 },
+  late: { count: 0, days: 0 },
+  outOfArea: { count: 0, hours: 0, days: 0 },
+});
 
 const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
   const { currentUser } = useAuth();
@@ -51,6 +87,13 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
   const [supabaseUrl, setSupabaseUrl] = useState('');
   const [supabaseKey, setSupabaseKey] = useState('');
   const [supabaseConnected, setSupabaseConnected] = useState(false);
+  const supabaseTable = 'employees';
+  const supabaseColumns = {
+    id: 'id',
+    fullName: 'full_name',
+    position: 'position',
+    location: 'department',
+  };
 
   // Telegram Config states
   const [telegramToken, setTelegramToken] = useState('8647599232:AAGPfSI1h92Kd_Rqhwcza7qZZ-3-KP0yFrE');
@@ -78,9 +121,9 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
     }
 
     if (currentUser.displayName) {
-      const cleanName = (n) => (n || '').replace(/^(นาย|นางสาว|นาง|ดร\.|ครูผู้ช่วย|ครู|ผอ\.|ผู้อำนวยการ)\s*/, '').replace(/\s+/g, '').toLowerCase();
-      const target = cleanName(currentUser.displayName);
-      const matched = employeesData.find(e => cleanName(e.name) === target);
+      const _cleanName = (n) => (n || '').replace(/^(นาย|นางสาว|นาง|ดร\.|ครูผู้ช่วย|ครู|ผอ\.|ผู้อำนวยการ)\s*/, '').replace(/\s+/g, '').toLowerCase();
+      const target = cleanPersonName(currentUser.displayName);
+      const matched = employeesData.find(e => cleanPersonName(e.name) === target);
       if (matched) {
         setSelectedEmployeeId(String(matched.id));
         return;
@@ -99,7 +142,7 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [attachmentName, setAttachmentName] = useState(''); // Simulated file
-  const [attachmentFile, setAttachmentFile] = useState(null); // Actual file object
+  const [, setAttachmentFile] = useState(null); // Actual file object
   const [attachmentPreview, setAttachmentPreview] = useState(null); // Base64 preview
   const [attachmentDragOver, setAttachmentDragOver] = useState(false); // Drag state
   const [formError, setFormError] = useState('');
@@ -886,10 +929,14 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
           'apikey': supabaseKey,
           'Authorization': `Bearer ${supabaseKey}`
         };
+        const supabaseRequest = {
+          ...newRequest,
+          employee_id: isUuidValue(newRequest.employee_id) ? newRequest.employee_id : null
+        };
         let res = await fetch(`${supabaseUrl}/rest/v1/leave_requests`, {
           method: 'POST',
           headers: postHeaders,
-          body: JSON.stringify(newRequest)
+          body: JSON.stringify(supabaseRequest)
         });
         // ถ้า column ไม่มีใน schema ให้ retry ด้วย payload เฉพาะ column หลัก
         if (!res.ok) {
@@ -899,7 +946,7 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
           if (errObj.code === 'PGRST204') {
             // Retry with base columns only
             const baseRequest = {
-              employee_id: newRequest.employee_id,
+              employee_id: supabaseRequest.employee_id,
               employee_name: newRequest.employee_name,
               position: newRequest.position,
               location: newRequest.location,
@@ -1829,9 +1876,23 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
 
       {/* History and Status Tab */}
       {!loading && activeTab === 'history' && (() => {
+        const isRequester = role === 'requester' || role === 'user' || currentUser?.role === 'user';
+        const selectedEmployeeForUser = employeesData.find(emp => String(emp.id) === String(selectedEmployeeId))
+          || employeesData.find(emp => cleanPersonName(emp.name) === cleanPersonName(currentUser?.displayName));
+        const ownerIds = new Set(
+          [currentUser?.employeeId, selectedEmployeeId, selectedEmployeeForUser?.id, selectedEmployeeForUser?.employee_id, selectedEmployeeForUser?.employeeId]
+            .filter(v => v !== undefined && v !== null && v !== '')
+            .map(v => String(v))
+        );
+        const ownerName = cleanPersonName(selectedEmployeeForUser?.name || currentUser?.displayName);
+
         const filteredRequests = requests.filter(req => {
           // If the viewer is a normal user (not admin/director), they should only see their own requests
-          if (role === 'user') {
+          if (isRequester) {
+            const matchesOwnId = req.employee_id != null && ownerIds.has(String(req.employee_id));
+            const matchesOwnName = ownerName && cleanPersonName(req.employee_name) === ownerName;
+            if (!matchesOwnId && !matchesOwnName) return false;
+          } else if (false) {
             const clean = name => name ? name.replace(/^(นาย|นางสาว|นาง|ดร\.|ครูผู้ช่วย|ครู|ผอ\.|ผู้อำนวยการ)\s*/, '').replace(/\s+/g, '').trim().toLowerCase() : '';
             
             if (currentUser?.employeeId) {

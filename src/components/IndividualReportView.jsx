@@ -6,8 +6,6 @@ import React, { useState, useMemo } from 'react';
 const IndividualReportCard = ({ employee, onClick }) => {
   const l = employee.leaves;
   const hasAlert = l.absent > 0 || l.late.count >= 5;
-  const totalLeave = (l.sick.days || 0) + (l.vacation.days || 0) + (l.personal.days || 0);
-
   return (
     <div
       onClick={() => onClick(employee)}

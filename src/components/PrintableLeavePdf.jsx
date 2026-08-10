@@ -1,6 +1,49 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 const PrintableLeavePdf = ({ request, onClose }) => {
+  const [mobilePreviewScale, setMobilePreviewScale] = useState(1);
+  const [mounted, setMounted] = useState(false);
+  const [showAttachment, setShowAttachment] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    const updateMobilePreviewScale = () => {
+      if (typeof window === 'undefined') return;
+      const pageWidth = 794;
+      const pageHeight = 1123;
+      const viewport = window.visualViewport;
+      const viewportWidth = viewport?.width || window.innerWidth;
+      const viewportHeight = viewport?.height || window.innerHeight;
+      const isMobile = viewportWidth <= 768;
+
+      if (!isMobile) {
+        setMobilePreviewScale(1);
+        return;
+      }
+
+      const actionHeight = 96;
+      const availableWidth = Math.max(viewportWidth - 16, 280);
+      const availableHeight = Math.max(viewportHeight - actionHeight - 12, 420);
+      setMobilePreviewScale(Math.min(availableWidth / pageWidth, availableHeight / pageHeight, 1));
+    };
+
+    updateMobilePreviewScale();
+    window.addEventListener('resize', updateMobilePreviewScale);
+    window.addEventListener('orientationchange', updateMobilePreviewScale);
+    window.visualViewport?.addEventListener('resize', updateMobilePreviewScale);
+    window.visualViewport?.addEventListener('scroll', updateMobilePreviewScale);
+    return () => {
+      window.removeEventListener('resize', updateMobilePreviewScale);
+      window.removeEventListener('orientationchange', updateMobilePreviewScale);
+      window.visualViewport?.removeEventListener('resize', updateMobilePreviewScale);
+      window.visualViewport?.removeEventListener('scroll', updateMobilePreviewScale);
+    };
+  }, []);
+
   const parseDateThaiParts = (dateStr) => {
     if (!dateStr) return { day: '.......', month: '................', year: '.......' };
     try {
@@ -28,8 +71,11 @@ const PrintableLeavePdf = ({ request, onClose }) => {
   const lastEndThai = parseDateThaiParts(request.last_leave_end_date);
 
   const isVacation = request.leave_type?.startsWith('ลาพักผ่อน');
+  const hasAttachment = Boolean(request.attachment_url);
+  const isImageAttachment = request.attachment_url?.startsWith('data:image');
+  const isPdfAttachment = request.attachment_url?.startsWith('data:application/pdf');
 
-  return (
+  const previewModal = (
     <div className="print-modal-overlay">
       <div className="print-modal-actions no-print" style={{
         position: 'fixed',
@@ -46,9 +92,50 @@ const PrintableLeavePdf = ({ request, onClose }) => {
       }}>
         <span style={{ color: '#fff', fontSize: '0.85rem', fontWeight: 600 }}>👁️ ตัวอย่างใบลาขออนุมัติออนไลน์</span>
         <button onClick={() => window.print()} style={{ padding: '8px 16px', background: '#10b981', border: 'none', color: '#fff', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.8rem' }}>🖨️ สั่งพิมพ์ใบลา</button>
+        {hasAttachment && (
+          <button
+            onClick={() => setShowAttachment(true)}
+            style={{ padding: '8px 16px', background: '#2563eb', border: 'none', color: '#fff', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.8rem' }}
+          >
+            📎 ดูเอกสารแนบ
+          </button>
+        )}
         <button onClick={onClose} style={{ padding: '8px 16px', background: '#ef4444', border: 'none', color: '#fff', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.8rem' }}>✕ ปิดตัวอย่าง</button>
       </div>
 
+      {showAttachment && (
+        <div className="attachment-viewer no-print" onClick={() => setShowAttachment(false)}>
+          <div className="attachment-viewer-panel" onClick={(e) => e.stopPropagation()}>
+            <div className="attachment-viewer-header">
+              <strong>📎 เอกสารแนบใบลา</strong>
+              <button onClick={() => setShowAttachment(false)}>✕ ปิด</button>
+            </div>
+            {isImageAttachment ? (
+              <img src={request.attachment_url} alt="เอกสารแนบใบลา" className="attachment-viewer-image" />
+            ) : isPdfAttachment ? (
+              <div className="attachment-viewer-file">
+                <div style={{ fontSize: '2rem' }}>📄</div>
+                <div>ไฟล์ PDF แนบมากับใบลา</div>
+                <a href={request.attachment_url} download="เอกสารแนบ.pdf">ดาวน์โหลดไฟล์ PDF</a>
+              </div>
+            ) : (
+              <div className="attachment-viewer-file">
+                <div style={{ fontSize: '2rem' }}>📁</div>
+                <div>{request.attachment_url.replace('file://', '')}</div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div
+        className="printable-document-frame"
+        style={{
+          '--mobile-preview-scale': mobilePreviewScale,
+          '--mobile-preview-width': `${794 * mobilePreviewScale}px`,
+          '--mobile-preview-height': `${1123 * mobilePreviewScale}px`
+        }}
+      >
       <div id="print-area" className="printable-document" style={{
         background: '#fff',
         color: '#000',
@@ -275,7 +362,7 @@ const PrintableLeavePdf = ({ request, onClose }) => {
 
         {/* Attachment Preview Section */}
         {request.attachment_url && (
-          <div style={{ marginTop: '24px', borderTop: '1px solid #ccc', paddingTop: '16px' }}>
+          <div className="mobile-preview-attachment" style={{ marginTop: '24px', borderTop: '1px solid #ccc', paddingTop: '16px' }}>
             <div style={{ fontWeight: 'bold', fontSize: '13pt', marginBottom: '10px' }}>
               📎 เอกสารแนบ (ใบรับรองแพทย์ / หลักฐานประกอบ)
             </div>
@@ -318,6 +405,7 @@ const PrintableLeavePdf = ({ request, onClose }) => {
           </div>
         )}
 
+      </div>
       </div>
 
       {/* Printing Styles Injection */}
@@ -363,9 +451,197 @@ const PrintableLeavePdf = ({ request, onClose }) => {
         .printable-document {
           box-sizing: border-box;
         }
+        .printable-document-frame {
+          width: 210mm;
+          margin: 20px auto;
+        }
+        .attachment-viewer {
+          position: fixed;
+          inset: 0;
+          z-index: 2147483200;
+          background: rgba(0, 0, 0, 0.86);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 16px;
+        }
+        .attachment-viewer-panel {
+          width: min(960px, 100%);
+          max-height: calc(100dvh - 32px);
+          background: #fff;
+          color: #111;
+          border-radius: 12px;
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+          box-shadow: 0 16px 50px rgba(0, 0, 0, 0.45);
+        }
+        .attachment-viewer-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 10px 12px;
+          background: #111827;
+          color: #fff;
+          font-weight: 800;
+        }
+        .attachment-viewer-header button {
+          border: 0;
+          border-radius: 8px;
+          background: #ef4444;
+          color: #fff;
+          padding: 8px 12px;
+          font-weight: 800;
+          cursor: pointer;
+        }
+        .attachment-viewer-image {
+          width: 100%;
+          max-height: calc(100dvh - 92px);
+          object-fit: contain;
+          background: #f8fafc;
+        }
+        .attachment-viewer-file {
+          min-height: 220px;
+          padding: 24px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          text-align: center;
+          color: #111;
+        }
+        .attachment-viewer-file a {
+          color: #2563eb;
+          font-weight: 800;
+        }
+        @media (max-width: 768px) {
+          .print-modal-overlay {
+            display: block;
+            position: fixed !important;
+            inset: 0 !important;
+            width: 100vw !important;
+            height: 100dvh !important;
+            padding: 12px;
+            overflow: hidden;
+            -webkit-overflow-scrolling: touch;
+            z-index: 2147483000 !important;
+          }
+          .print-modal-actions {
+            position: sticky !important;
+            top: 8px !important;
+            right: auto !important;
+            left: auto !important;
+            width: calc(100vw - 16px);
+            max-width: 100%;
+            margin: 0 auto 8px auto;
+            padding: 8px !important;
+            display: grid !important;
+            grid-template-columns: repeat(${hasAttachment ? 3 : 2}, minmax(0, 1fr));
+            gap: 8px !important;
+            border-radius: 10px !important;
+          }
+          .print-modal-actions span {
+            grid-column: 1 / -1;
+            font-size: 0.72rem !important;
+            line-height: 1.2 !important;
+          }
+          .print-modal-actions button {
+            width: 100%;
+            min-height: 38px;
+            padding: 6px 8px !important;
+            white-space: normal;
+            line-height: 1.15;
+          }
+          .attachment-viewer {
+            padding: 8px;
+          }
+          .attachment-viewer-panel {
+            width: calc(100vw - 16px);
+            max-height: calc(100dvh - 16px);
+            border-radius: 10px;
+          }
+          .attachment-viewer-image {
+            max-height: calc(100dvh - 74px);
+          }
+          #print-area.printable-document {
+            width: 794px !important;
+            max-width: none !important;
+            min-height: 1123px !important;
+            height: 1123px !important;
+            margin: 0 !important;
+            padding: 46px 44px 34px 44px !important;
+            font-size: 15pt !important;
+            line-height: 1.22 !important;
+            transform: scale(var(--mobile-preview-scale));
+            transform-origin: top left;
+            background: #fff !important;
+            color: #000 !important;
+            color-scheme: light !important;
+            overflow: hidden !important;
+            overflow-wrap: anywhere;
+            word-break: normal;
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.22) !important;
+          }
+          .printable-document-frame {
+            width: var(--mobile-preview-width);
+            max-width: var(--mobile-preview-width);
+            height: var(--mobile-preview-height);
+            max-height: var(--mobile-preview-height);
+            margin: 0 auto;
+            overflow: visible;
+            position: relative;
+            left: 0;
+          }
+          #print-area *,
+          #print-area table,
+          #print-area tr,
+          #print-area th,
+          #print-area td {
+            color-scheme: light !important;
+          }
+          #print-area [style*="font-size: 20pt"] {
+            font-size: 18pt !important;
+            margin-bottom: 10px !important;
+          }
+          #print-area [style*="font-size: 16pt"],
+          #print-area [style*="font-size: 14pt"],
+          #print-area [style*="font-size: 13pt"] {
+            font-size: 14pt !important;
+          }
+          #print-area [style*="marginBottom: '20px'"],
+          #print-area [style*="margin-bottom: 20px"] {
+            margin-bottom: 10px !important;
+          }
+          #print-area [style*="display: flex"] {
+            flex-wrap: nowrap;
+          }
+          #print-area table {
+            page-break-inside: avoid;
+            table-layout: auto;
+            width: 100% !important;
+          }
+          #print-area th,
+          #print-area td {
+            overflow-wrap: anywhere;
+            word-break: normal;
+          }
+          #print-area img {
+            max-width: 100% !important;
+            max-height: 260px !important;
+            object-fit: contain !important;
+          }
+          .mobile-preview-attachment {
+            display: none !important;
+          }
+        }
       `}} />
     </div>
   );
+
+  if (typeof document === 'undefined' || !mounted) return null;
+  return createPortal(previewModal, document.body);
 };
 
 export default PrintableLeavePdf;

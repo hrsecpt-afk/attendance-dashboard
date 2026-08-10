@@ -31,17 +31,52 @@ const DEFAULT_USERS = [
 const USERS_STORAGE_KEY = 'attendance_users_db';
 const SESSION_STORAGE_KEY = 'attendance_current_session';
 
+const normalizeUser = (user) => {
+  const idNumber = Number(user?.id);
+  return {
+    id: Number.isFinite(idNumber) ? idNumber : user?.id,
+    username: String(user?.username ?? '').trim(),
+    password: String(user?.password ?? '').trim(),
+    role: String(user?.role || 'user').trim(),
+    displayName: String(user?.displayName ?? user?.display_name ?? user?.username ?? '').trim(),
+    employeeId: user?.employeeId ?? (user?.employee_id != null ? String(user.employee_id) : null),
+  };
+};
+
+const mapUsers = (users) => (users || []).map(normalizeUser).filter(u => u.username);
+
+const uniqueUsers = (...lists) => {
+  const seen = new Set();
+  const result = [];
+  lists.flat().forEach(user => {
+    const normalized = normalizeUser(user);
+    const key = normalized.id != null ? `id:${normalized.id}` : `username:${normalized.username.toLowerCase()}`;
+    if (!normalized.username || seen.has(key)) return;
+    seen.add(key);
+    result.push(normalized);
+  });
+  return result;
+};
+
+const cleanLoginName = (name) => String(name ?? '')
+  .replace(/^(นาย|นางสาว|นาง|ดร\.|ครูผู้ช่วย|ครู|ผอ\.|ผู้อำนวยการ)\s*/u, '')
+  .replace(/^คุณ\s*/u, '')
+  .replace(/^(à¸™à¸²à¸¢|à¸™à¸²à¸‡à¸ªà¸²à¸§|à¸™à¸²à¸‡|à¸”à¸£\.|à¸„à¸£à¸¹à¸œà¸¹à¹‰à¸Šà¹ˆà¸§à¸¢|à¸„à¸£à¸¹|à¸œà¸­\.|à¸œà¸¹à¹‰à¸­à¸³à¸™à¸§à¸¢à¸à¸²à¸£)\s*/, '')
+  .replace(/\s+/g, '')
+  .trim()
+  .toLowerCase();
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 export const loadUsers = () => {
   try {
     const raw = localStorage.getItem(USERS_STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) return mapUsers(JSON.parse(raw));
   } catch {}
   // First time: seed defaults
   try {
     localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(DEFAULT_USERS));
   } catch {}
-  return DEFAULT_USERS;
+  return mapUsers(DEFAULT_USERS);
 };
 
 export const saveUsers = (users) => {
@@ -196,14 +231,7 @@ export const AuthProvider = ({ children }) => {
         if (res.ok) {
           const data = await res.json();
           if (data && data.length > 0) {
-            const mapped = data.map(u => ({
-              id: Number(u.id),
-              username: u.username,
-              password: u.password,
-              role: u.role,
-              displayName: u.display_name,
-              employeeId: u.employee_id ? String(u.employee_id) : null
-            }));
+            const mapped = mapUsers(data);
             saveUsers(mapped);
             setUsers(mapped);
 
@@ -272,16 +300,10 @@ export const AuthProvider = ({ children }) => {
         if (res.ok) {
           const data = await res.json();
           if (data && data.length > 0) {
-            freshUsers = data.map(u => ({
-              id: Number(u.id),
-              username: u.username,
-              password: u.password,
-              role: u.role,
-              displayName: u.display_name,
-              employeeId: u.employee_id ? String(u.employee_id) : null
-            }));
+            const remoteUsers = mapUsers(data);
+            freshUsers = uniqueUsers(remoteUsers, freshUsers, DEFAULT_USERS);
             saveUsers(freshUsers);
-            setUsers(freshUsers);
+            setUsers(remoteUsers);
           }
         }
       } catch (err) {
@@ -291,11 +313,17 @@ export const AuthProvider = ({ children }) => {
     
     const clean = (name) => name.replace(/^(นาย|นางสาว|นาง|ดร\.|ครูผู้ช่วย|ครู|ผอ\.|ผู้อำนวยการ)\s*/, '').replace(/\s+/g, '').trim().toLowerCase();
     const targetClean = clean(username);
+    freshUsers = uniqueUsers(freshUsers, DEFAULT_USERS);
+    const usernameInput = String(username ?? '').trim();
+    const passwordInput = String(password ?? '').trim();
+    const normalizedTargetClean = cleanLoginName(usernameInput);
 
     const found = freshUsers.find(u => {
-      const matchUsername = u.username.trim().toLowerCase() === username.trim().toLowerCase();
-      const matchDisplayName = clean(u.displayName) === targetClean;
-      return (matchUsername || matchDisplayName) && u.password === password;
+      const user = normalizeUser(u);
+      const matchUsername = user.username.toLowerCase() === usernameInput.toLowerCase()
+        || cleanLoginName(user.username) === normalizedTargetClean;
+      const matchDisplayName = cleanLoginName(user.displayName) === normalizedTargetClean || clean(user.displayName) === targetClean;
+      return (matchUsername || matchDisplayName) && user.password === passwordInput;
     });
 
     if (!found) {

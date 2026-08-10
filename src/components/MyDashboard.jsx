@@ -50,7 +50,60 @@ const extractTimeOnly = (val) => {
   return String(val);
 };
 
-const MyDashboard = ({ currentUser, employeesData = [] }) => {
+const cleanNameForMatch = (nameStr) => {
+  if (!nameStr) return '';
+  let clean = String(nameStr).replace(/\s+/g, '');
+  const prefixes = ['นาย', 'นางสาว', 'นาง', 'เด็กชาย', 'เด็กหญิง', 'ด.ช.', 'ด.ญ.', 'ครู', 'ผอ.', 'ผอ', 'รองผอ.', 'รองผอ'];
+  for (const pref of prefixes) {
+    if (clean.startsWith(pref)) {
+      clean = clean.substring(pref.length);
+      break;
+    }
+  }
+  return clean;
+};
+
+const cleanPersonName = (nameStr) => {
+  if (!nameStr) return '';
+  let clean = String(nameStr).replace(/\s+/g, '');
+  const prefixes = ['นาย', 'นางสาว', 'นาง', 'เด็กชาย', 'เด็กหญิง', 'ด.ช.', 'ด.ญ.', 'ครูผู้ช่วย', 'ครู', 'ผอ.', 'ผอ', 'รองผอ.', 'รองผอ'];
+  for (const pref of prefixes) {
+    if (clean.startsWith(pref)) {
+      clean = clean.substring(pref.length);
+      break;
+    }
+  }
+  return cleanNameForMatch(clean);
+};
+
+const getEmployeeNameFromRow = (row) => {
+  const empRel = row?.employees || row?.employee;
+  return (
+    empRel?.full_name ||
+    empRel?.name ||
+    empRel?.fullname ||
+    row?.employee_name ||
+    row?.full_name ||
+    row?.name ||
+    ''
+  );
+};
+
+const mapAttendanceStatus = (row) => {
+  const rawLoc = String(row?.location_type || '').trim().toLowerCase();
+  if (rawLoc === 'outside_school' || rawLoc === 'outside') return 'gov';
+
+  const rawStatus = String(row?.status || '').trim().toLowerCase();
+  if (rawStatus === 'late' || rawStatus === 'สาย') return 'late';
+  if (rawStatus === 'gov' || rawStatus === 'ไปราชการ') return 'gov';
+  if (rawStatus === 'sick' || rawStatus === 'ลาป่วย') return 'sick';
+  if (rawStatus === 'personal' || rawStatus === 'ลากิจ' || rawStatus === 'ลากิจส่วนตัว') return 'personal';
+  if (rawStatus === 'vacation' || rawStatus === 'ลาพักผ่อน') return 'vacation';
+  if (rawStatus === 'maternity' || rawStatus === 'ลาคลอด') return 'maternity';
+  return 'present';
+};
+
+const MyDashboard = ({ currentUser, employeesData = [], overridesVersion = 0 }) => {
   const { users, updateProfile } = useAuth();
   
   const [leaveRequests, setLeaveRequests] = useState([]);
@@ -71,6 +124,9 @@ const MyDashboard = ({ currentUser, employeesData = [] }) => {
   const [settingsError, setSettingsError] = useState('');
   const [settingsSuccess, setSettingsSuccess] = useState('');
 
+  const employee = employeesData.find(e => String(e.id) === String(currentUser.employeeId))
+    || employeesData.find(e => cleanPersonName(e.name) === cleanPersonName(currentUser.displayName));
+
   // Fetch today's check-in status
   useEffect(() => {
     if (!currentUser.employeeId) return;
@@ -78,63 +134,109 @@ const MyDashboard = ({ currentUser, employeesData = [] }) => {
     const fetchTodayStatus = async () => {
       setCheckingTodayStatus(true);
       const todayStr = getTodayDateString();
+      let localStatus = null;
+      let localTime = '-';
       
-      // 1. Check local overrides first
+      // Keep local overrides as a fallback, but prefer live scan data from Supabase.
       try {
         const overridesRaw = localStorage.getItem('attendance_dashboard_daily_overrides');
         if (overridesRaw) {
           const overrides = JSON.parse(overridesRaw);
           if (overrides[todayStr] && overrides[todayStr].statuses) {
-            const status = overrides[todayStr].statuses[currentUser.employeeId];
-            const time = overrides[todayStr].times?.[currentUser.employeeId] || '-';
-            if (status) {
-              setTodayStatus(status);
-              setTodayTime(time);
-              setCheckingTodayStatus(false);
-              return;
-            }
+            localStatus = overrides[todayStr].statuses[currentUser.employeeId]
+              || (employee?.id != null ? overrides[todayStr].statuses[String(employee.id)] : null);
+            localTime = overrides[todayStr].times?.[currentUser.employeeId]
+              || (employee?.id != null ? overrides[todayStr].times?.[String(employee.id)] : null)
+              || '-';
           }
         }
       } catch (e) {
         console.error("Error reading local overrides", e);
       }
 
-      // 2. Fallback to Supabase fetch
+      // 1. Prefer Supabase scan logs.
       const cfg = getSupabaseCfg();
       if (cfg) {
         try {
-          const res = await fetch(`${cfg.url}/rest/v1/attendance_logs?employee_id=eq.${currentUser.employeeId}&work_date=eq.${todayStr}`, {
+          // Fetch all logs for today with the employees relation join
+          let res = await fetch(`${cfg.url}/rest/v1/attendance_logs?select=*,employees(*)&work_date=eq.${todayStr}`, {
             headers: { 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` }
           });
+          if (!res.ok && res.status === 400) {
+            res = await fetch(`${cfg.url}/rest/v1/attendance_logs?select=*&work_date=eq.${todayStr}`, {
+              headers: { 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` }
+            });
+          }
           if (res.ok) {
             const data = await res.json();
             if (data && data.length > 0) {
-              const checkInLog = data.find(log => log.check_type === 'check_in' || log.check_type === 'checkin') || data[0];
-              setTodayStatus(checkInLog.status || 'present');
-              const logTime = extractTimeOnly(checkInLog.checked_at || checkInLog.check_time);
-              setTodayTime(logTime === '00:00:00' || logTime === '00:00' ? '-' : logTime || '-');
+              const cleanEmployeeName = cleanPersonName(employee?.name || currentUser.displayName || '');
+              const candidateIds = new Set(
+                [currentUser.employeeId, employee?.id, employee?.employee_id, employee?.employeeId, employee?.employee_code, employee?.employeeCode]
+                  .filter(v => v !== undefined && v !== null && v !== '')
+                  .map(v => String(v))
+              );
+              
+              // Find the log that matches the current user's employee name or ID using fuzzy logic
+              const myLogs = data.filter(row => {
+                // 1. Check relation
+                const empRel = row.employees || row.employee;
+                if (empRel) {
+                  const relName = getEmployeeNameFromRow(row);
+                  if (relName && cleanPersonName(relName) === cleanEmployeeName) {
+                    return true;
+                  }
+                  const relIds = [empRel.id, empRel.employee_id, empRel.employeeId, empRel.employee_code, empRel.employeeCode];
+                  if (relIds.some(id => id != null && candidateIds.has(String(id)))) {
+                    return true;
+                  }
+                }
+                // 2. Check direct fields
+                const directName = getEmployeeNameFromRow(row);
+                if (directName && cleanPersonName(directName) === cleanEmployeeName) {
+                  return true;
+                }
+                // 3. Check direct employee_id
+                if (row.employee_id && candidateIds.has(String(row.employee_id))) {
+                  return true;
+                }
+                return false;
+              });
+
+              if (myLogs.length > 0) {
+                const checkInLog = myLogs.find(log => log.check_type === 'check_in' || log.check_type === 'checkin') || myLogs[0];
+                
+                const status = mapAttendanceStatus(checkInLog);
+                
+                setTodayStatus(status);
+                const logTime = extractTimeOnly(checkInLog.checked_at || checkInLog.check_time);
+                setTodayTime(logTime === '00:00:00' || logTime === '00:00' ? '-' : logTime || '-');
+              } else {
+                setTodayStatus(localStatus || 'absent');
+                setTodayTime(localStatus ? localTime : '-');
+              }
             } else {
-              setTodayStatus('absent');
-              setTodayTime('-');
+              setTodayStatus(localStatus || 'absent');
+              setTodayTime(localStatus ? localTime : '-');
             }
           } else {
-            setTodayStatus('absent');
-            setTodayTime('-');
+            setTodayStatus(localStatus || 'absent');
+            setTodayTime(localStatus ? localTime : '-');
           }
         } catch (e) {
           console.error("Failed to fetch today status from Supabase", e);
-          setTodayStatus('absent');
-          setTodayTime('-');
+          setTodayStatus(localStatus || 'absent');
+          setTodayTime(localStatus ? localTime : '-');
         }
       } else {
-        setTodayStatus('absent');
-        setTodayTime('-');
+        setTodayStatus(localStatus || 'absent');
+        setTodayTime(localStatus ? localTime : '-');
       }
       setCheckingTodayStatus(false);
     };
 
     fetchTodayStatus();
-  }, [currentUser.employeeId]);
+  }, [currentUser.employeeId, employee, overridesVersion]);
 
   // Find user details in list to populate form
   useEffect(() => {
@@ -169,8 +271,6 @@ const MyDashboard = ({ currentUser, employeesData = [] }) => {
     }
   };
 
-  const employee = employeesData.find(e => e.id === currentUser.employeeId);
-
   useEffect(() => {
     if (!currentUser.employeeId) return;
 
@@ -204,12 +304,12 @@ const MyDashboard = ({ currentUser, employeesData = [] }) => {
         try {
           const lr = localStorage.getItem('leave_requests_v2');
           if (lr) {
-            const filtered = JSON.parse(lr).filter(r => r.employee_id === currentUser.employeeId);
+            const filtered = JSON.parse(lr).filter(r => String(r.employee_id) === String(currentUser.employeeId));
             setLeaveRequests(filtered.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)));
           }
           const dr = localStorage.getItem('duty_requests');
           if (dr) {
-            const filtered = JSON.parse(dr).filter(r => r.employee_id === currentUser.employeeId);
+            const filtered = JSON.parse(dr).filter(r => String(r.employee_id) === String(currentUser.employeeId));
             setDutyRequests(filtered.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)));
           }
         } catch {}
@@ -279,6 +379,40 @@ const MyDashboard = ({ currentUser, employeesData = [] }) => {
             leaveLabel = hol.name;
           }
         } catch {}
+      }
+    }
+  }
+
+  // Fallback labels for cases where status is overridden but label is empty
+  if (!leaveLabel && !loading && !checkingTodayStatus) {
+    if (computedStatus === 'leave' || computedStatus === 'sick') {
+      const leave = leaveRequests.find(r => {
+        if (r.status !== 'approved') return false;
+        const start = new Date(r.start_date).getTime();
+        const end = new Date(r.end_date).getTime();
+        return todayTimestamp >= start && todayTimestamp <= end;
+      });
+      if (leave) {
+        leaveLabel = leave.leave_type;
+      } else {
+        leaveLabel = computedStatus === 'sick' ? 'ลาป่วย' : 'ลากิจ/ลาพักผ่อน';
+      }
+    } else if (computedStatus === 'holiday') {
+      const dow = new Date(todayStr).getDay();
+      if (dow === 0 || dow === 6) {
+        leaveLabel = 'วันหยุดสุดสัปดาห์';
+      } else {
+        try {
+          const holidays = JSON.parse(localStorage.getItem('thai_public_holidays') || '[]');
+          const hol = holidays.find(h => h.date === todayStr);
+          if (hol) {
+            leaveLabel = hol.name;
+          } else {
+            leaveLabel = 'วันหยุดราชการ';
+          }
+        } catch {
+          leaveLabel = 'วันหยุด';
+        }
       }
     }
   }

@@ -13,6 +13,8 @@ const safeAlert = (msg) => {
 };
 
 // ─── Status helpers ────────────────────────────────────────────────────────
+const isUuidValue = (value) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ''));
+
 const STATUS_META = {
   draft:     { label: 'ร่างคำขอ',         color: '#94a3b8', bg: 'rgba(148,163,184,0.12)', border: 'rgba(148,163,184,0.3)' },
   pending:   { label: 'รออนุมัติ',         color: '#f59e0b', bg: 'rgba(245,158,11,0.12)',  border: 'rgba(245,158,11,0.3)'  },
@@ -663,7 +665,7 @@ const DutyOutsideSystem = ({ employeesData, setEmployeesData }) => {
             'apikey': supabaseKey,
             'Authorization': `Bearer ${supabaseKey}`
           },
-          body: JSON.stringify(req)
+          body: JSON.stringify({ ...req, employee_id: isUuidValue(req.employee_id) ? req.employee_id : null })
         });
         if (!res.ok) throw new Error(await res.text());
         await loadDatabase();
@@ -696,7 +698,7 @@ const DutyOutsideSystem = ({ employeesData, setEmployeesData }) => {
             'apikey': supabaseKey,
             'Authorization': `Bearer ${supabaseKey}`
           },
-          body: JSON.stringify(req)
+          body: JSON.stringify({ ...req, employee_id: isUuidValue(req.employee_id) ? req.employee_id : null })
         });
         if (!res.ok) throw new Error(await res.text());
         await loadDatabase();
@@ -861,7 +863,7 @@ const DutyOutsideSystem = ({ employeesData, setEmployeesData }) => {
 
   const myRequests = useMemo(() => {
     if (currentUser && currentUser.role === 'user' && currentUser.employeeId) {
-      return requests.filter(r => r.employee_id === currentUser.employeeId);
+      return requests.filter(r => String(r.employee_id) === String(currentUser.employeeId));
     }
     return requests;
   }, [requests, currentUser]);
@@ -870,7 +872,7 @@ const DutyOutsideSystem = ({ employeesData, setEmployeesData }) => {
   const filteredRequests = useMemo(() => {
     return requests.filter(r => {
       if (currentUser && currentUser.role === 'user' && currentUser.employeeId) {
-        if (r.employee_id !== currentUser.employeeId) return false;
+        if (String(r.employee_id) !== String(currentUser.employeeId)) return false;
       }
       if (filterName && !r.employee_name?.includes(filterName) && !r.position?.includes(filterName)) return false;
       if (filterStatus !== 'all' && r.status !== filterStatus) return false;

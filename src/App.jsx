@@ -296,6 +296,13 @@ function App() {
   // Bumped whenever daily_overrides are refreshed from the cloud, to force
   // views that read them from localStorage to recompute.
   const [overridesVersion, setOverridesVersion] = useState(0);
+  const [manualMonthlyOverrides, setManualMonthlyOverrides] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('attendance_dashboard_manual_monthly_overrides') || '{}');
+    } catch {
+      return {};
+    }
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPosition, setSelectedPosition] = useState('');
   const [selectedLocation, setSelectedLocation] = useState('');
@@ -409,6 +416,7 @@ function App() {
   // unchanged cloud data can skip redundant re-renders / re-uploads.
   const lastCloudSnapshotRef = useRef(null);
   const lastOverridesSnapshotRef = useRef(null);
+  const localOverridesDirtyRef = useRef(false);
 
   // Fetch employees and balances from Supabase on mount AND whenever the tab
   // becomes visible / focused again, so mobile and desktop stay in sync without
@@ -448,7 +456,16 @@ function App() {
         // ─── Restore cloud-synced app state from the app_state key-value table ───
         // Daily overrides (independent of employee data).
         const cloudOverrides = await getAppState('daily_overrides');
-        if (cloudOverrides && cloudOverrides !== lastOverridesSnapshotRef.current) {
+        const localOverrides = localStorage.getItem('attendance_dashboard_daily_overrides');
+        if (localOverridesDirtyRef.current && cloudOverrides === localOverrides) {
+          localOverridesDirtyRef.current = false;
+          lastOverridesSnapshotRef.current = cloudOverrides;
+        }
+        if (
+          cloudOverrides &&
+          cloudOverrides !== lastOverridesSnapshotRef.current &&
+          !(localOverridesDirtyRef.current && cloudOverrides !== localOverrides)
+        ) {
           try {
             JSON.parse(cloudOverrides); // validate before storing
             localStorage.setItem('attendance_dashboard_daily_overrides', cloudOverrides);
@@ -770,7 +787,7 @@ function App() {
   };
 
   const handleUpdateEmployee = (updatedEmpForActiveMonth) => {
-    setEmployeesData(prev => prev.map(emp => {
+    const nextEmployeesData = employeesData.map(emp => {
       if (emp.id === updatedEmpForActiveMonth.id) {
         const newLeaves = { ...emp.leaves, [activeMonth]: updatedEmpForActiveMonth.leaves };
         newLeaves.all = recalculateAccumulatedLeaves(newLeaves);
@@ -779,11 +796,38 @@ function App() {
           name: updatedEmpForActiveMonth.name,
           position: updatedEmpForActiveMonth.position,
           location: updatedEmpForActiveMonth.location,
+          manualMonthlyEdits: {
+            ...(emp.manualMonthlyEdits || {}),
+            [activeMonth]: Date.now()
+          },
           leaves: newLeaves 
         };
       }
       return emp;
-    }));
+    });
+
+    setEmployeesData(nextEmployeesData);
+
+    if (activeMonth !== 'all') {
+      setManualMonthlyOverrides(prev => {
+        const nextOverrides = {
+          ...prev,
+          [`${selectedYear}:${activeMonth}:${updatedEmpForActiveMonth.id}`]: {
+            leaves: updatedEmpForActiveMonth.leaves,
+            updatedAt: Date.now()
+          }
+        };
+        localStorage.setItem('attendance_dashboard_manual_monthly_overrides', JSON.stringify(nextOverrides));
+        return nextOverrides;
+      });
+    }
+
+    const serialized = JSON.stringify(nextEmployeesData);
+    setAppState('employees_data', serialized).then(ok => {
+      if (ok) {
+        lastCloudSnapshotRef.current = serialized;
+      }
+    }).catch(err => console.error('Immediate employees_data sync failed in handleUpdateEmployee', err));
 
     // Sync changes to Supabase if config is present
     try {
@@ -923,11 +967,10 @@ function App() {
   const overriddenEmployeesData = useMemo(() => {
     const cloned = JSON.parse(JSON.stringify(employeesData));
     const savedOverrides = localStorage.getItem('attendance_dashboard_daily_overrides');
-    if (!savedOverrides) return cloned;
+    const agg = {};
     
-    try {
+    if (savedOverrides) try {
       const overrides = JSON.parse(savedOverrides);
-      const agg = {};
       
       Object.entries(overrides).forEach(([dateStr, dayData]) => {
         const details = getDateDetails(dateStr);
@@ -969,92 +1012,115 @@ function App() {
           }
         });
       });
-      
-      cloned.forEach(emp => {
-        const empAgg = agg[emp.id];
-        if (empAgg) {
-          Object.entries(empAgg).forEach(([monthKey, stats]) => {
-            if (!emp.leaves[monthKey]) {
-              emp.leaves[monthKey] = {
-                sick: { count: 0, days: 0 },
-                vacation: { count: 0, days: 0 },
-                personal: { count: 0, days: 0 },
-                absent: 0,
-                maternity: { count: 0, days: 0 },
-                late: { count: 0, days: 0 },
-                outOfArea: { count: 0, hours: 0, days: 0 },
-                work: { count: 0, days: 0 }
-              };
-            }
-            emp.leaves[monthKey].absent = stats.absent;
-            emp.leaves[monthKey].sick = { ...emp.leaves[monthKey].sick, count: stats.sick, days: stats.sick };
-            emp.leaves[monthKey].personal = { ...emp.leaves[monthKey].personal, count: stats.personal, days: stats.personal };
-            emp.leaves[monthKey].vacation = { ...emp.leaves[monthKey].vacation, count: stats.vacation, days: stats.vacation };
-            emp.leaves[monthKey].maternity = { ...emp.leaves[monthKey].maternity, count: stats.maternity, days: stats.maternity };
-            emp.leaves[monthKey].late = { ...emp.leaves[monthKey].late, count: stats.late, days: stats.late };
-            emp.leaves[monthKey].work = { ...emp.leaves[monthKey].work, count: stats.work, days: stats.work };
-            emp.leaves[monthKey].outOfArea = { ...emp.leaves[monthKey].outOfArea, count: stats.work, days: stats.work };
-          });
-        }
-        
-        const all = {
-          sick: { count: 0, days: 0 },
-          vacation: { count: 0, days: 0, remaining: emp.leaves.all?.vacation?.remaining ?? 30 },
-          personal: { count: 0, days: 0 },
-          absent: 0,
-          maternity: { count: 0, days: 0 },
-          late: { count: 0, days: 0 },
-          outOfArea: { count: 0, hours: 0, days: 0 },
-          work: { count: 0, days: 0 }
-        };
-        
-        const fiscalMonthsKeys = [
-          'october', 'november', 'december', 'january', 'february', 'march',
-          'april', 'may', 'june', 'july', 'august', 'september'
-        ];
-        
-        fiscalMonthsKeys.forEach(mKey => {
-          const mObj = emp.leaves[mKey];
-          if (mObj) {
-            all.absent += mObj.absent || 0;
-            all.sick.days += mObj.sick?.days || 0;
-            all.sick.count += mObj.sick?.count || 0;
-            all.late.count += mObj.late?.count || 0;
-            all.work.days += mObj.work?.days || 0;
-            all.personal.days += mObj.personal?.days || 0;
-            all.personal.count += mObj.personal?.count || 0;
-            all.vacation.days += mObj.vacation?.days || 0;
-            all.vacation.count += mObj.vacation?.count || 0;
-            all.maternity.days += mObj.maternity?.days || 0;
-            all.maternity.count += mObj.maternity?.count || 0;
-            all.outOfArea.count += mObj.outOfArea?.count || 0;
-            all.outOfArea.days += mObj.outOfArea?.days || 0;
-          }
-        });
-        
-        emp.leaves.all = {
-          ...emp.leaves.all,
-          absent: all.absent,
-          sick: { count: all.sick.count, days: all.sick.days },
-          personal: { count: all.personal.count, days: all.personal.days },
-          vacation: { count: all.vacation.count, days: all.vacation.days, remaining: parseFloat((30 - all.vacation.days).toFixed(1)) },
-          maternity: { count: all.maternity.count, days: all.maternity.days },
-          late: { count: all.late.count, days: all.late.count },
-          work: { count: all.work.count, days: all.work.days },
-          outOfArea: { count: all.outOfArea.count, hours: emp.leaves.all?.outOfArea?.hours ?? 0, days: all.outOfArea.days }
-        };
-      });
     } catch (e) {
       console.error("Failed to parse daily overrides in App level", e);
     }
+
+    cloned.forEach(emp => {
+      const empAgg = agg[emp.id];
+      if (empAgg) {
+        Object.entries(empAgg).forEach(([monthKey, stats]) => {
+          if (emp.manualMonthlyEdits?.[monthKey]) return;
+
+          if (!emp.leaves[monthKey]) {
+            emp.leaves[monthKey] = {
+              sick: { count: 0, days: 0 },
+              vacation: { count: 0, days: 0 },
+              personal: { count: 0, days: 0 },
+              absent: 0,
+              maternity: { count: 0, days: 0 },
+              late: { count: 0, days: 0 },
+              outOfArea: { count: 0, hours: 0, days: 0 },
+              work: { count: 0, days: 0 }
+            };
+          }
+          emp.leaves[monthKey].absent = stats.absent;
+          emp.leaves[monthKey].sick = { ...emp.leaves[monthKey].sick, count: stats.sick, days: stats.sick };
+          emp.leaves[monthKey].personal = { ...emp.leaves[monthKey].personal, count: stats.personal, days: stats.personal };
+          emp.leaves[monthKey].vacation = { ...emp.leaves[monthKey].vacation, count: stats.vacation, days: stats.vacation };
+          emp.leaves[monthKey].maternity = { ...emp.leaves[monthKey].maternity, count: stats.maternity, days: stats.maternity };
+          emp.leaves[monthKey].late = { ...emp.leaves[monthKey].late, count: stats.late, days: stats.late };
+          emp.leaves[monthKey].work = { ...emp.leaves[monthKey].work, count: stats.work, days: stats.work };
+          emp.leaves[monthKey].outOfArea = { ...emp.leaves[monthKey].outOfArea, count: stats.work, days: stats.work };
+        });
+      }
+
+      Object.entries(manualMonthlyOverrides).forEach(([key, override]) => {
+        const [year, monthKey, empId] = key.split(':');
+        if (year !== String(selectedYear) || String(emp.id) !== empId || !override?.leaves) return;
+        emp.leaves[monthKey] = override.leaves;
+        emp.manualMonthlyEdits = {
+          ...(emp.manualMonthlyEdits || {}),
+          [monthKey]: override.updatedAt || true
+        };
+      });
+
+      const all = {
+        sick: { count: 0, days: 0 },
+        vacation: { count: 0, days: 0, remaining: emp.leaves.all?.vacation?.remaining ?? 30 },
+        personal: { count: 0, days: 0 },
+        absent: 0,
+        maternity: { count: 0, days: 0 },
+        late: { count: 0, days: 0 },
+        outOfArea: { count: 0, hours: 0, days: 0 },
+        work: { count: 0, days: 0 }
+      };
+        
+      const fiscalMonthsKeys = [
+        'october', 'november', 'december', 'january', 'february', 'march',
+        'april', 'may', 'june', 'july', 'august', 'september'
+      ];
+        
+      fiscalMonthsKeys.forEach(mKey => {
+        const mObj = emp.leaves[mKey];
+        if (mObj) {
+          all.absent += mObj.absent || 0;
+          all.sick.days += mObj.sick?.days || 0;
+          all.sick.count += mObj.sick?.count || 0;
+          all.late.count += mObj.late?.count || 0;
+          all.work.days += mObj.work?.days || 0;
+          all.personal.days += mObj.personal?.days || 0;
+          all.personal.count += mObj.personal?.count || 0;
+          all.vacation.days += mObj.vacation?.days || 0;
+          all.vacation.count += mObj.vacation?.count || 0;
+          all.maternity.days += mObj.maternity?.days || 0;
+          all.maternity.count += mObj.maternity?.count || 0;
+          all.outOfArea.count += mObj.outOfArea?.count || 0;
+          all.outOfArea.days += mObj.outOfArea?.days || 0;
+        }
+      });
+        
+      emp.leaves.all = {
+        ...emp.leaves.all,
+        absent: all.absent,
+        sick: { count: all.sick.count, days: all.sick.days },
+        personal: { count: all.personal.count, days: all.personal.days },
+        vacation: { count: all.vacation.count, days: all.vacation.days, remaining: parseFloat((30 - all.vacation.days).toFixed(1)) },
+        maternity: { count: all.maternity.count, days: all.maternity.days },
+        late: { count: all.late.count, days: all.late.count },
+        work: { count: all.work.count, days: all.work.days },
+        outOfArea: { count: all.outOfArea.count, hours: emp.leaves.all?.outOfArea?.hours ?? 0, days: all.outOfArea.days }
+      };
+    });
+
     return cloned;
-  }, [employeesData, selectedYear, activeView, overridesVersion]);
+  }, [employeesData, selectedYear, activeView, overridesVersion, manualMonthlyOverrides]);
 
   // Build flat "display" dataset for current active month
   const displayData = overriddenEmployeesData.map(emp => ({
     ...emp,
     leaves: emp.leaves[activeMonth] || createEmptyLeave(30)
   }));
+
+  const handleDailyOverridesSaved = (snapshot, cloudSynced) => {
+    if (cloudSynced) {
+      localOverridesDirtyRef.current = false;
+      lastOverridesSnapshotRef.current = snapshot;
+    } else {
+      localOverridesDirtyRef.current = true;
+    }
+    setOverridesVersion(v => v + 1);
+  };
 
   const filteredAndSortedData = displayData
     .filter(emp => {
@@ -1391,7 +1457,7 @@ function App() {
 
       {/* ============================================================ Main Content */}
       {activeView === VIEWS.MY_DASHBOARD ? (
-        <MyDashboard currentUser={currentUser} employeesData={employeesData} />
+        <MyDashboard currentUser={currentUser} employeesData={employeesData} overridesVersion={overridesVersion} />
       ) : activeView === VIEWS.DASHBOARD ? (
         <>
           <OverviewCards data={filteredAndSortedData} />
@@ -1558,7 +1624,10 @@ function App() {
       ) : activeView === VIEWS.PERSONNEL ? (
         <PersonnelManager employeesData={employeesData} setEmployeesData={setEmployeesData} />
       ) : (
-        <DailyReportGenerator employeesData={employeesData} />
+        <DailyReportGenerator
+          employeesData={employeesData}
+          onDailyOverridesSaved={handleDailyOverridesSaved}
+        />
       )}
 
       {/* ============================================================ Employee Modal */}
@@ -1664,7 +1733,7 @@ function App() {
       )}
 
       <footer style={{ marginTop: '60px', textAlign: 'center', padding: '24px 0', borderTop: '1px solid var(--border-color)', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-        © {new Date().getFullYear()} ศูนย์การศึกษาพิเศษประจำจังหวัด | พัฒนาระบบโดย <strong>นายณัฐิวุฒิ พลนาคู</strong>
+        © {new Date().getFullYear()} ศูนย์การศึกษาพิเศษประจำจังหวัดปทุมธานี | พัฒนาระบบโดย <strong>นายณัฐิวุฒิ พลนาคู</strong>
       </footer>
     </div>
   );

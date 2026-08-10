@@ -130,7 +130,7 @@ const OCRImporter = ({ employeesData, onImportData }) => {
     const lines = text.split('\n');
     const newRows = [];
 
-    lines.forEach((line, idx) => {
+    lines.forEach((line) => {
       const trimmedLine = line.trim();
       if (!trimmedLine || trimmedLine.length < 5) return; // skip noise
 

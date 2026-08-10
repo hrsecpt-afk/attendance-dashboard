@@ -95,7 +95,7 @@ const InputField = ({ label, value, onChange, placeholder, required, type = 'tex
   </div>
 );
 
-const SelectField = ({ label, value, onChange, options, placeholder }) => (
+const _SelectField = ({ label, value, onChange, options, placeholder }) => (
   <div>
     <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 600 }}>{label}</label>
     <select

@@ -125,9 +125,6 @@ for (let r = 1; r < rows.length; r++) {
   const name = (row[1] || '').trim();
   const position = (row[2] || '').trim();
   const location = (row[3] || '').trim();
-  const totalCount = parseFloat(row[4]) || 0;
-  const totalDays = parseFloat(row[5]) || 0;
-  
   if (!name) continue; // Skip empty names
   
   // Build monthly leaves

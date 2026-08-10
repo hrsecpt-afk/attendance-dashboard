@@ -64,17 +64,58 @@ export async function getAppState(key) {
 export async function setAppState(key, value) {
   const cfg = getConfig();
   if (!cfg) return false;
+
+  const headers = {
+    'Content-Type': 'application/json',
+    apikey: cfg.key,
+    Authorization: `Bearer ${cfg.key}`,
+  };
+  const row = { key, value };
+  const encodedKey = encodeURIComponent(key);
+
   try {
-    const res = await fetch(`${cfg.url}/rest/v1/app_state`, {
+    let res = await fetch(`${cfg.url}/rest/v1/app_state?on_conflict=key`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        apikey: cfg.key,
-        Authorization: `Bearer ${cfg.key}`,
+        ...headers,
         Prefer: 'resolution=merge-duplicates',
       },
-      body: JSON.stringify({ key, value }),
+      body: JSON.stringify(row),
     });
+
+    // Some Supabase projects keep a stale PostgREST schema cache or were
+    // created without the expected primary key. In that case, update by the
+    // text key first, then insert the row if it does not exist yet.
+    if (!res.ok) {
+      const firstError = await res.text().catch(() => '');
+      console.error(`setAppState(${key}) upsert failed: HTTP ${res.status}. ${firstError}`);
+
+      res = await fetch(`${cfg.url}/rest/v1/app_state?key=eq.${encodedKey}`, {
+        method: 'PATCH',
+        headers: {
+          ...headers,
+          Prefer: 'return=minimal',
+        },
+        body: JSON.stringify({ value }),
+      });
+
+      if (res.ok) {
+        return true;
+      }
+
+      const patchError = await res.text().catch(() => '');
+      console.error(`setAppState(${key}) patch failed: HTTP ${res.status}. ${patchError}`);
+
+      res = await fetch(`${cfg.url}/rest/v1/app_state`, {
+        method: 'POST',
+        headers: {
+          ...headers,
+          Prefer: 'return=minimal',
+        },
+        body: JSON.stringify(row),
+      });
+    }
+
     if (!res.ok) {
       const body = await res.text().catch(() => '');
       console.error(

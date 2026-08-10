@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth, ROLE_LABELS, ROLE_COLORS } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
+
+const DEFAULT_LOGO_URL = '/logo.png';
 
 const LoginPage = () => {
   const { login, authError } = useAuth();
@@ -28,6 +30,8 @@ const LoginPage = () => {
       setTimeout(() => setShake(false), 600);
     }
   };
+
+  const logoUrl = localStorage.getItem('app_logo_url') || DEFAULT_LOGO_URL;
 
   return (
     <div style={{
@@ -58,13 +62,13 @@ const LoginPage = () => {
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <div style={{
             width: '72px', height: '72px', borderRadius: '20px', margin: '0 auto 16px',
-            background: localStorage.getItem('app_logo_url') ? 'transparent' : 'linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)',
+            background: logoUrl ? 'transparent' : 'linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '2rem', boxShadow: localStorage.getItem('app_logo_url') ? 'none' : '0 8px 32px rgba(159,122,234,0.35)',
+            fontSize: '2rem', boxShadow: logoUrl ? 'none' : '0 8px 32px rgba(159,122,234,0.35)',
             overflow: 'hidden'
           }}>
-            {localStorage.getItem('app_logo_url') ? (
-              <img src={localStorage.getItem('app_logo_url')} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            {logoUrl ? (
+              <img src={logoUrl} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             ) : (
               '🏫'
             )}

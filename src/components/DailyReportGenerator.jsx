@@ -341,6 +341,7 @@ const DailyReportGenerator = ({ employeesData }) => {
             if (rawStatus === 'late' || rawStatus === 'สาย') status = 'late';
             else if (rawStatus === 'gov' || rawStatus === 'ไปราชการ') status = 'gov';
             else if (rawStatus === 'sick' || rawStatus === 'ลาป่วย') status = 'sick';
+            else if (rawStatus === 'personal' || rawStatus === 'ลากิจ' || rawStatus === 'ลากิจส่วนตัว') status = 'personal';
             else if (rawStatus === 'vacation' || rawStatus === 'ลาพักผ่อน') status = 'vacation';
             else if (rawStatus === 'maternity' || rawStatus === 'ลาคลอด') status = 'maternity';
             else if (rawStatus === 'ontime' || rawStatus === 'present' || rawStatus === 'normal' || rawStatus === 'มาปกติ') status = 'present';
@@ -673,6 +674,7 @@ const DailyReportGenerator = ({ employeesData }) => {
       late: initialGroup(),
       gov: initialGroup(),
       sick: initialGroup(),
+      personal: initialGroup(),
       vacation: initialGroup(),
       maternity: initialGroup(),
       absent: initialGroup(),
@@ -695,6 +697,9 @@ const DailyReportGenerator = ({ employeesData }) => {
       } else if (status === 'sick') {
         result.sick[cat]++;
         result.sick.all++;
+      } else if (status === 'personal') {
+        result.personal[cat]++;
+        result.personal.all++;
       } else if (status === 'vacation') {
         result.vacation[cat]++;
         result.vacation.all++;
@@ -707,10 +712,10 @@ const DailyReportGenerator = ({ employeesData }) => {
       }
     });
 
-    // Present = Total - Gov - Sick - Vacation - Maternity - Absent (Late counts as present)
+    // Present = Total - Gov - Sick - Personal - Vacation - Maternity - Absent (Late counts as present)
     categories.forEach(cat => {
-      result.present[cat] = result.total[cat] - (result.gov[cat] || 0) - (result.sick[cat] || 0) - (result.vacation[cat] || 0) - (result.maternity[cat] || 0) - (result.absent[cat] || 0);
-      result.present.all = result.total.all - (result.gov.all || 0) - (result.sick.all || 0) - (result.vacation.all || 0) - (result.maternity.all || 0) - (result.absent.all || 0);
+      result.present[cat] = result.total[cat] - (result.gov[cat] || 0) - (result.sick[cat] || 0) - (result.personal[cat] || 0) - (result.vacation[cat] || 0) - (result.maternity[cat] || 0) - (result.absent[cat] || 0);
+      result.present.all = result.total.all - (result.gov.all || 0) - (result.sick.all || 0) - (result.personal.all || 0) - (result.vacation.all || 0) - (result.maternity.all || 0) - (result.absent.all || 0);
     });
     
     return result;
@@ -722,6 +727,7 @@ const DailyReportGenerator = ({ employeesData }) => {
       late: [],
       gov: [],
       sick: [],
+      personal: [],
       vacation: [],
       maternity: [],
       absent: []
@@ -731,6 +737,7 @@ const DailyReportGenerator = ({ employeesData }) => {
       if (status === 'late') lists.late.push(emp.name);
       else if (status === 'gov') lists.gov.push(emp.name);
       else if (status === 'sick') lists.sick.push(emp.name);
+      else if (status === 'personal') lists.personal.push(emp.name);
       else if (status === 'vacation') lists.vacation.push(emp.name);
       else if (status === 'maternity') lists.maternity.push(emp.name);
       else if (status === 'absent') lists.absent.push(emp.name);
@@ -840,28 +847,9 @@ const DailyReportGenerator = ({ employeesData }) => {
             margin-bottom: 6px;
             margin-top: 8px;
           }
-          
-          .list-container {
-            margin-bottom: 10px;
-          }
-          .list-item {
-            font-size: 15pt;
-            margin-bottom: 2px;
-          }
-          
-          table.signature-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-          }
-          table.signature-table td {
-            border: none;
-            padding: 5px 5px;
-            text-align: center;
-            width: 50%;
-            font-size: 15pt;
-          }
-          .sig-line { margin-bottom: 5px; }
+          table.names-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+          table.names-table td { border: 0.5pt solid windowtext; padding: 4px; vertical-align: top; }
+          .names { font-size: 14pt; }
         </style>
       </head>
       <body>
@@ -874,18 +862,18 @@ const DailyReportGenerator = ({ employeesData }) => {
         <table class="report-table">
           <thead>
             <tr>
-              <th style="width: 28%; text-align: left;">รายการ</th>
-              <th style="width: 13%;">ข้าราชการครู</th>
-              <th style="width: 12%;">ครูพิเศษ</th>
-              <th style="width: 11%;">เจ้าหน้าที่</th>
-              <th style="width: 12%;">ลูกจ้างประจำ</th>
-              <th style="width: 12%;">ลูกจ้างชั่วคราว</th>
-              <th style="width: 12%;">รวมทั้งหมด</th>
+              <th style="width: 28%;">รายการ</th>
+              <th>ข้าราชการครู</th>
+              <th>ครูพิเศษ</th>
+              <th>เจ้าหน้าที่</th>
+              <th>ลูกจ้างประจำ</th>
+              <th>ลูกจ้างชั่วคราว</th>
+              <th>รวมทั้งหมด</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td class="text-left">1.จำนวนบุคลากรทั้งหมด</td>
+              <td class="text-left">1. จำนวนบุคลากรทั้งหมด</td>
               <td>${displayVal(stats.total.ข้าราชการครู)}</td>
               <td>${displayVal(stats.total.ครูพิเศษ)}</td>
               <td>${displayVal(stats.total.เจ้าหน้าที่)}</td>
@@ -1044,6 +1032,7 @@ const DailyReportGenerator = ({ employeesData }) => {
       if (status === 'late') return 'สาย';
       if (status === 'gov') return 'ไปราชการ';
       if (status === 'sick') return 'ลาป่วย';
+      if (status === 'personal') return 'ลากิจ';
       if (status === 'vacation') return 'ลาพักผ่อน';
       if (status === 'maternity') return 'ลาคลอด';
       if (status === 'absent') return 'ขาดงาน';
@@ -1466,8 +1455,17 @@ const DailyReportGenerator = ({ employeesData }) => {
                 <td style={{ textAlign: 'center' }}>{stats.sick.ลูกจ้างชั่วคราว || '-'}</td>
                 <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{stats.sick.all || '-'}</td>
               </tr>
+              <tr style={{ color: '#a855f7' }}>
+                <td style={{ fontWeight: '600' }}>5. ลากิจ</td>
+                <td style={{ textAlign: 'center' }}>{stats.personal.ข้าราชการครู || '-'}</td>
+                <td style={{ textAlign: 'center' }}>{stats.personal.ครูพิเศษ || '-'}</td>
+                <td style={{ textAlign: 'center' }}>{stats.personal.เจ้าหน้าที่ || '-'}</td>
+                <td style={{ textAlign: 'center' }}>{stats.personal.ลูกจ้างประจำ || '-'}</td>
+                <td style={{ textAlign: 'center' }}>{stats.personal.ลูกจ้างชั่วคราว || '-'}</td>
+                <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{stats.personal.all || '-'}</td>
+              </tr>
               <tr style={{ color: 'var(--cyan)' }}>
-                <td style={{ fontWeight: '600' }}>5. ลาพักผ่อน</td>
+                <td style={{ fontWeight: '600' }}>6. ลาพักผ่อน</td>
                 <td style={{ textAlign: 'center' }}>{stats.vacation.ข้าราชการครู || '-'}</td>
                 <td style={{ textAlign: 'center' }}>{stats.vacation.ครูพิเศษ || '-'}</td>
                 <td style={{ textAlign: 'center' }}>{stats.vacation.เจ้าหน้าที่ || '-'}</td>
@@ -1476,7 +1474,7 @@ const DailyReportGenerator = ({ employeesData }) => {
                 <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{stats.vacation.all || '-'}</td>
               </tr>
               <tr style={{ color: 'var(--secondary)' }}>
-                <td style={{ fontWeight: '600' }}>6. ลาคลอด</td>
+                <td style={{ fontWeight: '600' }}>7. ลาคลอด</td>
                 <td style={{ textAlign: 'center' }}>{stats.maternity.ข้าราชการครู || '-'}</td>
                 <td style={{ textAlign: 'center' }}>{stats.maternity.ครูพิเศษ || '-'}</td>
                 <td style={{ textAlign: 'center' }}>{stats.maternity.เจ้าหน้าที่ || '-'}</td>
@@ -1485,7 +1483,7 @@ const DailyReportGenerator = ({ employeesData }) => {
                 <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{stats.maternity.all || '-'}</td>
               </tr>
               <tr style={{ color: 'var(--red)' }}>
-                <td style={{ fontWeight: '600' }}>7. ขาดงาน</td>
+                <td style={{ fontWeight: '600' }}>8. ขาดงาน</td>
                 <td style={{ textAlign: 'center' }}>{stats.absent.ข้าราชการครู || '-'}</td>
                 <td style={{ textAlign: 'center' }}>{stats.absent.ครูพิเศษ || '-'}</td>
                 <td style={{ textAlign: 'center' }}>{stats.absent.เจ้าหน้าที่ || '-'}</td>
@@ -1533,21 +1531,28 @@ const DailyReportGenerator = ({ employeesData }) => {
             }
           </div>
           <div>
-            <span style={{ fontWeight: 'bold', color: 'var(--cyan)', marginRight: '10px' }}>4. ลาพักผ่อน:</span>
+            <span style={{ fontWeight: 'bold', color: '#a855f7', marginRight: '10px' }}>4. ลากิจ:</span>
+            {namesList.personal.length > 0
+              ? namesList.personal.map((n, i) => <span key={i} style={{ marginRight: '12px' }}>{i + 1}.{n}</span>)
+              : <span style={{ color: 'var(--text-muted)' }}>- ไม่มีพนักงานลากิจ -</span>
+            }
+          </div>
+          <div>
+            <span style={{ fontWeight: 'bold', color: 'var(--cyan)', marginRight: '10px' }}>5. ลาพักผ่อน:</span>
             {namesList.vacation.length > 0
               ? namesList.vacation.map((n, i) => <span key={i} style={{ marginRight: '12px' }}>{i + 1}.{n}</span>)
               : <span style={{ color: 'var(--text-muted)' }}>- ไม่มีพนักงานลาพักผ่อน -</span>
             }
           </div>
           <div>
-            <span style={{ fontWeight: 'bold', color: 'var(--secondary)', marginRight: '10px' }}>5. ลาคลอด:</span>
+            <span style={{ fontWeight: 'bold', color: 'var(--secondary)', marginRight: '10px' }}>6. ลาคลอด:</span>
             {namesList.maternity.length > 0
               ? namesList.maternity.map((n, i) => <span key={i} style={{ marginRight: '12px' }}>{i + 1}.{n}</span>)
               : <span style={{ color: 'var(--text-muted)' }}>- ไม่มีพนักงานลาคลอด -</span>
             }
           </div>
           <div>
-            <span style={{ fontWeight: 'bold', color: 'var(--red)', marginRight: '10px' }}>6. ขาดงาน:</span>
+            <span style={{ fontWeight: 'bold', color: 'var(--red)', marginRight: '10px' }}>7. ขาดงาน:</span>
             {namesList.absent.length > 0
               ? namesList.absent.map((n, i) => <span key={i} style={{ marginRight: '12px' }}>{i + 1}.{n}</span>)
               : <span style={{ color: 'var(--text-muted)' }}>- ไม่มีพนักงานขาดงาน -</span>
@@ -1605,13 +1610,13 @@ const DailyReportGenerator = ({ employeesData }) => {
                         type="text"
                         value={currentCheckIn}
                         onChange={(e) => handleTimeChange(emp.id, e.target.value)}
-                        disabled={['gov', 'sick', 'vacation', 'maternity', 'absent'].includes(currentStatus)}
+                        disabled={['gov', 'sick', 'personal', 'vacation', 'maternity', 'absent'].includes(currentStatus)}
                         style={{
                           width: '82px',
                           padding: '6px',
                           textAlign: 'center',
-                          background: ['gov', 'sick', 'vacation', 'maternity', 'absent'].includes(currentStatus) ? 'transparent' : 'rgba(255,255,255,0.05)',
-                          border: ['gov', 'sick', 'vacation', 'maternity', 'absent'].includes(currentStatus) ? 'none' : '1px solid var(--border-color)',
+                          background: ['gov', 'sick', 'personal', 'vacation', 'maternity', 'absent'].includes(currentStatus) ? 'transparent' : 'rgba(255,255,255,0.05)',
+                          border: ['gov', 'sick', 'personal', 'vacation', 'maternity', 'absent'].includes(currentStatus) ? 'none' : '1px solid var(--border-color)',
                           borderRadius: '6px',
                           color: currentStatus === 'late' ? 'var(--yellow)' : currentStatus === 'absent' ? 'var(--red)' : 'var(--text-main)',
                           fontSize: '0.8rem',
@@ -1692,6 +1697,24 @@ const DailyReportGenerator = ({ employeesData }) => {
                           }}
                         >
                           🤕 ลาป่วย
+                        </button>
+
+                        {/* Status button personal */}
+                        <button
+                          onClick={() => handleStatusChange(emp.id, 'personal')}
+                          style={{
+                            padding: '6px 10px',
+                            background: currentStatus === 'personal' ? 'rgba(168, 85, 247, 0.15)' : 'rgba(255,255,255,0.02)',
+                            border: `1px solid ${currentStatus === 'personal' ? '#a855f7' : 'var(--border-color)'}`,
+                            color: currentStatus === 'personal' ? '#a855f7' : 'var(--text-muted)',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            transition: 'var(--transition-smooth)'
+                          }}
+                        >
+                          📝 ลากิจ
                         </button>
 
                         {/* Status button vacation — only for positions entitled to vacation leave */}

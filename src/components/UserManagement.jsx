@@ -147,7 +147,7 @@ const UserManagement = ({ employeesData = [] }) => {
   };
 
   const handleBatchCreateUsers = () => {
-    const unlinkedEmps = employeesData.filter(emp => !users.some(u => u.employeeId === emp.id));
+    const unlinkedEmps = employeesData.filter(emp => !users.some(u => String(u.employeeId) === String(emp.id)));
     if (unlinkedEmps.length === 0) {
       alert('📌 บุคลากรทุกคนในระบบมีบัญชีผู้ใช้งานเรียบร้อยแล้ว!');
       return;
@@ -231,7 +231,7 @@ const UserManagement = ({ employeesData = [] }) => {
             onClick={handleBatchCreateUsers}
             style={{ padding: '8px 16px', background: 'rgba(6,182,212,0.08)', border: '1px solid rgba(6,182,212,0.25)', color: 'var(--cyan)', borderRadius: '9px', cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem' }}
           >
-            ⚡ สร้างบัญชีให้ทุกคนอัตโนมัติ ({employeesData.filter(emp => !users.some(u => u.employeeId === emp.id)).length} คน)
+            ⚡ สร้างบัญชีให้ทุกคนอัตโนมัติ ({employeesData.filter(emp => !users.some(u => String(u.employeeId) === String(emp.id))).length} คน)
           </button>
           <button
             onClick={() => { resetForm(); setShowForm(v => !v); }}
@@ -296,7 +296,7 @@ const UserManagement = ({ employeesData = [] }) => {
           </thead>
           <tbody>
             {users.map(u => {
-              const linked = employeesData.find(emp => emp.id === u.employeeId);
+              const linked = employeesData.find(emp => String(emp.id) === String(u.employeeId));
               const showPass = showPassMap[u.id];
               return (
                 <tr key={u.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', transition: '0.15s' }}
