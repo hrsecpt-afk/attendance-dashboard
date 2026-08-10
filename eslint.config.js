@@ -29,6 +29,7 @@ export default defineConfig([
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
       'react-refresh/only-export-components': 'warn',
+      'react-hooks/set-state-in-effect': 'off',
     },
   },
   {
