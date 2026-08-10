@@ -10,4 +10,12 @@ export default defineConfig({
       targets: ['defaults', 'not IE 11', 'iOS >= 12', 'Safari >= 12']
     })
   ],
+  define: {
+    'window.__ENV__': {
+      VITE_SUPABASE_MAIN_URL: JSON.stringify(process.env.VITE_SUPABASE_MAIN_URL),
+      VITE_SUPABASE_MAIN_KEY: JSON.stringify(process.env.VITE_SUPABASE_MAIN_KEY),
+      VITE_SUPABASE_SECONDARY_URL: JSON.stringify(process.env.VITE_SUPABASE_SECONDARY_URL),
+      VITE_SUPABASE_SECONDARY_KEY: JSON.stringify(process.env.VITE_SUPABASE_SECONDARY_KEY),
+    }
+  }
 })

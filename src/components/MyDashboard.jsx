@@ -1,20 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import PrintableLeavePdf from './PrintableLeavePdf';
 import { useAuth } from '../context/AuthContext';
+import { getSupabaseConfig } from '../config/supabaseConfig.js';
 
-const getSupabaseCfg = () => {
-  try {
-    const s = localStorage.getItem('attendance_dashboard_supabase_config');
-    if (s) {
-      const p = JSON.parse(s);
-      if (p.url && p.key) return p;
-    }
-  } catch {}
-  return {
-    url: 'https://vayvssbxuskhyujtbtyw.supabase.co',
-    key: 'sb_publishable_yjyN0-SOXFwTPoOolSmKBw_QDyFe2rZ'
-  };
-};
+const getSupabaseCfg = getSupabaseConfig;
 
 const formatDateThai = (dateStr) => {
   if (!dateStr) return '-';

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import PrintableDutyPdf from './PrintableDutyPdf';
 import { useAuth } from '../context/AuthContext';
+import { getSupabaseConfig } from '../config/supabaseConfig.js';
 
 const safeConfirm = (msg) => {
   if (window.navigator.webdriver) return true;
@@ -455,8 +456,9 @@ const DutyOutsideSystem = ({ employeesData, setEmployeesData }) => {
         }
       }
       if (!currentUrl || !currentKey) {
-        currentUrl = 'https://vayvssbxuskhyujtbtyw.supabase.co';
-        currentKey = 'sb_publishable_yjyN0-SOXFwTPoOolSmKBw_QDyFe2rZ';
+        const cfg = getSupabaseConfig();
+        currentUrl = cfg.url;
+        currentKey = cfg.key;
         isConnected = true;
       }
       if (isConnected && currentUrl && currentKey) {
@@ -485,16 +487,13 @@ const DutyOutsideSystem = ({ employeesData, setEmployeesData }) => {
       } catch {}
     }
     if (!config.url || !config.key) {
-      config = {
-        url: 'https://vayvssbxuskhyujtbtyw.supabase.co',
-        key: 'sb_publishable_yjyN0-SOXFwTPoOolSmKBw_QDyFe2rZ'
-      };
+      config = getSupabaseConfig();
     }
     setSupabaseUrl(config.url);
     setSupabaseKey(config.key);
     setSupabaseConnected(true);
-    setTelegramToken(localStorage.getItem('leave_telegram_bot_token') || '8647599232:AAGPfSI1h92Kd_Rqhwcza7qZZ-3-KP0yFrE');
-    setTelegramChatId(localStorage.getItem('leave_telegram_chat_id') || '-5598882879');
+    setTelegramToken(localStorage.getItem('leave_telegram_bot_token') || '');
+    setTelegramChatId(localStorage.getItem('leave_telegram_chat_id') || '');
     loadDatabase();
 
     // 15 seconds polling interval for real-time off-site monitoring

@@ -1,32 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { getSupabaseConfig } from '../config/supabaseConfig.js';
 
 // ── Default accounts (stored in localStorage on first run) ───────────────────
-const DEFAULT_USERS = [
-  {
-    id: 1,
-    username: 'admin',
-    password: 'admin1234',
-    role: 'admin',
-    displayName: 'ผู้ดูแลระบบ',
-    employeeId: null,
-  },
-  {
-    id: 2,
-    username: 'director',
-    password: 'director1234',
-    role: 'director',
-    displayName: 'ผู้อำนวยการ',
-    employeeId: null,
-  },
-  {
-    id: 3,
-    username: 'user1',
-    password: '1234',
-    role: 'user',
-    displayName: 'ผู้ใช้งาน 1',
-    employeeId: null,
-  },
-];
+// IMPORTANT: These are empty by default for security. Add users via UserManagement.
+const DEFAULT_USERS = [];
 
 const USERS_STORAGE_KEY = 'attendance_users_db';
 const SESSION_STORAGE_KEY = 'attendance_current_session';
@@ -85,25 +62,6 @@ export const saveUsers = (users) => {
   } catch (e) {
     console.warn("saveUsers: localStorage.setItem failed", e);
   }
-};
-
-export const getSupabaseConfig = () => {
-  try {
-    const saved = localStorage.getItem('attendance_dashboard_supabase_config');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (parsed.url && parsed.key) {
-        return {
-          url: parsed.url.trim(),
-          key: parsed.key.trim()
-        };
-      }
-    }
-  } catch {}
-  return {
-    url: 'https://vayvssbxuskhyujtbtyw.supabase.co',
-    key: 'sb_publishable_yjyN0-SOXFwTPoOolSmKBw_QDyFe2rZ'
-  };
 };
 
 export const syncToSupabase = async (oldUsers, newUsers) => {

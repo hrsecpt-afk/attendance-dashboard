@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import PrintableLeavePdf from './PrintableLeavePdf';
 import { useAuth } from '../context/AuthContext';
 import HolidayCalendar, { loadHolidays, countWorkingDays } from './HolidayCalendar';
+import { getSupabaseConfig } from '../config/supabaseConfig.js';
 
 const safeConfirm = (msg) => {
   if (window.navigator.webdriver) return true;
@@ -520,28 +521,17 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
       } catch (e) {}
     }
     if (!config.url || !config.key) {
-      config = {
-        url: 'https://vayvssbxuskhyujtbtyw.supabase.co',
-        key: 'sb_publishable_yjyN0-SOXFwTPoOolSmKBw_QDyFe2rZ'
-      };
+      config = getSupabaseConfig();
     }
     setSupabaseUrl(config.url);
     setSupabaseKey(config.key);
     setSupabaseConnected(true);
 
     // 2. Load Telegram configurations
-    const savedTelegramToken = localStorage.getItem('leave_telegram_bot_token') || '8647599232:AAGPfSI1h92Kd_Rqhwcza7qZZ-3-KP0yFrE';
-    const savedTelegramChatId = localStorage.getItem('leave_telegram_chat_id') || '-5598882879';
+    const savedTelegramToken = localStorage.getItem('leave_telegram_bot_token') || '';
+    const savedTelegramChatId = localStorage.getItem('leave_telegram_chat_id') || '';
     setTelegramToken(savedTelegramToken);
     setTelegramChatId(savedTelegramChatId);
-
-    // Save defaults to localStorage if empty
-    if (!localStorage.getItem('leave_telegram_bot_token')) {
-      localStorage.setItem('leave_telegram_bot_token', '8647599232:AAGPfSI1h92Kd_Rqhwcza7qZZ-3-KP0yFrE');
-    }
-    if (!localStorage.getItem('leave_telegram_chat_id')) {
-      localStorage.setItem('leave_telegram_chat_id', '-5598882879');
-    }
 
     // 3. Load Leave Database (Local or Supabase)
     loadDatabase();

@@ -1,7 +1,23 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { restoreSettingsFromCloud } from './utils/cloudSettings.js';
 import { getAppState, setAppState } from './utils/appState.js';
-import attendanceRawData from './data/attendance.json';
+import { getSupabaseConfig } from './config/supabaseConfig.js';
+import {
+  MONTHS_KEYS,
+  MONTHS_LIST,
+  POSITION_ORDER,
+  VIEWS,
+  createEmptyLeave,
+  recalculateAccumulatedLeaves,
+  getPositionRank,
+  getLocationRank,
+  cleanNameForMatch,
+  syncEmployeeDetailsWithRaw,
+  sortEmployeesByUserListOrder,
+  migrateToMonthly,
+  safeConfirm,
+  safeAlert
+} from './utils/leaveDataHelpers.js';
 import OverviewCards from './components/OverviewCards';
 import LeaveCharts from './components/LeaveCharts';
 import Filters from './components/Filters';
@@ -383,9 +399,10 @@ function App() {
   useEffect(() => {
     const configKey = 'attendance_dashboard_supabase_config';
     const current = localStorage.getItem(configKey);
-    const targetUrl = 'https://vayvssbxuskhyujtbtyw.supabase.co';
-    const targetKey = 'sb_publishable_yjyN0-SOXFwTPoOolSmKBw_QDyFe2rZ';
-    
+    const cfg = getSupabaseConfig();
+    const targetUrl = cfg.url;
+    const targetKey = cfg.key;
+
     let needsUpdate = false;
     try {
       if (!current) {

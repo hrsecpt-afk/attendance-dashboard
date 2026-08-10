@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { isAppleMobile, printHtmlDocument } from '../utils/exportDocument.js';
 import { setAppState } from '../utils/appState.js';
+import { getSupabaseConfig } from '../config/supabaseConfig.js';
 
 // Helper to classify positions into the template categories
 const getPersonnelCategory = (position) => {
@@ -84,8 +85,9 @@ const DailyReportGenerator = ({ employeesData }) => {
   };
 
   // Supabase Config States
-  const [supabaseUrl, setSupabaseUrl] = useState('https://vayvssbxuskhyujtbtyw.supabase.co');
-  const [supabaseKey, setSupabaseKey] = useState('sb_publishable_yjyN0-SOXFwTPoOolSmKBw_QDyFe2rZ');
+  const cfg = getSupabaseConfig();
+  const [supabaseUrl, setSupabaseUrl] = useState(cfg.url);
+  const [supabaseKey, setSupabaseKey] = useState(cfg.key);
   const [supabaseTable, setSupabaseTable] = useState('attendance_logs');
   const [supabaseMatchCol, setSupabaseMatchCol] = useState('employee_id');
   const [supabaseDateCol, setSupabaseDateCol] = useState('work_date');
@@ -162,21 +164,20 @@ const DailyReportGenerator = ({ employeesData }) => {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        setSupabaseUrl(parsed.url || 'https://vayvssbxuskhyujtbtyw.supabase.co');
-        setSupabaseKey(parsed.key || 'sb_publishable_yjyN0-SOXFwTPoOolSmKBw_QDyFe2rZ');
+        setSupabaseUrl(parsed.url || cfg.url);
+        setSupabaseKey(parsed.key || cfg.key);
         setSupabaseTable(parsed.table || 'attendance_logs');
         setSupabaseMatchCol(parsed.matchCol || 'employee_id');
         setSupabaseDateCol(parsed.dateCol || 'work_date');
-        if ((parsed.url || 'https://vayvssbxuskhyujtbtyw.supabase.co') && (parsed.key || 'sb_publishable_yjyN0-SOXFwTPoOolSmKBw_QDyFe2rZ')) {
+        if ((parsed.url || cfg.url) && (parsed.key || cfg.key)) {
           setIsSupabaseConnected(true);
         }
       } catch (e) {
         console.error("Failed to parse saved Supabase config", e);
       }
     } else {
-      // If no local storage config, connect using default user project
-      setSupabaseUrl('https://vayvssbxuskhyujtbtyw.supabase.co');
-      setSupabaseKey('sb_publishable_yjyN0-SOXFwTPoOolSmKBw_QDyFe2rZ');
+      setSupabaseUrl(cfg.url);
+      setSupabaseKey(cfg.key);
       setIsSupabaseConnected(true);
     }
   }, []);

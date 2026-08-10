@@ -24,13 +24,10 @@
 // config and always uses the main project below.
 // ============================================================================
 
-const APP_STATE_CONFIG = {
-  url: 'https://obxgfqztkbmoqyicjjuk.supabase.co',
-  key: 'sb_publishable_HzHy2N6TJe9cFPvsRJ7YHw_d3J8-NXn',
-};
+import { getMainSupabaseConfig } from '../config/supabaseConfig.js';
 
 function getConfig() {
-  return APP_STATE_CONFIG;
+  return getMainSupabaseConfig();
 }
 
 // Read a single key's stored string value (or null if missing / on error).
