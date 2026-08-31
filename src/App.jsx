@@ -91,8 +91,167 @@ const resolveEmployeeId = (emp, cleanName, idMap, rawEmp, usedIds) => {
   return emp.id;
 };
 
+// ────────────────────────────────────────────────────────────────────────────
+// Enrolling new staff from the face-scan system
+// ----------------------------------------------------------------------------
+// New employees are registered in the face-scan system first. Anyone who shows
+// up there but is missing from the roster is treated as a new hire: added to
+// the roster and given a login, so nobody has to be entered twice.
+// ────────────────────────────────────────────────────────────────────────────
+
+// Scan-system rows that must never become roster entries: known duplicates of
+// people already on the roster, and legacy dummy rows.
+const EXCLUDED_SCAN_IDS = new Set([
+  '6cafa178-dbf3-40ad-8a08-df4114ce6398', // duplicate of วรรณเพ็ญ ปิ่นประดับ
+  '43be2720-90a9-4a43-ab25-eb2ddfb89f4f', // duplicate of ธนัญญา สวัสดี
+  '99999999-9999-9999-9999-999999999999',
+  '99999999-9999-9999-9999-999999999998',
+  '99999999-9999-9999-9999-999999999997',
+  '99999999-9999-9999-9999-999999999996',
+  '999999', '999998', '999997', '999996'
+]);
+
+// The scan system stores "นางสาว ทิพวรรณ แสงสี", and sometimes repeats the title
+// ("นางสาว นางสาวฤทัยรัตน์ ..."). The roster writes "นางสาวทิพวรรณ แสงสี".
+const NAME_PREFIXES = ['ว่าที่ร้อยตรีหญิง', 'ว่าที่ร้อยตรี', 'ว่าที่ร.ต.', 'นางสาว', 'นาง', 'นาย'];
+
+const tidyScanName = (fullName) => {
+  let rest = String(fullName || '').replace(/\s+/g, ' ').trim();
+  let prefix = '';
+  let stripped = true;
+  while (stripped) {
+    stripped = false;
+    for (const p of NAME_PREFIXES) {
+      if (rest.startsWith(p)) {
+        if (!prefix) prefix = p;
+        rest = rest.slice(p.length).trimStart();
+        stripped = true;
+        break;
+      }
+    }
+  }
+  return `${prefix}${rest}`.trim();
+};
+
+// The scan system's `department` is a functional unit ("ฝ่ายบริหารงบประมาณ"), not
+// the workplace the reports group by. The scan logs do carry the real workplace in
+// `detected_location_name`, spelled slightly differently from the roster.
+const SCAN_LOCATION_ALIASES = {
+  'หน่วยบริการเมือง': 'หน่วยฯเมืองปทุม',
+  'โรงพยาบาลปทุมธานี': 'รพ.ปทุมธานี',
+  'โรงพยาบาลธรรมศาสตร์': 'รพ.ธรรมศาสตร์ฯ'
+};
+
+const scanLocationToRoster = (scanName) => {
+  const raw = String(scanName || '').trim();
+  // "นอกสถานศึกษา" is a scan taken off-site, not somebody's posting.
+  if (!raw || raw === 'นอกสถานศึกษา') return null;
+  if (SCAN_LOCATION_ALIASES[raw]) return SCAN_LOCATION_ALIASES[raw];
+  if (raw.startsWith('ศูนย์การศึกษาพิเศษ')) return 'ศูนย์การศึกษาพิเศษฯ';
+  if (raw.startsWith('หน่วยบริการ')) return `หน่วยฯ${raw.slice('หน่วยบริการ'.length).trim()}`;
+  if (raw.startsWith('โรงพยาบาล')) return `รพ.${raw.slice('โรงพยาบาล'.length).trim()}`;
+  return raw; // schools are written the same way in both systems
+};
+
+// Where each of these people actually scans in, as scanEmployeeId → roster location.
+// Whoever they scan with most often wins.
+const fetchScanWorkLocations = async (cfg, scanIds) => {
+  const resolved = new Map();
+  if (!scanIds.length) return resolved;
+
+  try {
+    const idList = scanIds.map(id => `"${id}"`).join(',');
+    const res = await fetch(
+      `${cfg.url}/rest/v1/attendance_logs` +
+      `?select=employee_id,detected_location_name&employee_id=in.(${idList})&limit=2000`,
+      { headers: { apikey: cfg.key, Authorization: `Bearer ${cfg.key}` } }
+    );
+    if (!res.ok) return resolved;
+
+    const tally = new Map();
+    (await res.json()).forEach(row => {
+      const location = scanLocationToRoster(row.detected_location_name);
+      if (!location) return;
+      const key = String(row.employee_id);
+      if (!tally.has(key)) tally.set(key, new Map());
+      const counts = tally.get(key);
+      counts.set(location, (counts.get(location) || 0) + 1);
+    });
+
+    tally.forEach((counts, empId) => {
+      const [best] = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+      if (best) resolved.set(empId, best[0]);
+    });
+  } catch (e) {
+    console.error('Failed to read work locations from the scan logs', e);
+  }
+  return resolved;
+};
+
+const buildEmptyLeaveYear = () => {
+  const leaves = { all: createEmptyLeave(30) };
+  MONTHS_LIST.forEach(({ key }) => {
+    if (key !== 'all') leaves[key] = createEmptyLeave(30);
+  });
+  return leaves;
+};
+
+// Everyone in the scan system who is not on the roster yet, as roster records.
+// `alreadyEnrolled` carries names added earlier in this session, so a refresh
+// that races the cloud write cannot enrol the same person twice.
+const buildNewEmployeesFromScan = (scanEmployees, roster, alreadyEnrolled) => {
+  const known = new Set(roster.map(e => cleanNameForMatch(e.name)));
+  let nextId = roster.reduce(
+    (max, e) => (typeof e.id === 'number' && e.id > max ? e.id : max),
+    0
+  );
+
+  const added = [];
+  (scanEmployees || []).forEach(scanEmp => {
+    if (EXCLUDED_SCAN_IDS.has(String(scanEmp.id))) return;
+    const name = tidyScanName(scanEmp.full_name);
+    const key = cleanNameForMatch(name);
+    if (!key || known.has(key) || alreadyEnrolled.has(key)) return;
+
+    known.add(key);
+    alreadyEnrolled.add(key);
+    nextId += 1;
+    added.push({
+      id: nextId,
+      name,
+      position: scanEmp.position || '',
+      // Filled in from the scan logs by the caller; the centre is the fallback for
+      // someone who has not scanned anywhere yet.
+      location: 'ศูนย์การศึกษาพิเศษฯ',
+      scanId: String(scanEmp.id),
+      sortIndex: 999,
+      leaves: buildEmptyLeaveYear()
+    });
+  });
+  return added;
+};
+
+// One login per newly enrolled employee, matching the convention the manual
+// "create accounts" tool already uses: user_<id> / 1234.
+const buildUsersForEmployees = (newEmployees, existingUsers) => {
+  const takenNames = new Set((existingUsers || []).map(u => String(u.username).toLowerCase()));
+  const linkedEmployees = new Set((existingUsers || []).map(u => String(u.employeeId)));
+
+  return newEmployees
+    .filter(emp => !linkedEmployees.has(String(emp.id)))
+    .map((emp, index) => ({
+      id: Date.now() + index,
+      username: `user_${emp.id}`,
+      password: '1234',
+      role: 'user',
+      displayName: emp.name,
+      employeeId: emp.id
+    }))
+    .filter(user => !takenNames.has(user.username.toLowerCase()));
+};
+
 function App() {
-  const { currentUser, logout, users, updateProfile } = useAuth();
+  const { currentUser, logout, users, updateUsers, updateProfile } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isInitialLoadCompleted, setIsInitialLoadCompleted] = useState(false);
   const [selectedYear, setSelectedYear] = useState('2569');
@@ -240,6 +399,17 @@ function App() {
   const lastCloudSnapshotRef = useRef(null);
   const lastOverridesSnapshotRef = useRef(null);
   const localOverridesDirtyRef = useRef(false);
+  // Names enrolled from the scan system this session, so a refresh that races the
+  // cloud write cannot add the same person a second time.
+  const enrolledScanNamesRef = useRef(new Set());
+  // The load effect runs once; reach the user list and its setter through refs so
+  // the effect does not re-subscribe every render.
+  const usersRef = useRef(users);
+  const updateUsersRef = useRef(updateUsers);
+  useEffect(() => {
+    usersRef.current = users;
+    updateUsersRef.current = updateUsers;
+  }, [users, updateUsers]);
 
   // Fetch employees and balances from Supabase on mount AND whenever the tab
   // becomes visible / focused again, so mobile and desktop stay in sync without
@@ -310,10 +480,45 @@ function App() {
             try {
               const parsed = JSON.parse(cloudEmployees);
               if (Array.isArray(parsed) && parsed.length > 0) {
-                setEmployeesData(sortEmployeesByUserListOrder(syncEmployeeDetailsWithRaw(parsed)));
+                // Anyone registered for face-scan but missing from the cloud
+                // roster is a new hire - enrol them and give them a login.
+                const newHires = buildNewEmployeesFromScan(
+                  dbEmps, parsed, enrolledScanNamesRef.current
+                );
+
+                if (newHires.length > 0) {
+                  // Give them the workplace they actually scan in at, not the
+                  // functional unit the scan system stores as `department`.
+                  const locations = await fetchScanWorkLocations(
+                    cfg, newHires.map(e => e.scanId)
+                  );
+                  newHires.forEach(emp => {
+                    const scanned = locations.get(emp.scanId);
+                    if (scanned) emp.location = scanned;
+                    delete emp.scanId;
+                  });
+                }
+
+                const roster = newHires.length > 0 ? [...parsed, ...newHires] : parsed;
+
+                setEmployeesData(sortEmployeesByUserListOrder(syncEmployeeDetailsWithRaw(roster)));
                 lastCloudSnapshotRef.current = cloudEmployees;
-                cacheEmployeeIdMap(parsed);
+                cacheEmployeeIdMap(roster);
                 console.log("☁️ Restored employeesData from Supabase Cloud Sync");
+
+                if (newHires.length > 0) {
+                  // Leaving lastCloudSnapshotRef on the pre-enrolment blob lets the
+                  // auto-save effect notice the difference and push the new roster.
+                  const newAccounts = buildUsersForEmployees(newHires, usersRef.current);
+                  if (newAccounts.length > 0) {
+                    updateUsersRef.current([...usersRef.current, ...newAccounts]);
+                  }
+                  console.log(
+                    `👥 เพิ่มบุคลากรใหม่จากระบบสแกนหน้า ${newHires.length} คน ` +
+                    `(${newHires.map(e => e.name).join(', ')}) ` +
+                    `และสร้างบัญชีผู้ใช้ ${newAccounts.length} บัญชี`
+                  );
+                }
                 restoredCloudState = true;
               }
             } catch (e) {
