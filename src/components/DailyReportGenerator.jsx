@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { isAppleMobile, printHtmlDocument } from '../utils/exportDocument.js';
+import { isAppleMobile, printHtmlDocument, exportPdf } from '../utils/exportDocument.js';
 import { setAppState } from '../utils/appState.js';
-import { getSupabaseConfig } from '../config/supabaseConfig.js';
+import { getSupabaseConfig, getMainSupabaseConfig } from '../config/supabaseConfig.js';
 
 // Helper to classify positions into the template categories
 const getPersonnelCategory = (position) => {
@@ -42,24 +42,10 @@ const getPersonnelCategory = (position) => {
   return 'เจ้าหน้าที่';
 };
 
-// Only these positions are entitled to vacation leave (ลาพักผ่อน):
-// ผู้อำนวยการ, รองผู้อำนวยการ, ครู, ครู คศ.1, ครู คศ.2, ครูผู้ช่วย, พนักงานราชการ
-const canTakeVacation = (position) => {
-  if (!position) return false;
-  const cleanPos = position.trim();
-  if (cleanPos.includes('ผู้อำนวยการ')) return true; // ผู้อำนวยการ / รองผู้อำนวยการ
-  if (cleanPos.includes('พนักงานราชการ')) return true;
-  // ครู, ครู คศ.1, ครู คศ.2, ครูผู้ช่วย — but not ครูพิเศษ / ครูอัตราจ้าง / ครูพี่เลี้ยง
-  if (
-    cleanPos.includes('ครู') &&
-    !cleanPos.includes('พิเศษ') &&
-    !cleanPos.includes('จ้าง') &&
-    !cleanPos.includes('พี่เลี้ยง')
-  ) return true;
-  return false;
-};
+// All employees can take vacation leave (ลาพักผ่อน)
+const canTakeVacation = () => true;
 
-const DailyReportGenerator = ({ employeesData }) => {
+const DailyReportGenerator = ({ employeesData, onDailyOverridesSaved }) => {
   const [rawDate, setRawDate] = useState(() => {
     const today = new Date();
     let yyyy = today.getFullYear();
@@ -79,9 +65,16 @@ const DailyReportGenerator = ({ employeesData }) => {
   const [signeeDirector, setSigneeDirector] = useState('นางสาวภัทรภร หมื่นมะเริง');
   const [isSigneeModalOpen, setIsSigneeModalOpen] = useState(false);
 
+  // Push the overrides blob to the cloud and tell App how it went. App uses that
+  // to know whether this browser now holds edits the cloud does not have yet, so
+  // a later cloud refresh cannot quietly overwrite them.
   const syncOverridesToSupabase = async (overrides) => {
-    const ok = await setAppState('daily_overrides', JSON.stringify(overrides));
+    const snapshot = JSON.stringify(overrides);
+    const ok = await setAppState('daily_overrides', snapshot);
     if (ok) console.log("☁️ Synced daily overrides to Supabase Cloud");
+    else console.error("Failed to sync daily overrides to Supabase Cloud");
+    onDailyOverridesSaved?.(snapshot, ok);
+    return ok;
   };
 
   // Supabase Config States
@@ -152,11 +145,10 @@ const DailyReportGenerator = ({ employeesData }) => {
     setCheckInTimes(initialTimes);
   };
 
-  useEffect(() => {
-    if (employeesData && employeesData.length > 0) {
-      resetLocalData();
-    }
-  }, [employeesData]);
+  // The roster arrives in stages (bundled list, then the cloud snapshot, then
+  // Supabase). Re-load the day rather than blanking it on each stage, otherwise
+  // an already-loaded report silently resets to "ขาด" for everyone the moment a
+  // later stage lands - and saving on top of that would overwrite a good day.
 
   // Load Supabase Config on mount
   useEffect(() => {
@@ -382,6 +374,81 @@ const DailyReportGenerator = ({ employeesData }) => {
     }
   };
 
+  // ── Online leave requests → daily report ────────────────────────────────
+  // A request filed in the online leave system already says why someone is not
+  // at work, so the report should show "ลาป่วย" straight away instead of marking
+  // them absent and making staff change every row by hand.
+  // `leave_requests` lives in the MAIN project, keyed by the same integer
+  // employee ids the report uses.
+  const LEAVE_TYPE_TO_STATUS = {
+    'ลาป่วย': 'sick',
+    'ลากิจ': 'personal',
+    'ลาคลอด': 'maternity',
+    'ลาพักผ่อน': 'vacation'
+    // ลาอุปสมบท has no matching button in this report, so it is left alone.
+  };
+
+  const leaveTypeToStatus = (leaveType) => {
+    const type = String(leaveType || '').trim();
+    const key = Object.keys(LEAVE_TYPE_TO_STATUS).find(k => type.startsWith(k));
+    return key ? LEAVE_TYPE_TO_STATUS[key] : null;
+  };
+
+  // Every employee on leave that covers targetDate, as employeeId → report status.
+  const fetchLeavesForDate = async (targetDate) => {
+    const map = new Map();
+    try {
+      const cfg = getMainSupabaseConfig();
+      const query =
+        `${cfg.url}/rest/v1/leave_requests` +
+        `?select=employee_id,leave_type,start_date,end_date,status` +
+        `&start_date=lte.${targetDate}&end_date=gte.${targetDate}` +
+        `&status=in.(approved,pending)`;
+      const res = await fetch(query, {
+        headers: { apikey: cfg.key, Authorization: `Bearer ${cfg.key}` }
+      });
+      if (!res.ok) return map;
+      const rows = await res.json();
+      rows.forEach(row => {
+        const status = leaveTypeToStatus(row.leave_type);
+        if (!status || row.employee_id == null) return;
+        // An approved request wins over a pending one for the same person.
+        const key = String(row.employee_id);
+        if (map.has(key) && map.get(key).approved && row.status !== 'approved') return;
+        map.set(key, { status, approved: row.status === 'approved' });
+      });
+    } catch (e) {
+      console.error('Failed to fetch leave requests for the daily report', e);
+    }
+    return map;
+  };
+
+  // Overlay those leaves on top of whatever was just loaded. Only rows still
+  // marked absent are touched, so a manual correction or a real check-in scan
+  // always wins.
+  const applyLeavesToStatuses = async (targetDate) => {
+    const leaveMap = await fetchLeavesForDate(targetDate);
+    if (leaveMap.size === 0) return;
+
+    // Kept pure - React may run an updater more than once.
+    setAttendanceStatuses(prev => {
+      let changed = false;
+      const next = { ...prev };
+      leaveMap.forEach(({ status }, empId) => {
+        const current = next[empId];
+        if (!current || current === 'absent') {
+          next[empId] = status;
+          changed = true;
+        }
+      });
+      return changed ? next : prev;
+    });
+
+    setApiStatus(prev =>
+      `${prev} · 📝 พบคำขอลาในระบบออนไลน์ ${leaveMap.size} รายการ`.trim()
+    );
+  };
+
   // Load daily data: check local overrides first, otherwise fetch from Supabase
   const loadDailyData = async (targetDate) => {
     const savedData = localStorage.getItem('attendance_dashboard_daily_overrides');
@@ -395,6 +462,7 @@ const DailyReportGenerator = ({ employeesData }) => {
           if (overrides[targetDate].signeePersonnelStaff) setSigneePersonnelStaff(overrides[targetDate].signeePersonnelStaff);
           if (overrides[targetDate].signeeDirector) setSigneeDirector(overrides[targetDate].signeeDirector);
           setApiStatus(`💾 โหลดข้อมูลที่ปรับปรุงและบันทึกไว้ในเครื่องประจำวันเรียบร้อยแล้ว`);
+          await applyLeavesToStatuses(targetDate);
           return;
         }
       } catch (e) {
@@ -409,17 +477,50 @@ const DailyReportGenerator = ({ employeesData }) => {
       resetLocalData();
       setApiStatus('');
     }
+    await applyLeavesToStatuses(targetDate);
   };
 
-  // Trigger data loading when date changes or connection status shifts
+  // Trigger data loading when the date changes, the connection status shifts, or
+  // a new stage of the employee roster arrives. Keyed on the id list, not on the
+  // array itself: a background refresh that only touches leave figures must not
+  // throw away statuses the user has typed but not saved yet.
+  const employeeIdsKey = useMemo(
+    () => (employeesData || []).map(e => e.id).join(','),
+    [employeesData]
+  );
+
   useEffect(() => {
-    if (rawDate) {
+    if (rawDate && employeeIdsKey) {
       loadDailyData(rawDate);
     }
-  }, [rawDate, isSupabaseConnected]);
+  }, [rawDate, isSupabaseConnected, employeeIdsKey]);
+
+  // Someone may file a leave request while this page sits open. Re-check when the
+  // tab comes back into view so the report picks it up without a reload. Only
+  // rows still marked absent change, so nothing typed here is lost.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && rawDate) {
+        applyLeavesToStatuses(rawDate);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', onVisible);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', onVisible);
+    };
+  }, [rawDate]);
 
   // Save manual overrides of daily statuses & times to LocalStorage and sync to Supabase
   const handleSaveDailyReport = async () => {
+    // Never let an empty screen overwrite a day that already has data - that can
+    // only mean the roster has not finished loading yet.
+    if (Object.keys(attendanceStatuses).length === 0) {
+      setApiStatus('⚠️ ยังโหลดรายชื่อบุคลากรไม่เสร็จ กรุณารอสักครู่แล้วกดบันทึกอีกครั้ง');
+      return;
+    }
+
     // 1. Save to LocalStorage
     const savedData = localStorage.getItem('attendance_dashboard_daily_overrides') || '{}';
     try {
@@ -441,48 +542,48 @@ const DailyReportGenerator = ({ employeesData }) => {
     }
 
     // 2. Sync to Supabase attendance_logs
+    //    NOTE: writes always go to the MAIN project. The user-configured Supabase
+    //    settings above point at the face-scan source project, whose attendance_logs
+    //    uses uuid employee_id and is read-only - writing there both fails
+    //    (invalid input syntax for type uuid) and would delete real scan records.
     if (isSupabaseConnected) {
       setApiStatus('⏳ กำลังซิงค์ข้อมูลลงเวลาไปที่ Supabase...');
       try {
-        const url = supabaseUrl.trim();
-        const key = supabaseKey.trim();
-        const table = supabaseTable.trim(); // usually 'attendance_logs'
-        
-        // Construct payload for all employees matching the Supabase schema columns
-        const payload = employeesData.map(emp => {
-          const status = attendanceStatuses[emp.id] || 'present';
-          let time = checkInTimes[emp.id] || '-';
-          
-          if (time === '-' || !time.trim()) {
-            time = '00:00:00';
-          } else {
-            // Ensure format HH:mm:ss
-            const parts = time.split(':');
-            if (parts.length === 2) {
-              time = `${time}:00`;
-            }
-          }
-          
-          // Combine rawDate and time to form checked_at timestamp (Thailand is UTC+7)
-          const checkedAt = `${rawDate}T${time}+07:00`;
-          
-          const dbStatus = status === 'late' ? 'late' : 'normal';
-          const locationType = status === 'gov' ? 'outside_school' : 'inside_school';
-          
-          return {
-            employee_id: emp.id,
-            work_date: rawDate,
-            checked_at: checkedAt,
-            check_type: 'check_in',
-            status: dbStatus,
-            location_type: locationType
-          };
-        });
+        const mainCfg = getMainSupabaseConfig();
+        const url = mainCfg.url;
+        const key = mainCfg.key;
+        const table = 'attendance_logs';
 
-        console.log("PAYLOAD TO SYNC:", payload);
+        // Construct payload matching the main project's attendance_logs columns:
+        // employee_id (int), employee_name, work_date, check_time, check_type, status
+        const payload = employeesData
+          .filter(emp => (attendanceStatuses[emp.id] || 'absent') !== 'absent')
+          .map(emp => {
+            const status = attendanceStatuses[emp.id] || 'present';
+            let time = checkInTimes[emp.id] || '-';
+
+            if (time === '-' || !time.trim()) {
+              time = '00:00:00';
+            } else {
+              // Ensure format HH:mm:ss
+              const parts = time.split(':');
+              if (parts.length === 2) {
+                time = `${time}:00`;
+              }
+            }
+
+            return {
+              employee_id: emp.id,
+              employee_name: emp.name,
+              work_date: rawDate,
+              check_time: time,
+              check_type: 'check_in',
+              status
+            };
+          });
 
         // Delete existing logs for this date first to avoid duplicates
-        await fetch(`${url}/rest/v1/${table}?work_date=eq.${rawDate}`, {
+        const delRes = await fetch(`${url}/rest/v1/${table}?work_date=eq.${rawDate}`, {
           method: 'DELETE',
           headers: {
             'apikey': key,
@@ -490,16 +591,22 @@ const DailyReportGenerator = ({ employeesData }) => {
           }
         });
 
-        // Insert new logs
-        const res = await fetch(`${url}/rest/v1/${table}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': key,
-            'Authorization': `Bearer ${key}`
-          },
-          body: JSON.stringify(payload)
-        });
+        if (!delRes.ok) {
+          throw new Error(await delRes.text());
+        }
+
+        // Insert new logs (nothing to insert when everyone is marked absent)
+        const res = payload.length === 0
+          ? delRes
+          : await fetch(`${url}/rest/v1/${table}`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'apikey': key,
+                'Authorization': `Bearer ${key}`
+              },
+              body: JSON.stringify(payload)
+            });
 
         if (res.ok) {
           setApiStatus(`✅ บันทึกรายงานและซิงค์ข้อมูลลง Supabase สำเร็จ! (วันที่ ${formattedThaiDate})`);
@@ -539,9 +646,10 @@ const DailyReportGenerator = ({ employeesData }) => {
   };
 
   // Manual trigger Sync
-  const handleManualSync = () => {
+  const handleManualSync = async () => {
     if (isSupabaseConnected) {
-      fetchSupabaseData(rawDate);
+      await fetchSupabaseData(rawDate);
+      await applyLeavesToStatuses(rawDate);
     } else {
       setIsSupabaseModalOpen(true);
     }
@@ -949,52 +1057,64 @@ const DailyReportGenerator = ({ employeesData }) => {
         </table>
         
         <div class="sub-section-title">รายชื่อผู้ไม่มาปฏิบัติราชการ</div>
-        
-        <div class="list-container">
-          <div class="list-item">
-            <span class="bold">1. สาย</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
-            ${namesList.late.length > 0 ? namesList.late.map((name, i) => `${i+1}.${name}`).join(' &nbsp;&nbsp;&nbsp;&nbsp; ') : '-'}
-          </div>
-          <div class="list-item" style="margin-top: 6px;">
-            <span class="bold">2. ไปราชการ</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
-            ${namesList.gov.length > 0 ? namesList.gov.map((name, i) => `${i+1}.${name}`).join(' &nbsp;&nbsp;&nbsp;&nbsp; ') : '-'}
-          </div>
-          <div class="list-item" style="margin-top: 6px;">
-            <span class="bold">3. ลาป่วย</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
-            ${namesList.sick.length > 0 ? namesList.sick.map((name, i) => `${i+1}.${name}`).join(' &nbsp;&nbsp;&nbsp;&nbsp; ') : '-'}
-          </div>
-          <div class="list-item" style="margin-top: 6px;">
-            <span class="bold">4. ลาพักผ่อน</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            ${namesList.vacation.length > 0 ? namesList.vacation.map((name, i) => `${i+1}.${name}`).join(' &nbsp;&nbsp;&nbsp;&nbsp; ') : '-'}
-          </div>
-          <div class="list-item" style="margin-top: 6px;">
-            <span class="bold">5. ลาคลอด</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            ${namesList.maternity.length > 0 ? namesList.maternity.map((name, i) => `${i+1}.${name}`).join(' &nbsp;&nbsp;&nbsp;&nbsp; ') : '-'}
-          </div>
-          <div class="list-item" style="margin-top: 6px;">
-            <span class="bold">6. ขาดงาน</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            ${namesList.absent.length > 0 ? namesList.absent.map((name, i) => `${i+1}.${name}`).join(' &nbsp;&nbsp;&nbsp;&nbsp; ') : '-'}
-          </div>
-        </div>
-        
-        <table class="signature-table">
-          <tr>
-            <td>
-              <div class="sig-line">ลงชื่อ ............................................................</div>
-              <div>(${signeePersonnelHead})</div>
-              <div>หัวหน้างานบุคลากร</div>
-            </td>
-            <td>
-              <div class="sig-line">ลงชื่อ ............................................................</div>
-              <div>(${signeePersonnelStaff})</div>
-              <div>เจ้าหน้าที่งานบุคลากร</div>
+
+        <table class="names-table" style="border: 0; margin-bottom: 8px;">
+          <tr style="border: none;">
+            <td style="border: none; padding: 2px 4px; vertical-align: top;"><span class="bold">1. สาย</span></td>
+            <td style="border: none; padding: 2px 4px; vertical-align: top; width: 85%;">
+              ${namesList.late.length > 0 ? namesList.late.map((name, i) => `${i+1}.${name}`).join(' &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ') : '-'}
             </td>
           </tr>
-          <tr>
-            <td colspan="2" style="text-align: center; padding-top: 25px;">
-              <div class="sig-line">ลงชื่อ ............................................................</div>
-              <div>(${signeeDirector})</div>
-              <div class="bold">ผู้อำนวยการศูนย์การศึกษาพิเศษ ประจำจังหวัดปทุมธานี</div>
+          <tr style="border: none;">
+            <td style="border: none; padding: 2px 4px; vertical-align: top;"><span class="bold">2. ไปราชการ</span></td>
+            <td style="border: none; padding: 2px 4px; vertical-align: top;">
+              ${namesList.gov.length > 0 ? namesList.gov.map((name, i) => `${i+1}.${name}`).join(' &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ') : '-'}
+            </td>
+          </tr>
+          <tr style="border: none;">
+            <td style="border: none; padding: 2px 4px; vertical-align: top;"><span class="bold">3. ลาป่วย</span></td>
+            <td style="border: none; padding: 2px 4px; vertical-align: top;">
+              ${namesList.sick.length > 0 ? namesList.sick.map((name, i) => `${i+1}.${name}`).join(' &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ') : '-'}
+            </td>
+          </tr>
+          <tr style="border: none;">
+            <td style="border: none; padding: 2px 4px; vertical-align: top;"><span class="bold">4. ลาพักผ่อน</span></td>
+            <td style="border: none; padding: 2px 4px; vertical-align: top;">
+              ${namesList.vacation.length > 0 ? namesList.vacation.map((name, i) => `${i+1}.${name}`).join(' &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ') : '-'}
+            </td>
+          </tr>
+          <tr style="border: none;">
+            <td style="border: none; padding: 2px 4px; vertical-align: top;"><span class="bold">5. ลาคลอด</span></td>
+            <td style="border: none; padding: 2px 4px; vertical-align: top;">
+              ${namesList.maternity.length > 0 ? namesList.maternity.map((name, i) => `${i+1}.${name}`).join(' &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ') : '-'}
+            </td>
+          </tr>
+          <tr style="border: none;">
+            <td style="border: none; padding: 2px 4px; vertical-align: top;"><span class="bold">6. ขาดงาน</span></td>
+            <td style="border: none; padding: 2px 4px; vertical-align: top;">
+              ${namesList.absent.length > 0 ? namesList.absent.map((name, i) => `${i+1}.${name}`).join(' &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ') : '-'}
+            </td>
+          </tr>
+        </table>
+        
+        <table class="signature-table" style="width: 100%; border-collapse: collapse; margin-top: 8px;">
+          <tr style="border: none;">
+            <td style="width: 50%; text-align: center; padding: 2px 4px; border: none; font-size: 12pt;">
+              <div class="sig-line" style="margin-bottom: 4px;">ลงชื่อ ............................................................</div>
+              <div style="font-size: 11pt; margin-bottom: 2px;">(${signeePersonnelHead})</div>
+              <div style="font-size: 11pt;">หัวหน้างานบุคลากร</div>
+            </td>
+            <td style="width: 50%; text-align: center; padding: 2px 4px; border: none; font-size: 12pt;">
+              <div class="sig-line" style="margin-bottom: 4px;">ลงชื่อ ............................................................</div>
+              <div style="font-size: 11pt; margin-bottom: 2px;">(${signeePersonnelStaff})</div>
+              <div style="font-size: 11pt;">เจ้าหน้าที่งานบุคลากร</div>
+            </td>
+          </tr>
+          <tr style="border: none;">
+            <td colspan="2" style="text-align: center; padding: 8px 4px; border: none; font-size: 12pt;">
+              <div class="sig-line" style="margin-bottom: 4px;">ลงชื่อ ............................................................</div>
+              <div style="font-size: 11pt; margin-bottom: 2px;">(${signeeDirector})</div>
+              <div style="font-size: 11pt; font-weight: bold;">ผู้อำนวยการศูนย์การศึกษาพิเศษ ประจำจังหวัดปทุมธานี</div>
             </td>
           </tr>
         </table>
@@ -1002,23 +1122,7 @@ const DailyReportGenerator = ({ employeesData }) => {
       </html>
     `;
 
-    const blob = new Blob(['\ufeff' + htmlContent], { type: 'application/msword' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `แบบสรุปการปฏิบัติหน้าที่_${rawDate}.doc`);
-    // iOS/iPadOS ignores the download attribute — open a printable window instead.
-    if (isAppleMobile()) {
-      URL.revokeObjectURL(url);
-      printHtmlDocument(htmlContent, 'แบบสรุปการปฏิบัติหน้าที่');
-      return;
-    }
-    document.body.appendChild(link);
-    link.click();
-    setTimeout(() => {
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    }, 100);
+    exportPdf(htmlContent, `แบบสรุปการปฏิบัติหน้าที่_${rawDate}.pdf`, 'แบบสรุปการปฏิบัติหน้าที่');
   };
 
   // Export Time Logging Sheet (.doc) - Two Column side-by-side Table Layout
@@ -1133,30 +1237,31 @@ const DailyReportGenerator = ({ employeesData }) => {
             mso-line-height-rule: exactly;
           }
           body {
-            font-size: 15pt;
+            font-size: 12pt;
             color: #000;
           }
           .text-center { text-align: center; }
           .text-left { text-align: left; }
           .bold { font-weight: bold; }
-          
+
           .header-section {
             text-align: center;
-            margin-bottom: 8px;
+            margin-bottom: 4px;
           }
-          .title { font-size: 16pt; font-weight: bold; margin-bottom: 2px; }
-          .subtitle { font-size: 14pt; font-weight: bold; margin-bottom: 2px; }
-          .date { font-size: 14pt; margin-bottom: 5px; }
-          
+          .title { font-size: 13pt; font-weight: bold; margin-bottom: 1px; }
+          .subtitle { font-size: 11pt; font-weight: bold; margin-bottom: 1px; }
+          .date { font-size: 11pt; margin-bottom: 3px; }
+
           table.time-table {
             width: 100%;
             border-collapse: collapse;
             border: 0.5pt solid windowtext;
+            margin-bottom: 2px;
           }
           table.time-table th, table.time-table td {
             border: 0.5pt solid windowtext;
-            padding: 1px 3px;
-            font-size: 11pt;
+            padding: 1px 2px;
+            font-size: 9pt;
             vertical-align: middle;
             line-height: 1.0;
           }
@@ -1168,8 +1273,8 @@ const DailyReportGenerator = ({ employeesData }) => {
           .section-row td {
             background-color: #f3f4f6;
             font-weight: bold;
-            padding: 4px 8px;
-            font-size: 13pt;
+            padding: 2px 4px;
+            font-size: 10pt;
           }
         </style>
       </head>
@@ -1212,23 +1317,7 @@ const DailyReportGenerator = ({ employeesData }) => {
       </html>
     `;
 
-    const blob = new Blob(['\ufeff' + htmlContent], { type: 'application/msword' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `รายงานการลงเวลาปฏิบัติงาน_${rawDate}.doc`);
-    // iOS/iPadOS ignores the download attribute — open a printable window instead.
-    if (isAppleMobile()) {
-      URL.revokeObjectURL(url);
-      printHtmlDocument(htmlContent, 'รายงานการลงเวลาปฏิบัติงาน');
-      return;
-    }
-    document.body.appendChild(link);
-    link.click();
-    setTimeout(() => {
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    }, 100);
+    exportPdf(htmlContent, `รายงานการลงเวลาปฏิบัติงาน_${rawDate}.pdf`, 'รายงานการลงเวลาปฏิบัติงาน');
   };
 
   return (
@@ -1240,7 +1329,7 @@ const DailyReportGenerator = ({ employeesData }) => {
           <div>
             <h2 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: '6px' }}>📅 ระบบออกรายงานสรุปการปฏิบัติหน้าที่ประจำวัน</h2>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-              เลือกวันที่และระบุสถานะรายบุคคลเพื่อคำนวณสถิติส่งออกเอกสารราชการ (.doc) ตามรูปแบบต้นฉบับ
+              เลือกวันที่และระบุสถานะรายบุคคลเพื่อคำนวณสถิติส่งออกเอกสารราชการ (PDF) ตามรูปแบบต้นฉบับ
             </p>
           </div>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -1348,7 +1437,7 @@ const DailyReportGenerator = ({ employeesData }) => {
                 fontSize: '0.82rem'
               }}
             >
-              📥 ดาวน์โหลดใบสรุปรายงาน (.doc)
+              📥 ดาวน์โหลดสรุปรายงาน (.pdf)
             </button>
             <button
               onClick={handleExportTimeDoc}
@@ -1360,7 +1449,7 @@ const DailyReportGenerator = ({ employeesData }) => {
                 fontSize: '0.82rem'
               }}
             >
-              📥 ดาวน์โหลดใบลงเวลาทำงาน (.doc)
+              📥 ดาวน์โหลดใบลงเวลา (.pdf)
             </button>
           </div>
         </div>

@@ -39,6 +39,58 @@ import NotificationBell from './components/NotificationBell';
 import MyDashboard from './components/MyDashboard';
 const monthsList = MONTHS_LIST;
 
+// ────────────────────────────────────────────────────────────────────────────
+// Employee id stability
+// ----------------------------------------------------------------------------
+// Employees can reach the app through two routes that number them differently:
+// the cloud `employees_data` snapshot uses small integer ids, while the
+// attendance Supabase project uses uuids. Everything keyed by employee id -
+// most importantly the saved daily reports in `daily_overrides` - breaks when
+// a reload silently switches routes, so the uuid route is mapped back onto the
+// integer ids before the roster reaches the rest of the app.
+// ────────────────────────────────────────────────────────────────────────────
+const EMPLOYEE_ID_MAP_KEY = 'attendance_dashboard_employee_id_map';
+
+// Remember name → integer id every time the cloud snapshot loads, so the
+// fallback route can reproduce exactly the same ids while offline.
+const cacheEmployeeIdMap = (employees) => {
+  try {
+    const map = {};
+    employees.forEach(emp => {
+      const key = cleanNameForMatch(emp.name);
+      if (key && typeof emp.id === 'number') map[key] = emp.id;
+    });
+    if (Object.keys(map).length > 0) {
+      localStorage.setItem(EMPLOYEE_ID_MAP_KEY, JSON.stringify(map));
+    }
+  } catch (e) {
+    console.error('Failed to cache employee id map', e);
+  }
+};
+
+const loadEmployeeIdMap = () => {
+  try {
+    const raw = localStorage.getItem(EMPLOYEE_ID_MAP_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+};
+
+// Resolve one Supabase employee to its integer id. Falls back to the bundled
+// roster, then to the raw uuid for anyone we genuinely cannot identify - never
+// to an id already claimed by someone else in this same batch.
+const resolveEmployeeId = (emp, cleanName, idMap, rawEmp, usedIds) => {
+  const candidate = idMap[cleanName] ?? (rawEmp ? rawEmp.id : undefined);
+  if (typeof candidate === 'number' && !usedIds.has(candidate)) {
+    usedIds.add(candidate);
+    return candidate;
+  }
+  return emp.id;
+};
+
 function App() {
   const { currentUser, logout, users, updateProfile } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -141,6 +193,7 @@ function App() {
       const ok = await setAppState('employees_data', serialized);
       if (ok) {
         lastCloudSnapshotRef.current = serialized;
+        cacheEmployeeIdMap(employeesData);
         console.log("☁️ Synced employeesData to Supabase Cloud");
       }
     };
@@ -259,6 +312,7 @@ function App() {
               if (Array.isArray(parsed) && parsed.length > 0) {
                 setEmployeesData(sortEmployeesByUserListOrder(syncEmployeeDetailsWithRaw(parsed)));
                 lastCloudSnapshotRef.current = cloudEmployees;
+                cacheEmployeeIdMap(parsed);
                 console.log("☁️ Restored employeesData from Supabase Cloud Sync");
                 restoredCloudState = true;
               }
@@ -297,6 +351,10 @@ function App() {
 
         if (dbEmps && dbEmps.length > 0) {
           // Supabase-only mode: do not read browser-local employee snapshots.
+          // The id map is the one exception - it carries no leave data, only the
+          // name → integer id numbering the rest of the app is keyed by.
+          const idMap = loadEmployeeIdMap();
+          const usedIds = new Set();
           const mergedData = dbEmps.map(emp => {
             const bal = balMap[emp.id] || {};
             const cleanDbName = cleanNameForMatch(emp.full_name);
@@ -350,7 +408,7 @@ function App() {
             const rawEmp = attendanceRawData.find(r => cleanNameForMatch(r.name) === cleanDbName);
 
             return {
-              id: emp.id,
+              id: resolveEmployeeId(emp, cleanDbName, idMap, rawEmp, usedIds),
               name: emp.full_name || (rawEmp ? rawEmp.name : ''),
               position: emp.position || (rawEmp ? rawEmp.position : ''),
               location: emp.department || emp.location || (rawEmp ? rawEmp.location : 'ศูนย์การศึกษาพิเศษฯ'),
@@ -396,11 +454,17 @@ function App() {
   }, [theme]);
 
   // Redirect regular teachers to MY_DASHBOARD if they have no access to admin views
+  // The director only gets the approval views (leave + out-of-office)
   useEffect(() => {
     if (currentUser && currentUser.role === 'user') {
       const allowed = [VIEWS.MY_DASHBOARD, VIEWS.LEAVE_SYSTEM, VIEWS.OUT_OF_OFFICE];
       if (!allowed.includes(activeView)) {
         setActiveView(VIEWS.MY_DASHBOARD);
+      }
+    } else if (currentUser && currentUser.role === 'director') {
+      const allowed = [VIEWS.LEAVE_SYSTEM, VIEWS.OUT_OF_OFFICE];
+      if (!allowed.includes(activeView)) {
+        setActiveView(VIEWS.LEAVE_SYSTEM);
       }
     }
   }, [currentUser, activeView]);
@@ -978,9 +1042,14 @@ function App() {
             {isMobileMenuOpen ? '✕' : '☰'}
           </button>
           <div className={`header-actions ${isMobileMenuOpen ? 'open' : ''}`}>
-            <button onClick={handleResetDatabase} style={{ padding: '10px 14px', background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.2)', color: 'var(--red)', borderRadius: '12px', cursor: 'pointer', fontWeight: 600, fontSize: '0.82rem' }}>🔄 รีเซ็ต</button>
-            <button onClick={handlePrintPDF} style={{ padding: '10px 14px', background: 'rgba(159, 122, 234, 0.08)', border: '1px solid rgba(159, 122, 234, 0.2)', color: 'var(--primary)', borderRadius: '12px', cursor: 'pointer', fontWeight: 600, fontSize: '0.82rem' }}>📄 PDF</button>
-            <button onClick={handleExportCSV} style={{ padding: '10px 14px', background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.2)', color: 'var(--green)', borderRadius: '12px', cursor: 'pointer', fontWeight: 600, fontSize: '0.82rem' }}>📥 CSV</button>
+            {/* Report/database tools are irrelevant to the director's approval-only page */}
+            {currentUser?.role !== 'director' && (
+              <>
+                <button onClick={handleResetDatabase} style={{ padding: '10px 14px', background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.2)', color: 'var(--red)', borderRadius: '12px', cursor: 'pointer', fontWeight: 600, fontSize: '0.82rem' }}>🔄 รีเซ็ต</button>
+                <button onClick={handlePrintPDF} style={{ padding: '10px 14px', background: 'rgba(159, 122, 234, 0.08)', border: '1px solid rgba(159, 122, 234, 0.2)', color: 'var(--primary)', borderRadius: '12px', cursor: 'pointer', fontWeight: 600, fontSize: '0.82rem' }}>📄 PDF</button>
+                <button onClick={handleExportCSV} style={{ padding: '10px 14px', background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.2)', color: 'var(--green)', borderRadius: '12px', cursor: 'pointer', fontWeight: 600, fontSize: '0.82rem' }}>📥 CSV</button>
+              </>
+            )}
             <button onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} style={{ padding: '10px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', color: 'var(--text-main)', borderRadius: '12px', cursor: 'pointer', fontSize: '1.1rem' }}>
               {theme === 'dark' ? '☀️' : '🌙'}
             </button>
@@ -1008,7 +1077,7 @@ function App() {
           </div>
         </div>
       </header>
-{(currentUser?.role === 'admin' || currentUser?.role === 'director') && <UserManagement employeesData={employeesData} />}
+{currentUser?.role === 'admin' && <UserManagement employeesData={employeesData} />}
 
       {/* ============================================================ View Mode Toggle */}
       <div className="no-print view-mode-tabs">
@@ -1064,6 +1133,43 @@ function App() {
               }}
             >
               🚗 ออกนอกสถานที่
+            </button>
+          </>
+        ) : currentUser?.role === 'director' ? (
+          <>
+            <button
+              onClick={() => setActiveView(VIEWS.LEAVE_SYSTEM)}
+              style={{
+                padding: '10px 20px',
+                background: activeView === VIEWS.LEAVE_SYSTEM ? 'linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)' : 'transparent',
+                border: 'none',
+                color: '#fff',
+                borderRadius: '10px',
+                cursor: 'pointer',
+                fontWeight: 700,
+                fontSize: '0.85rem',
+                transition: 'var(--transition-smooth)',
+                boxShadow: activeView === VIEWS.LEAVE_SYSTEM ? '0 0 12px var(--primary-glow)' : 'none'
+              }}
+            >
+              📬 อนุมัติการลาออนไลน์
+            </button>
+            <button
+              onClick={() => setActiveView(VIEWS.OUT_OF_OFFICE)}
+              style={{
+                padding: '10px 20px',
+                background: activeView === VIEWS.OUT_OF_OFFICE ? 'linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)' : 'transparent',
+                border: 'none',
+                color: '#fff',
+                borderRadius: '10px',
+                cursor: 'pointer',
+                fontWeight: 700,
+                fontSize: '0.85rem',
+                transition: 'var(--transition-smooth)',
+                boxShadow: activeView === VIEWS.OUT_OF_OFFICE ? '0 0 12px var(--primary-glow)' : 'none'
+              }}
+            >
+              🚗 อนุมัติออกนอกสถานที่
             </button>
           </>
         ) : (
@@ -1187,7 +1293,7 @@ function App() {
             >
               🚗 ออกนอกสถานที่
             </button>
-            {(currentUser?.role === 'admin' || currentUser?.role === 'director') && (
+            {currentUser?.role === 'admin' && (
               <button
                 onClick={() => setActiveView(VIEWS.PERSONNEL)}
                 style={{
