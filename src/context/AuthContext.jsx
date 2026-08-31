@@ -80,9 +80,13 @@ export const saveUsers = (users) => {
   }
 };
 
+// Push local account changes to Supabase. Returns { ok, errors } - a rejected
+// write used to pass unnoticed, leaving an account that works on this device and
+// nowhere else, so callers can now tell the user when the sync did not land.
 export const syncToSupabase = async (oldUsers, newUsers) => {
+  const errors = [];
   const cfg = getSupabaseConfig();
-  if (!cfg.url || !cfg.key) return;
+  if (!cfg.url || !cfg.key) return { ok: true, errors };
 
   const oldMap = new Map((oldUsers || []).map(u => [u.id, u]));
   const newMap = new Map((newUsers || []).map(u => [u.id, u]));
@@ -134,7 +138,7 @@ export const syncToSupabase = async (oldUsers, newUsers) => {
   // Batch insert new users
   if (toAdd.length > 0) {
     try {
-      await fetch(`${cfg.url}/rest/v1/users`, {
+      const res = await fetch(`${cfg.url}/rest/v1/users`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -144,7 +148,14 @@ export const syncToSupabase = async (oldUsers, newUsers) => {
         },
         body: JSON.stringify(toAdd)
       });
+      if (!res.ok) {
+        const detail = await res.text();
+        const names = toAdd.map(u => u.username).join(', ');
+        errors.push(`เพิ่มบัญชี ${names} ไม่สำเร็จ (${res.status}): ${detail}`);
+        console.error('Failed to insert users', res.status, detail);
+      }
     } catch (err) {
+      errors.push(`เพิ่มบัญชีไม่สำเร็จ: ${err.message}`);
       console.error("Failed to insert users", err);
     }
   }
@@ -152,19 +163,50 @@ export const syncToSupabase = async (oldUsers, newUsers) => {
   // Update modified users individually
   for (const item of toUpdate) {
     try {
-      await fetch(`${cfg.url}/rest/v1/users?id=eq.${item.id}`, {
+      const res = await fetch(`${cfg.url}/rest/v1/users?id=eq.${item.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           'apikey': cfg.key,
-          'Authorization': `Bearer ${cfg.key}`
+          'Authorization': `Bearer ${cfg.key}`,
+          'Prefer': 'return=representation'
         },
         body: JSON.stringify(item.data)
       });
+      if (!res.ok) {
+        const detail = await res.text();
+        errors.push(`แก้ไขบัญชี ${item.data.username} ไม่สำเร็จ (${res.status}): ${detail}`);
+        console.error('Failed to update user', item.id, res.status, detail);
+      } else {
+        // A PATCH that matches no row means the account only ever existed on this
+        // device - an earlier insert must have failed. Create it now.
+        const rows = await res.json();
+        if (Array.isArray(rows) && rows.length === 0) {
+          const retry = await fetch(`${cfg.url}/rest/v1/users`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': cfg.key,
+              'Authorization': `Bearer ${cfg.key}`
+            },
+            body: JSON.stringify([item.data])
+          });
+          if (!retry.ok) {
+            const detail = await retry.text();
+            errors.push(`บัญชี ${item.data.username} ยังไม่มีบนฐานข้อมูลและเพิ่มไม่สำเร็จ (${retry.status}): ${detail}`);
+            console.error('Failed to backfill user', item.id, retry.status, detail);
+          } else {
+            console.log(`☁️ Backfilled account ${item.data.username} that was missing from Supabase`);
+          }
+        }
+      }
     } catch (err) {
+      errors.push(`แก้ไขบัญชี ${item.data.username} ไม่สำเร็จ: ${err.message}`);
       console.error("Failed to update user", item.id, err);
     }
   }
+
+  return { ok: errors.length === 0, errors };
 };
 
 // ── Context ──────────────────────────────────────────────────────────────────
@@ -322,7 +364,7 @@ export const AuthProvider = ({ children }) => {
     const oldUsers = [...users];
     saveUsers(newUsers);
     setUsers(newUsers);
-    await syncToSupabase(oldUsers, newUsers);
+    return syncToSupabase(oldUsers, newUsers);
   };
 
   // User/Admin: update own profile credentials

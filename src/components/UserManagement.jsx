@@ -162,7 +162,7 @@ const UserManagement = ({ employeesData = [] }) => {
     updateUsers(users.filter(u => u.id !== userId));
   };
 
-  const handleBatchCreateUsers = () => {
+  const handleBatchCreateUsers = async () => {
     const unlinkedEmps = employeesData.filter(emp => !users.some(u => String(u.employeeId) === String(emp.id)));
     if (unlinkedEmps.length === 0) {
       alert('📌 บุคลากรทุกคนในระบบมีบัญชีผู้ใช้งานเรียบร้อยแล้ว!');
@@ -185,7 +185,19 @@ const UserManagement = ({ employeesData = [] }) => {
       employeeId: emp.id
     }));
 
-    updateUsers([...users, ...newUsers]);
+    const result = await updateUsers([...users, ...newUsers]);
+
+    // A local-only account cannot log in on any other device, so a failed sync
+    // must be reported rather than counted as success.
+    if (result && !result.ok) {
+      alert(
+        `❌ สร้างบัญชีในเครื่องนี้แล้ว แต่บันทึกขึ้นฐานข้อมูลไม่สำเร็จ\n` +
+        `บัญชีจะยังใช้ล็อกอินจากเครื่องอื่นไม่ได้จนกว่าจะแก้ปัญหานี้\n\n` +
+        result.errors.join('\n\n')
+      );
+      return;
+    }
+
     const renamed = newUsers.filter(u => u.username !== `user_${u.employeeId}`);
     alert(
       `✅ สร้างบัญชีผู้ใช้งานอัตโนมัติสำเร็จ ${newUsers.length} บัญชี!\n\n` +
