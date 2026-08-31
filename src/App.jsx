@@ -29,7 +29,7 @@ import LeaveOnlineSystem from './components/LeaveOnlineSystem';
 import DutyOutsideSystem from './components/DutyOutsideSystem';
 import IndividualReportView from './components/IndividualReportView';
 import DailyReportGenerator from './components/DailyReportGenerator';
-import { useAuth } from './context/AuthContext.jsx';
+import { useAuth, makeUniqueUsername } from './context/AuthContext.jsx';
 import LoginPage from './components/LoginPage.jsx';
 import UserManagement from './components/UserManagement.jsx';
 import LeaveSummaryDashboard from './components/LeaveSummaryDashboard';
@@ -241,13 +241,12 @@ const buildUsersForEmployees = (newEmployees, existingUsers) => {
     .filter(emp => !linkedEmployees.has(String(emp.id)))
     .map((emp, index) => ({
       id: Date.now() + index,
-      username: `user_${emp.id}`,
+      username: makeUniqueUsername(emp.id, takenNames),
       password: '1234',
       role: 'user',
       displayName: emp.name,
       employeeId: emp.id
-    }))
-    .filter(user => !takenNames.has(user.username.toLowerCase()));
+    }));
 };
 
 function App() {

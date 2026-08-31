@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth, ROLE_LABELS, ROLE_COLORS } from '../context/AuthContext';
+import { useAuth, ROLE_LABELS, ROLE_COLORS, makeUniqueUsername } from '../context/AuthContext';
 import { pushSettingsToCloud } from '../utils/cloudSettings.js';
 
 const COLLAPSE_STORAGE_KEY = 'user_management_collapsed';
@@ -173,9 +173,12 @@ const UserManagement = ({ employeesData = [] }) => {
       return;
     }
 
+    // An older account may already hold "user_<id>"; makeUniqueUsername adds a
+    // counter so two people never end up sharing a login name.
+    const takenNames = new Set(users.map(u => String(u.username).toLowerCase()));
     const newUsers = unlinkedEmps.map((emp, index) => ({
       id: Date.now() + index,
-      username: `user_${emp.id}`,
+      username: makeUniqueUsername(emp.id, takenNames),
       password: '1234',
       role: 'user',
       displayName: emp.name,
@@ -183,7 +186,15 @@ const UserManagement = ({ employeesData = [] }) => {
     }));
 
     updateUsers([...users, ...newUsers]);
-    alert(`✅ สร้างบัญชีผู้ใช้งานอัตโนมัติสำเร็จ ${newUsers.length} บัญชี!\n\n(คุณครูสามารถล็อกอินด้วย Username เช่น user_1, user_2 และรหัสผ่าน 1234)`);
+    const renamed = newUsers.filter(u => u.username !== `user_${u.employeeId}`);
+    alert(
+      `✅ สร้างบัญชีผู้ใช้งานอัตโนมัติสำเร็จ ${newUsers.length} บัญชี!\n\n` +
+      `(คุณครูสามารถล็อกอินด้วย Username เช่น user_1, user_2 และรหัสผ่าน 1234)` +
+      (renamed.length > 0
+        ? `\n\n⚠️ ชื่อผู้ใช้เดิมถูกใช้ไปแล้ว ${renamed.length} รายการ จึงตั้งชื่อใหม่ให้:\n` +
+          renamed.map(u => `• ${u.displayName} → ${u.username}`).join('\n')
+        : '')
+    );
   };
 
   const input = (value, setter, placeholder, type = 'text') => (

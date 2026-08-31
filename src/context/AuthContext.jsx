@@ -43,6 +43,22 @@ const cleanLoginName = (name) => String(name ?? '')
   .trim()
   .toLowerCase();
 
+// `user_<employeeId>` is the default login name, but older accounts were handed
+// out under a different numbering, so the name may already belong to somebody
+// else. Add a counter rather than leave the employee without a login at all.
+// `taken` is a Set of lowercased usernames and is updated as names are handed out.
+export const makeUniqueUsername = (employeeId, taken) => {
+  const base = `user_${employeeId}`;
+  let candidate = base;
+  let suffix = 2;
+  while (taken.has(candidate.toLowerCase())) {
+    candidate = `${base}_${suffix}`;
+    suffix++;
+  }
+  taken.add(candidate.toLowerCase());
+  return candidate;
+};
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 export const loadUsers = () => {
   try {
