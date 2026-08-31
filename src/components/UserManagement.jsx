@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth, ROLE_LABELS, ROLE_COLORS } from '../context/AuthContext';
 import { pushSettingsToCloud } from '../utils/cloudSettings.js';
 
+const COLLAPSE_STORAGE_KEY = 'user_management_collapsed';
+
 const ROLE_OPTIONS = [
   { value: 'user', label: 'ผู้ใช้งาน' },
   { value: 'director', label: 'ผู้อำนวยการ' },
@@ -23,6 +25,20 @@ const UserManagement = ({ employeesData = [] }) => {
   const [showPassMap, setShowPassMap] = useState({});
 
   const [logoBase64, setLogoBase64] = useState(localStorage.getItem('app_logo_url') || '');
+
+  // Collapsed by default so the panel does not push the dashboard down.
+  // The choice is remembered across sessions.
+  const [collapsed, setCollapsed] = useState(
+    () => localStorage.getItem(COLLAPSE_STORAGE_KEY) !== 'false'
+  );
+
+  const toggleCollapsed = () => {
+    setCollapsed(prev => {
+      const next = !prev;
+      try { localStorage.setItem(COLLAPSE_STORAGE_KEY, String(next)); } catch {}
+      return next;
+    });
+  };
 
   // Reflect a logo restored from the cloud without requiring a reload.
   useEffect(() => {
@@ -180,6 +196,40 @@ const UserManagement = ({ employeesData = [] }) => {
 
   return (
     <div className="no-print" style={{ marginTop: '8px' }}>
+      {/* Collapse toggle */}
+      <button
+        type="button"
+        onClick={toggleCollapsed}
+        aria-expanded={!collapsed}
+        title={collapsed ? 'กดเพื่อเปิดส่วนตั้งค่าและจัดการบัญชี' : 'กดเพื่อพับเก็บ'}
+        style={{
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '10px',
+          flexWrap: 'wrap',
+          padding: '12px 18px',
+          marginBottom: collapsed ? '0' : '16px',
+          background: 'rgba(159,122,234,0.06)',
+          border: '1px solid rgba(159,122,234,0.22)',
+          borderRadius: '14px',
+          color: 'var(--text-main)',
+          cursor: 'pointer',
+          fontWeight: 700,
+          fontSize: '0.9rem',
+          textAlign: 'left',
+          transition: 'var(--transition-smooth)'
+        }}
+      >
+        <span>⚙️ ตั้งค่าระบบและจัดการบัญชีผู้ใช้งาน ({users.length} บัญชี)</span>
+        <span style={{ color: 'var(--primary)', fontSize: '0.8rem', fontWeight: 700, whiteSpace: 'nowrap' }}>
+          {collapsed ? '▼ กดเพื่อเปิด' : '▲ พับเก็บ'}
+        </span>
+      </button>
+
+      {!collapsed && (
+      <div className="animate-fade-in">
       {/* Settings Section (Logo) */}
       <div className="glass-panel" style={{ padding: '20px', marginBottom: '20px', borderRadius: '14px' }}>
         <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, marginBottom: '12px', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>
@@ -334,6 +384,8 @@ const UserManagement = ({ employeesData = [] }) => {
           </tbody>
         </table>
       </div>
+      </div>
+      )}
     </div>
   );
 };

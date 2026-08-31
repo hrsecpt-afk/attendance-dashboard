@@ -35,6 +35,16 @@ const cleanPersonName = (name) => {
 
 const isUuidValue = (value) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ''));
 
+const DEFAULT_BALANCE = { sick: 30, personal: 45, maternity: 90, vacation: 30, ordination: 120 };
+
+const BALANCE_COLUMN_MAP = {
+  sick: 'sick_remaining',
+  personal: 'personal_remaining',
+  maternity: 'maternity_remaining',
+  vacation: 'vacation_remaining',
+  ordination: 'ordination_remaining'
+};
+
 const createEmptyLeave = (vacationRemaining = 30) => ({
   sick: { count: 0, days: 0 },
   vacation: { count: 0, days: 0, remaining: vacationRemaining },
@@ -435,6 +445,18 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
 
   // Director feedback state
   const [directorComment, setDirectorComment] = useState('');
+
+  // Lightweight inline toast (replaces blocking alert() on director actions)
+  const [toast, setToast] = useState(null);
+  const showToast = (type, text) => setToast({ type, text });
+  useEffect(() => {
+    if (!toast) return undefined;
+    const timer = setTimeout(() => setToast(null), 2800);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
+  // Requests whose approve/reject is still syncing to the server (UI is already updated)
+  const [syncingIds, setSyncingIds] = useState([]);
 
   // Cancel a leave request (requester only, pending or approved)
   const handleCancelRequest = async (reqId) => {
@@ -988,20 +1010,37 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
   };
 
   // Director Action (Approve / Reject)
+  // Optimistic: the card flips to its new status immediately, the server call runs in the
+  // background, and only a failure rolls the card back. No confirm()/alert() round trips.
   const handleUpdateStatus = async (requestId, newStatus) => {
-    if (!(window.navigator.webdriver ? true : window.confirm(`ยืนยันการทำรายการพิจารณาคำขอลาเป็น [${newStatus === 'approved' ? 'อนุมัติ' : 'ไม่อนุมัติ'}] ?`))) {
-      return;
-    }
-
     const req = requests.find(r => r.id === requestId);
-    if (!req) return;
+    if (!req || req.status === newStatus) return;
+    if (syncingIds.includes(requestId)) return;
 
-    setLoading(true);
+    const comment = directorComment.trim();
+    const updatedReq = { ...req, status: newStatus, director_comment: comment };
+    const isApprove = newStatus === 'approved';
+    const balKey = getBalanceField(req.leave_type);
+    const empBal = balances[req.employee_id] || { ...DEFAULT_BALANCE };
+    const newBalVal = Math.max(0, (empBal[balKey] || 0) - req.days);
+
+    // 1) Paint the result right away
+    const nextRequests = requests.map(r => (r.id === requestId ? updatedReq : r));
+    const nextBalances = isApprove
+      ? { ...balances, [req.employee_id]: { ...empBal, [balKey]: newBalVal } }
+      : balances;
+
+    setRequests(nextRequests);
+    if (isApprove) setBalances(nextBalances);
+    setDirectorComment('');
+    setSyncingIds(ids => [...ids, requestId]);
+    showToast('success', isApprove
+      ? `✅ อนุมัติใบลาของ ${req.employee_name} เรียบร้อยแล้ว`
+      : `❌ บันทึกผล "ไม่อนุมัติ" ใบลาของ ${req.employee_name} แล้ว`);
+
+    // 2) Persist in the background
     try {
-      const updatedReq = { ...req, status: newStatus, director_comment: directorComment.trim() };
-      
       if (supabaseConnected) {
-        // Update request on Supabase
         const res = await fetch(`${supabaseUrl}/rest/v1/leave_requests?id=eq.${requestId}`, {
           method: 'PATCH',
           headers: {
@@ -1009,66 +1048,42 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
             'apikey': supabaseKey,
             'Authorization': `Bearer ${supabaseKey}`
           },
-          body: JSON.stringify({ status: newStatus, director_comment: directorComment.trim() })
+          body: JSON.stringify({ status: newStatus, director_comment: comment })
         });
         if (!res.ok) throw new Error(await res.text());
 
-        // Deduct balance on approval
-        if (newStatus === 'approved') {
-          const balKey = getBalanceField(req.leave_type);
-          const currentEmpBal = balances[req.employee_id] || { sick: 30, personal: 45, maternity: 90, vacation: 30, ordination: 120 };
-          const newBalVal = Math.max(0, currentEmpBal[balKey] - req.days);
-          
-          const colMap = {
-            sick: 'sick_remaining',
-            personal: 'personal_remaining',
-            maternity: 'maternity_remaining',
-            vacation: 'vacation_remaining',
-            ordination: 'ordination_remaining'
-          };
-          
-          await fetch(`${supabaseUrl}/rest/v1/leave_balances?employee_id=eq.${req.employee_id}`, {
+        // Deduct balance on approval (fire-and-forget: the UI already shows the new balance)
+        if (isApprove) {
+          fetch(`${supabaseUrl}/rest/v1/leave_balances?employee_id=eq.${req.employee_id}`, {
             method: 'PATCH',
             headers: {
               'Content-Type': 'application/json',
               'apikey': supabaseKey,
               'Authorization': `Bearer ${supabaseKey}`
             },
-            body: JSON.stringify({ [colMap[balKey]]: newBalVal })
-          });
+            body: JSON.stringify({ [BALANCE_COLUMN_MAP[balKey]]: newBalVal })
+          }).catch(e => console.error('Failed to update leave balance', e));
         }
-        await fetchSupabaseRequests();
-        await fetchSupabaseBalances();
       } else {
-        // Local Save update status
-        const updatedList = requests.map(r => r.id === requestId ? updatedReq : r);
-        setRequests(updatedList);
-        localStorage.setItem('attendance_dashboard_leave_requests', JSON.stringify(updatedList));
+        localStorage.setItem('attendance_dashboard_leave_requests', JSON.stringify(nextRequests));
 
-        // Deduct balance on approval
-        if (newStatus === 'approved') {
-          const balKey = getBalanceField(req.leave_type);
-          const updatedBals = { ...balances };
-          if (!updatedBals[req.employee_id]) {
-            updatedBals[req.employee_id] = { sick: 30, personal: 45, maternity: 90, vacation: 30, ordination: 120 };
-          }
-          updatedBals[req.employee_id][balKey] = Math.max(0, updatedBals[req.employee_id][balKey] - req.days);
-          setBalances(updatedBals);
-          localStorage.setItem('attendance_dashboard_leave_balances', JSON.stringify(updatedBals));
-          
+        if (isApprove) {
+          localStorage.setItem('attendance_dashboard_leave_balances', JSON.stringify(nextBalances));
           // Also sync with master stats if it's local (Vite App context)
           // To count it in the monthly stats as well!
           syncStatsLocally(req.employee_id, req.leave_type, req.days, req.start_date);
         }
       }
 
-      setDirectorComment('');
+      // Telegram must never hold up the click
       sendStatusUpdateNotification(updatedReq);
-      safeAlert('📝 พิจารณาคำขอลาและอัปเดตข้อมูลระบบเรียบร้อยแล้ว!');
     } catch (err) {
-      safeAlert(`❌ อัปเดตสถานะล้มเหลว: ${err.message}`);
+      // Roll back just this request (other optimistic edits stay intact)
+      setRequests(prev => prev.map(r => (r.id === requestId ? req : r)));
+      if (isApprove) setBalances(prev => ({ ...prev, [req.employee_id]: empBal }));
+      showToast('error', `❌ อัปเดตสถานะล้มเหลว: ${err.message}`);
     } finally {
-      setLoading(false);
+      setSyncingIds(ids => ids.filter(id => id !== requestId));
     }
   };
 
@@ -1266,9 +1281,30 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
 
   return (
     <div className="leave-system-container animate-fade-in">
-      
+
+      {/* Inline toast for director actions (non-blocking, replaces alert()) */}
+      {toast && (
+        <div className="no-print" style={{
+          position: 'fixed',
+          top: '20px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 2000,
+          padding: '12px 22px',
+          borderRadius: '12px',
+          fontWeight: 700,
+          fontSize: '0.88rem',
+          color: '#fff',
+          background: toast.type === 'error' ? 'var(--red)' : 'var(--green)',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
+          animation: 'fadeIn 0.18s ease'
+        }}>
+          {toast.text}
+        </div>
+      )}
+
       {/* Simulation Controls: Role Switcher & Storage Status */}
-      {currentUser?.role !== 'user' && (
+      {currentUser?.role === 'admin' && (
         <div className="no-print" style={{
           display: 'flex',
           justifyContent: 'space-between',
@@ -1371,7 +1407,7 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
             <button onClick={() => setActiveTab('holidays')} style={{ padding: '8px 16px', background: activeTab === 'holidays' ? 'rgba(159,122,234,0.1)' : 'transparent', border: activeTab === 'holidays' ? '1px solid rgba(159,122,234,0.3)' : 'none', color: activeTab === 'holidays' ? 'var(--primary)' : 'var(--text-muted)', borderRadius: '8px', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}>📅 ปฏิทินวันหยุด</button>
           </>
         )}
-        {role !== 'requester' && (
+        {currentUser?.role === 'admin' && role !== 'requester' && (
           <button onClick={() => setActiveTab('settings')} style={{ padding: '8px 16px', background: activeTab === 'settings' ? 'rgba(159,122,234,0.1)' : 'transparent', border: activeTab === 'settings' ? '1px solid rgba(159,122,234,0.3)' : 'none', color: activeTab === 'settings' ? 'var(--primary)' : 'var(--text-muted)', borderRadius: '8px', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', marginLeft: 'auto' }}>⚙️ ตั้งค่าระบบ</button>
         )}
       </div>

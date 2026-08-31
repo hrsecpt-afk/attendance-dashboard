@@ -95,32 +95,34 @@ function withMobileThaiPrintFixes(htmlContent) {
       body.time-log-report {
         width: 210mm !important;
         min-height: 297mm !important;
-        padding: 13mm 7mm 0 7mm !important;
-        font-size: 8.8pt !important;
+        padding: 8mm 4mm 0 4mm !important;
+        font-size: 6.5pt !important;
       }
 
       body.time-log-report .title {
-        font-size: 13.2pt !important;
-        line-height: 1.22 !important;
+        font-size: 9pt !important;
+        line-height: 1.15 !important;
+        margin-bottom: 0.5px !important;
       }
 
       body.time-log-report .subtitle,
       body.time-log-report .date {
-        font-size: 12.2pt !important;
-        line-height: 1.22 !important;
+        font-size: 8pt !important;
+        line-height: 1.15 !important;
+        margin-bottom: 1px !important;
       }
 
       body.time-log-report table.time-table {
         table-layout: fixed !important;
-        margin-top: 0 !important;
-        margin-bottom: 0 !important;
+        margin-top: 0.5px !important;
+        margin-bottom: 0.5px !important;
       }
 
       body.time-log-report table.time-table th,
       body.time-log-report table.time-table td {
-        font-size: 8pt !important;
-        line-height: 1.12 !important;
-        padding: 1px 2px !important;
+        font-size: 5.5pt !important;
+        line-height: 1.08 !important;
+        padding: 0.3px 0.5px !important;
         overflow-wrap: break-word !important;
       }
 
@@ -171,6 +173,34 @@ function withMobileThaiPrintFixes(htmlContent) {
 
       table.names-table td {
         padding: 4px 4px !important;
+      }
+
+      table.signature-table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        margin-top: 8px !important;
+      }
+
+      table.signature-table td {
+        padding: 2px 4px !important;
+        border: none !important;
+        font-size: 12pt !important;
+      }
+
+      table.signature-table tr:first-child td {
+        width: 50% !important;
+        text-align: center !important;
+        vertical-align: top !important;
+      }
+
+      table.signature-table tr:last-child td {
+        text-align: center !important;
+        padding: 8px 4px !important;
+        vertical-align: top !important;
+      }
+
+      table.signature-table .sig-line {
+        margin-bottom: 4px !important;
       }
 
       .names {

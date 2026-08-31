@@ -351,7 +351,22 @@ const DutyOutsideSystem = ({ employeesData, setEmployeesData }) => {
     } catch {}
     return 'requester';
   });
-  const [activeTab, setActiveTab] = useState('my_dashboard');
+  const [activeTab, setActiveTab] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('attendance_current_session');
+      if (saved && JSON.parse(saved).role === 'director') return 'pending_review';
+    } catch {}
+    return 'my_dashboard';
+  });
+
+  // ── Inline toast (non-blocking, replaces alert() on director actions) ────
+  const [toast, setToast] = useState(null);
+  const showToast = (type, text) => setToast({ type, text });
+  useEffect(() => {
+    if (!toast) return undefined;
+    const timer = setTimeout(() => setToast(null), 2800);
+    return () => clearTimeout(timer);
+  }, [toast]);
 
   // ── Data ────────────────────────────────────────────────────────────────
   const [requests, setRequests] = useState([]);
@@ -723,12 +738,25 @@ const DutyOutsideSystem = ({ employeesData, setEmployeesData }) => {
     }
   };
 
+  // Optimistic: the card flips to its new status immediately and the server call runs in the
+  // background; only a failure rolls that one request back. No confirm()/alert() round trips.
   const handleDirectorAction = async (requestId, newStatus) => {
     const label = { approved: 'อนุมัติ', rejected: 'ไม่อนุมัติ', returned: 'ส่งกลับให้แก้ไข' }[newStatus];
-    if (!safeConfirm(`ยืนยัน: ${label} คำขอนี้?`)) return;
     const req = requests.find(r => r.id === requestId);
-    if (!req) return;
-    setLoading(true);
+    if (!req || req.status === newStatus) return;
+
+    const comment = directorComment.trim();
+    const updatedReq = { ...req, status: newStatus, director_comment: comment, approved_at: new Date().toISOString() };
+    const nextRequests = requests.map(r => (r.id === requestId ? updatedReq : r));
+
+    // 1) Paint the result right away
+    setRequests(nextRequests);
+    setDirectorComment('');
+    setExpandedReqId(null);
+    if (newStatus === 'approved') syncStatsLocally(req.employee_id, req.hours, req.duty_date);
+    showToast('success', `${newStatus === 'approved' ? '✅' : newStatus === 'rejected' ? '❌' : '↩️'} บันทึกผล "${label}" ของ ${req.employee_name} เรียบร้อยแล้ว`);
+
+    // 2) Persist in the background
     try {
       if (supabaseConnected) {
         const res = await fetch(`${supabaseUrl}/rest/v1/duty_requests?id=eq.${requestId}`, {
@@ -740,33 +768,29 @@ const DutyOutsideSystem = ({ employeesData, setEmployeesData }) => {
           },
           body: JSON.stringify({
             status: newStatus,
-            director_comment: directorComment.trim()
+            director_comment: comment
           })
         });
         if (!res.ok) throw new Error(await res.text());
-        await loadDatabase();
       } else {
-        const updated = requests.map(r => r.id === requestId ? { ...r, status: newStatus, director_comment: directorComment.trim(), approved_at: new Date().toISOString() } : r);
-        saveRequests(updated);
+        localStorage.setItem('attendance_dashboard_duty_requests', JSON.stringify(nextRequests));
       }
 
-      if (newStatus === 'approved') syncStatsLocally(req.employee_id, req.hours, req.duty_date);
-      setDirectorComment(''); setExpandedReqId(null);
       const thDate = new Date(req.duty_date).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' });
       const icon = { approved: '🟢', rejected: '🔴', returned: '🟡' }[newStatus] || '🔔';
       const appUrl = `${window.location.origin}${window.location.pathname}?view=duty`;
-      await sendTelegram(
+      // Telegram must never hold up the click
+      sendTelegram(
         `${icon} <b>แจ้งผลคำขอออกนอกสถานที่</b>\n\n` +
         `👤 <b>ผู้ขอ:</b> ${req.employee_name}\n📅 <b>วันที่:</b> ${thDate}\n` +
         `📍 <b>สถานที่:</b> ${req.destination}\n📢 <b>ผล:</b> <b>${label}</b>\n` +
-        `📝 <b>ความเห็น:</b> ${directorComment.trim() || '-'}\n\n` +
+        `📝 <b>ความเห็น:</b> ${comment || '-'}\n\n` +
         `🔗 <a href="${appUrl}">เข้าระบบออกนอกสถานที่</a>`
       );
-      safeAlert(`✅ บันทึกผลการพิจารณา "${label}" เรียบร้อยแล้ว`);
     } catch (err) {
-      safeAlert(`❌ บันทึกผลการพิจารณาล้มเหลว: ${err.message}`);
-    } finally {
-      setLoading(false);
+      // Roll back just this request
+      setRequests(prev => prev.map(r => (r.id === requestId ? req : r)));
+      showToast('error', `❌ บันทึกผลการพิจารณาล้มเหลว: ${err.message}`);
     }
   };
 
@@ -926,10 +950,9 @@ const DutyOutsideSystem = ({ employeesData, setEmployeesData }) => {
       { id: 'history', label: '🕒 ประวัติ / สถานะ' },
     ],
     director: [
-      { id: 'director_dashboard', label: '📊 แดชบอร์ด ผอ.' },
       { id: 'pending_review', label: '📥 รออนุมัติ' },
+      { id: 'director_dashboard', label: '📊 แดชบอร์ด ผอ.' },
       { id: 'reports', label: '📋 รายงาน' },
-      { id: 'settings', label: '⚙️ ตั้งค่า' },
     ],
     admin: [
       { id: 'director_dashboard', label: '📊 ภาพรวมระบบ' },
@@ -945,8 +968,29 @@ const DutyOutsideSystem = ({ employeesData, setEmployeesData }) => {
   return (
     <div className="animate-fade-in" style={{ color: 'var(--text-main)', paddingBottom: '40px' }}>
 
+      {/* Inline toast for director actions (non-blocking, replaces alert()) */}
+      {toast && (
+        <div className="no-print" style={{
+          position: 'fixed',
+          top: '20px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 2000,
+          padding: '12px 22px',
+          borderRadius: '12px',
+          fontWeight: 700,
+          fontSize: '0.88rem',
+          color: '#fff',
+          background: toast.type === 'error' ? 'var(--red)' : 'var(--green)',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
+          animation: 'fadeIn 0.18s ease'
+        }}>
+          {toast.text}
+        </div>
+      )}
+
       {/* ── Role Switcher ─────────────────────────────────────── */}
-      {currentUser?.role !== 'user' && (
+      {currentUser?.role === 'admin' && (
         <div className="glass-panel" style={{ padding: '14px 20px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', borderLeft: '4px solid var(--primary)' }}>
           <div>
             <strong style={{ color: 'var(--primary)', fontSize: '0.88rem' }}>🔑 จำลองบทบาทผู้ใช้งาน</strong>
