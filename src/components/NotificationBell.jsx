@@ -116,9 +116,38 @@ const NotificationBell = ({ onNavigate }) => {
 
   useEffect(() => {
     loadNotifications();
-    // Refresh every 60 seconds
-    const interval = setInterval(loadNotifications, 60000);
-    return () => clearInterval(interval);
+
+    // Refresh every 60 seconds — but only while someone is actually looking. Two requests a
+    // minute sounds small until you count a tab left open overnight and over the weekend, times
+    // everyone who leaves the dashboard open; it is the same pattern that drained the project's
+    // egress quota from the duty screen.
+    let interval = null;
+    const start = () => {
+      if (interval === null) interval = setInterval(loadNotifications, 60000);
+    };
+    const stop = () => {
+      if (interval !== null) {
+        clearInterval(interval);
+        interval = null;
+      }
+    };
+
+    const handleVisibility = () => {
+      if (document.hidden) {
+        stop();
+      } else {
+        loadNotifications();
+        start();
+      }
+    };
+
+    if (!document.hidden) start();
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      stop();
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, [loadNotifications]);
 
   // ── Close on outside click ──────────────────────

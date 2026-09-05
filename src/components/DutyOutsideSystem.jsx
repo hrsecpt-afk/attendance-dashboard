@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import PrintableDutyPdf from './PrintableDutyPdf';
 import { useAuth } from '../context/AuthContext';
 import { getSupabaseConfig } from '../config/supabaseConfig.js';
@@ -456,6 +456,9 @@ const DutyOutsideSystem = ({ employeesData, setEmployeesData }) => {
     } catch { return 0; }
   }, [timeOut, timeIn]);
 
+  // Last seen id:status of every row, so a poll that finds nothing new can stop early.
+  const fingerprintRef = useRef('');
+
   const loadDatabaseSilently = async () => {
     try {
       const saved = localStorage.getItem('attendance_dashboard_supabase_config');
@@ -477,6 +480,22 @@ const DutyOutsideSystem = ({ employeesData, setEmployeesData }) => {
         isConnected = true;
       }
       if (isConnected && currentUrl && currentKey) {
+        // Change detector. id + status + created_at is enough to notice a new request, or a
+        // decision taken on an existing one, and it leaves behind the long free-text columns
+        // (objective, destination, companions, director_comment) that make up most of a row.
+        // The full table is re-downloaded only once something has actually changed, so an idle
+        // queue — the normal state — costs a fraction of what it used to.
+        const probe = await fetch(
+          `${currentUrl}/rest/v1/duty_requests?select=id,status,created_at&order=created_at.desc`,
+          { headers: { apikey: currentKey, Authorization: `Bearer ${currentKey}` } }
+        );
+        if (!probe.ok) return;
+
+        const rows = await probe.json();
+        const fingerprint = rows.map((r) => `${r.id}:${r.status}`).join('|');
+        if (fingerprint === fingerprintRef.current) return;
+        fingerprintRef.current = fingerprint;
+
         const res = await fetch(`${currentUrl}/rest/v1/duty_requests?select=*&order=created_at.desc`, {
           headers: { apikey: currentKey, Authorization: `Bearer ${currentKey}` }
         });
@@ -511,12 +530,39 @@ const DutyOutsideSystem = ({ employeesData, setEmployeesData }) => {
     setTelegramChatId(localStorage.getItem('leave_telegram_chat_id') || '');
     loadDatabase();
 
-    // 15 seconds polling interval for real-time off-site monitoring
-    const timer = setInterval(() => {
-      loadDatabaseSilently();
-    }, 15000);
+    // Polling keeps the director's queue current without a manual reload. It used to run every
+    // 15 seconds from every open tab whether or not anyone was looking — a tab left open
+    // overnight kept pulling the whole table four times a minute, which is what exhausted the
+    // project's egress quota. A minute is still comfortably "live" for approving paperwork, and
+    // the timer now stops whenever the tab is in the background.
+    let timer = null;
+    const startPolling = () => {
+      if (timer === null) timer = setInterval(loadDatabaseSilently, 60000);
+    };
+    const stopPolling = () => {
+      if (timer !== null) {
+        clearInterval(timer);
+        timer = null;
+      }
+    };
 
-    return () => clearInterval(timer);
+    const handleVisibility = () => {
+      if (document.hidden) {
+        stopPolling();
+      } else {
+        // Catch up on anything decided while the tab was hidden, then resume the timer.
+        loadDatabaseSilently();
+        startPolling();
+      }
+    };
+
+    if (!document.hidden) startPolling();
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      stopPolling();
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, [supabaseConnected, supabaseUrl, supabaseKey]);
 
   // When role changes, set sensible default tab
