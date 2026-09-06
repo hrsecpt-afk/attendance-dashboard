@@ -13,7 +13,7 @@
 //   • app_state['app_logo']     – the (potentially multi-MB) logo image
 // ============================================================================
 
-import { getAppState, setAppState } from './appState.js';
+import { getAppStateWithMeta, getAppStateUpdatedAt, setAppState } from './appState.js';
 
 // Each bucket = one app_state key holding a JSON blob of its localStorage keys.
 const BUCKETS = [
@@ -43,6 +43,24 @@ function bucketForKey(key) {
 // While true, writes performed BY restore itself must not re-trigger a push.
 let suspendSync = false;
 
+// The timestamp each bucket carried when we last applied it. Kept in
+// localStorage rather than memory because the values themselves already live in
+// localStorage: if the cloud copy has not moved since, the ones on this device
+// are still current and the blob — for `app_logo`, a whole base64 image — does
+// not need downloading again just because the page was reloaded.
+const SEEN_PREFIX = 'app_state_seen_';
+
+function readSeen(stateKey) {
+  try { return localStorage.getItem(SEEN_PREFIX + stateKey); } catch { return null; }
+}
+
+function writeSeen(stateKey, updatedAt) {
+  try {
+    if (updatedAt) localStorage.setItem(SEEN_PREFIX + stateKey, updatedAt);
+    else localStorage.removeItem(SEEN_PREFIX + stateKey);
+  } catch {}
+}
+
 // Upload a single bucket's keys as one JSON blob. Absent keys are stored as null
 // so that a reset/removal on one device propagates to the others.
 async function pushBucket(bucket) {
@@ -52,13 +70,27 @@ async function pushBucket(bucket) {
     blob[k] = v == null ? null : v;
   });
   const ok = await setAppState(bucket.stateKey, JSON.stringify(blob));
-  if (ok) console.log(`☁️ Synced ${bucket.stateKey} to Supabase Cloud`);
+  if (ok) {
+    // What we just uploaded is what this device already holds, so record the new
+    // timestamp: without it the next restore would download our own blob back.
+    const probe = await getAppStateUpdatedAt(bucket.stateKey);
+    writeSeen(bucket.stateKey, probe.ok ? probe.updatedAt : null);
+    console.log(`☁️ Synced ${bucket.stateKey} to Supabase Cloud`);
+  }
 }
 
 // Download one bucket's blob and apply it to localStorage. Returns true if any
 // value actually changed.
 async function restoreBucket(bucket) {
-  const raw = await getAppState(bucket.stateKey);
+  // Ask the cheap question first. Only a definite "unchanged" may skip the
+  // download — if the probe itself failed we know nothing and must go and look.
+  const seen = readSeen(bucket.stateKey);
+  if (seen) {
+    const probe = await getAppStateUpdatedAt(bucket.stateKey);
+    if (probe.ok && probe.updatedAt && probe.updatedAt === seen) return false;
+  }
+
+  const { value: raw, updatedAt } = await getAppStateWithMeta(bucket.stateKey);
   if (!raw) return false;
 
   let blob;
@@ -85,6 +117,10 @@ async function restoreBucket(bucket) {
   } finally {
     suspendSync = false;
   }
+
+  // Recorded only once the blob is actually applied, so a run that failed
+  // halfway cannot convince the next one there is nothing left to fetch.
+  writeSeen(bucket.stateKey, updatedAt);
   return changed;
 }
 

@@ -666,12 +666,28 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
   // REST API calls to Supabase for requests
   const fetchSupabaseRequests = async () => {
     try {
-      const response = await fetch(`${supabaseUrl}/rest/v1/leave_requests?select=*&order=created_at.desc`, {
-        headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`
-        }
-      });
+      // Unbounded, this read grew with the table forever: every load re-downloaded
+      // every leave request since the system started, long free-text reason and all.
+      //
+      // The bound is a date, not a row count, and that distinction matters — these
+      // rows are summed into this year's vacation-taken figure and the approved-leave
+      // breakdown, so dropping the Nth-oldest row would quietly make those totals
+      // wrong. Two years always covers the current year in full, whatever the volume.
+      const headers = {
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`
+      };
+      const since = new Date();
+      since.setFullYear(since.getFullYear() - 2);
+      const base = `${supabaseUrl}/rest/v1/leave_requests?select=*&order=created_at.desc`;
+
+      let response = await fetch(
+        `${base}&created_at=gte.${encodeURIComponent(since.toISOString())}`, { headers }
+      );
+      // Better to read everything than to read nothing if that column is not there.
+      if (!response.ok && response.status === 400) {
+        response = await fetch(base, { headers });
+      }
       if (response.ok) {
         const data = await response.json();
         setRequests(data);
@@ -684,12 +700,16 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
   // REST API calls to Supabase for balances
   const fetchSupabaseBalances = async () => {
     try {
-      const response = await fetch(`${supabaseUrl}/rest/v1/leave_balances?select=*`, {
-        headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`
-        }
-      });
+      const balCols = 'employee_id,sick_remaining,personal_remaining,' +
+        'maternity_remaining,vacation_remaining,ordination_remaining';
+      const headers = {
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`
+      };
+      let response = await fetch(`${supabaseUrl}/rest/v1/leave_balances?select=${balCols}`, { headers });
+      if (!response.ok && response.status === 400) {
+        response = await fetch(`${supabaseUrl}/rest/v1/leave_balances?select=*`, { headers });
+      }
       if (response.ok) {
         const data = await response.json();
         const balMap = {};

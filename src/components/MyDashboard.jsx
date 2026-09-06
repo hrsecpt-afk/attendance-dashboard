@@ -147,14 +147,19 @@ const MyDashboard = ({ currentUser, employeesData = [], overridesVersion = 0 }) 
       const cfg = getSupabaseCfg();
       if (cfg) {
         try {
-          // Fetch all logs for today with the employees relation join
-          let res = await fetch(`${cfg.url}/rest/v1/attendance_logs?select=*,employees(*)&work_date=eq.${todayStr}`, {
-            headers: { 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` }
-          });
+          // Today's logs, narrowed to the fields the matching below actually
+          // looks at. The join used to be `employees(*)`, which pulled the scan
+          // system's photo paths and face embeddings for everyone who had
+          // scanned that day — for a screen that shows one person's check-in time.
+          const logHeaders = { 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` };
+          const logUrl = `${cfg.url}/rest/v1/attendance_logs`;
+          const logCols = 'employee_id,employee_name,full_name,name,check_type,' +
+            'checked_at,check_time,status,location_type,employees(id,full_name)';
+          let res = await fetch(
+            `${logUrl}?select=${logCols}&work_date=eq.${todayStr}`, { headers: logHeaders }
+          );
           if (!res.ok && res.status === 400) {
-            res = await fetch(`${cfg.url}/rest/v1/attendance_logs?select=*&work_date=eq.${todayStr}`, {
-              headers: { 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` }
-            });
+            res = await fetch(`${logUrl}?select=*&work_date=eq.${todayStr}`, { headers: logHeaders });
           }
           if (res.ok) {
             const data = await res.json();

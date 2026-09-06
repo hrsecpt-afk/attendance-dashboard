@@ -59,6 +59,22 @@ export const makeUniqueUsername = (employeeId, taken) => {
   return candidate;
 };
 
+// Every account, but only the six columns `normalizeUser` reads. The account
+// list is re-read on mount and again on each login attempt, so `select=*` was
+// paying for whatever else the table happens to carry, every time.
+const USER_COLUMNS = 'id,username,password,role,display_name,employee_id';
+
+const fetchAllUsers = async (cfg) => {
+  const headers = { 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` };
+  const url = `${cfg.url}/rest/v1/users`;
+  let res = await fetch(`${url}?select=${USER_COLUMNS}`, { method: 'GET', headers });
+  // Fall back rather than lock everybody out if the table gains or loses a column.
+  if (!res.ok && res.status === 400) {
+    res = await fetch(`${url}?select=*`, { method: 'GET', headers });
+  }
+  return res;
+};
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 export const loadUsers = () => {
   try {
@@ -237,13 +253,7 @@ export const AuthProvider = ({ children }) => {
       if (!cfg.url || !cfg.key) return;
 
       try {
-        const res = await fetch(`${cfg.url}/rest/v1/users?select=*`, {
-          method: 'GET',
-          headers: {
-            'apikey': cfg.key,
-            'Authorization': `Bearer ${cfg.key}`
-          }
-        });
+        const res = await fetchAllUsers(cfg);
         if (res.ok) {
           const data = await res.json();
           if (data && data.length > 0) {
@@ -306,13 +316,7 @@ export const AuthProvider = ({ children }) => {
     const cfg = getSupabaseConfig();
     if (cfg.url && cfg.key) {
       try {
-        const res = await fetch(`${cfg.url}/rest/v1/users?select=*`, {
-          method: 'GET',
-          headers: {
-            'apikey': cfg.key,
-            'Authorization': `Bearer ${cfg.key}`
-          }
-        });
+        const res = await fetchAllUsers(cfg);
         if (res.ok) {
           const data = await res.json();
           if (data && data.length > 0) {

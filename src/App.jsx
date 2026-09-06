@@ -443,10 +443,19 @@ function App() {
         const cfg = JSON.parse(saved);
         if (!cfg.url || !cfg.key) return;
 
-        // 1. Fetch employees
-        const empRes = await fetch(`${cfg.url}/rest/v1/employees?select=*`, {
-          headers: { 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` }
-        });
+        // 1. Fetch employees. Only the five columns the roster is actually built
+        // from — `select=*` also dragged down the face-scan system's own columns
+        // (photo paths, embeddings, timestamps) that this app never reads.
+        const empHeaders = { 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` };
+        const empUrl = `${cfg.url}/rest/v1/employees`;
+        let empRes = await fetch(
+          `${empUrl}?select=id,full_name,position,department,location`, { headers: empHeaders }
+        );
+        // That table belongs to the scan system and has changed shape before, so
+        // a missing column must not take the whole roster down with it.
+        if (!empRes.ok && empRes.status === 400) {
+          empRes = await fetch(`${empUrl}?select=*`, { headers: empHeaders });
+        }
         if (!empRes.ok) {
           setIsInitialLoadCompleted(true);
           return;
@@ -554,9 +563,13 @@ function App() {
         // 2. Fetch leave balances (resilient fetch)
         let dbBals = [];
         try {
-          const balRes = await fetch(`${cfg.url}/rest/v1/leave_balances?select=*`, {
-            headers: { 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` }
-          });
+          const balUrl = `${cfg.url}/rest/v1/leave_balances`;
+          const balCols = 'employee_id,sick_remaining,personal_remaining,' +
+            'maternity_remaining,vacation_remaining,ordination_remaining';
+          let balRes = await fetch(`${balUrl}?select=${balCols}`, { headers: empHeaders });
+          if (!balRes.ok && balRes.status === 400) {
+            balRes = await fetch(`${balUrl}?select=*`, { headers: empHeaders });
+          }
           if (balRes.ok) {
             dbBals = await balRes.json();
           }
@@ -646,12 +659,17 @@ function App() {
       }
     };
 
-    // Refresh when the tab becomes visible / regains focus, debounced so rapid
-    // focus toggles don't spam the network.
+    // Refresh when the tab becomes visible / regains focus, throttled so that
+    // ordinary alt-tabbing does not re-read the roster. Three seconds was far
+    // too eager: somebody switching between this tab and their email all morning
+    // paid for a fresh copy of everything each time. The roster does not change
+    // on that timescale, and an actual edit still refreshes immediately on the
+    // device that made it.
+    const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
     const maybeRefresh = () => {
       if (document.visibilityState !== 'visible') return;
       const now = Date.now();
-      if (now - lastFetchTs < 3000) return;
+      if (now - lastFetchTs < REFRESH_INTERVAL_MS) return;
       lastFetchTs = now;
       fetchEmployeesFromSupabase();
       restoreSettingsFromCloud();
