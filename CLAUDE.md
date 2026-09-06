@@ -81,6 +81,7 @@ border-radius: var(--radius-lg);
 - `createEmptyLeave()` - Initialize leave data structure
 - `recalculateAccumulatedLeaves()` - Sum monthly leave to yearly
 - `migrateToMonthly()` - Migrate old leave data to new structure
+- `serializeEmployeesForCloud()` / `expandEmployeesFromCloud()` - Shrink the `employees_data` snapshot by leaving out months with no leave, and put them back on read. Use these rather than `JSON.stringify` / `JSON.parse` at the app_state boundary.
 - `getPositionRank()`, `getLocationRank()` - Sorting helpers
 - `cleanNameForMatch()` - Normalize names for comparison
 - `VIEWS`, `MONTHS_LIST`, `POSITION_ORDER` - Constants

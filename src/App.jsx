@@ -13,6 +13,8 @@ import {
   syncEmployeeDetailsWithRaw,
   sortEmployeesByUserListOrder,
   migrateToMonthly,
+  expandEmployeesFromCloud,
+  serializeEmployeesForCloud,
   safeConfirm,
   safeAlert
 } from './utils/leaveDataHelpers.js';
@@ -361,7 +363,7 @@ function App() {
 
     const syncToCloud = async () => {
       if (!employeesData || employeesData.length === 0) return;
-      const serialized = JSON.stringify(employeesData);
+      const serialized = serializeEmployeesForCloud(employeesData);
       // Skip if this exact snapshot is the one we just restored from the cloud.
       if (serialized === lastCloudSnapshotRef.current) return;
       const ok = await setAppState('employees_data', serialized);
@@ -502,7 +504,10 @@ function App() {
             restoredCloudState = true;
           } else {
             try {
-              const parsed = JSON.parse(cloudEmployees);
+              // Months the snapshot left out are put back here, at the one
+              // point the cloud copy enters the app, so nothing downstream has
+              // to know the stored form is abbreviated.
+              const parsed = expandEmployeesFromCloud(JSON.parse(cloudEmployees));
               if (Array.isArray(parsed) && parsed.length > 0) {
                 // Anyone registered for face-scan but missing from the cloud
                 // roster is a new hire - enrol them and give them a login.
@@ -894,7 +899,7 @@ function App() {
       });
     }
 
-    const serialized = JSON.stringify(nextEmployeesData);
+    const serialized = serializeEmployeesForCloud(nextEmployeesData);
     setAppState('employees_data', serialized).then(ok => {
       if (ok) {
         lastCloudSnapshotRef.current = serialized;

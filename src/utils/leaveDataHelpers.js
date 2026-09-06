@@ -114,6 +114,82 @@ export const recalculateAccumulatedLeaves = (leavesByMonth) => {
   return accumulated;
 };
 
+// ────────────────────────────────────────────────────────────────────────────
+// The cloud snapshot of the roster
+// ----------------------------------------------------------------------------
+// `employees_data` in app_state used to be around 780 KB, and almost none of it
+// said anything: every one of the 123 people carried all thirteen months, and
+// every month carried all fifteen leave types, whether or not that person took
+// a single day off that month. Most people take no leave in most months, so
+// most of that payload was zeros.
+//
+// Dropping a month costs nothing to read back, because a month is either
+// something that happened or `createEmptyLeave(30)` — there is no third state.
+// The employee record itself is untouched; only months that are provably
+// identical to the empty one are left out, and the reader puts them back.
+//
+// Both directions emit months in a fixed order, so a snapshot that has been
+// through a round trip serializes byte-for-byte the same as it went in. The
+// change detection on either side of this compares those strings.
+// ────────────────────────────────────────────────────────────────────────────
+
+// The count/days pairs that make up a month, `absent` (a bare number) aside.
+const LEAVE_CATEGORY_KEYS = [
+  'sick', 'vacation', 'personal', 'maternity', 'wifeAssist', 'ordination',
+  'military', 'study', 'work', 'follow', 'rehab', 'total', 'late', 'outOfArea',
+];
+
+// True only when a month is indistinguishable from a fresh empty one. Anything
+// uncertain answers false: keeping a month that could have been dropped costs a
+// few hundred bytes, dropping one that mattered loses somebody's leave record.
+const isUntouchedMonth = (month) => {
+  if (!month) return true;
+  if ((month.absent || 0) !== 0) return false;
+  for (const key of LEAVE_CATEGORY_KEYS) {
+    const entry = month[key];
+    if (!entry) continue;
+    if ((entry.count || 0) !== 0) return false;
+    if ((entry.days || 0) !== 0) return false;
+    if ((entry.hours || 0) !== 0) return false;
+  }
+  // A vacation quota moved off the default is a fact about this month even
+  // though nothing was taken, so it keeps the month alive.
+  if (month.vacation && (month.vacation.remaining ?? 30) !== 30) return false;
+  return true;
+};
+
+// Drop the months that say nothing. `all` is always kept: it is the accumulated
+// view the dashboard reads by default.
+export const compactEmployeesForCloud = (employees) =>
+  (employees || []).map((emp) => {
+    const leaves = emp?.leaves;
+    if (!leaves || !leaves.all) return emp;
+
+    const kept = { all: leaves.all };
+    MONTHS_KEYS.forEach((key) => {
+      if (!isUntouchedMonth(leaves[key])) kept[key] = leaves[key];
+    });
+    return { ...emp, leaves: kept };
+  });
+
+// Put the dropped months back, so everything downstream sees the shape it
+// always saw. Old snapshots, which carry all thirteen months already, come
+// through this unchanged.
+export const expandEmployeesFromCloud = (employees) =>
+  (employees || []).map((emp) => {
+    const leaves = emp?.leaves;
+    if (!leaves || !leaves.all) return emp;
+
+    const full = { all: leaves.all };
+    MONTHS_KEYS.forEach((key) => {
+      full[key] = leaves[key] || createEmptyLeave(30);
+    });
+    return { ...emp, leaves: full };
+  });
+
+export const serializeEmployeesForCloud = (employees) =>
+  JSON.stringify(compactEmployeesForCloud(employees));
+
 export const getPositionRank = (pos) => POSITION_ORDER[pos] || 99;
 
 export const getLocationRank = (loc) => {
