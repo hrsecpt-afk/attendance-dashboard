@@ -456,7 +456,14 @@ const DutyOutsideSystem = ({ employeesData, setEmployeesData }) => {
     } catch { return 0; }
   }, [timeOut, timeIn]);
 
-  // Last seen id:status of every row, so a poll that finds nothing new can stop early.
+  // Only the newest rows are worth watching: the queue is ordered newest-first and anything
+  // further down has long since been decided. Bounding the probe keeps its cost flat as the
+  // table grows, instead of creeping back up month after month.
+  const POLL_WINDOW = 300;
+  const fingerprintOf = (rows) =>
+    (rows || []).slice(0, POLL_WINDOW).map((r) => `${r.id}:${r.status}`).join('|');
+
+  // Last seen id:status of those rows, so a poll that finds nothing new can stop early.
   const fingerprintRef = useRef('');
 
   const loadDatabaseSilently = async () => {
@@ -486,15 +493,13 @@ const DutyOutsideSystem = ({ employeesData, setEmployeesData }) => {
         // The full table is re-downloaded only once something has actually changed, so an idle
         // queue — the normal state — costs a fraction of what it used to.
         const probe = await fetch(
-          `${currentUrl}/rest/v1/duty_requests?select=id,status,created_at&order=created_at.desc`,
+          `${currentUrl}/rest/v1/duty_requests?select=id,status,created_at&order=created_at.desc&limit=${POLL_WINDOW}`,
           { headers: { apikey: currentKey, Authorization: `Bearer ${currentKey}` } }
         );
         if (!probe.ok) return;
 
-        const rows = await probe.json();
-        const fingerprint = rows.map((r) => `${r.id}:${r.status}`).join('|');
+        const fingerprint = fingerprintOf(await probe.json());
         if (fingerprint === fingerprintRef.current) return;
-        fingerprintRef.current = fingerprint;
 
         const res = await fetch(`${currentUrl}/rest/v1/duty_requests?select=*&order=created_at.desc`, {
           headers: { apikey: currentKey, Authorization: `Bearer ${currentKey}` }
@@ -502,6 +507,9 @@ const DutyOutsideSystem = ({ employeesData, setEmployeesData }) => {
         if (res.ok) {
           const data = await res.json();
           setRequests(data);
+          // Only once the rows are actually in hand. Recording it earlier would make a failed
+          // fetch look like a completed one and leave the screen stale until the next change.
+          fingerprintRef.current = fingerprint;
         }
       } else {
         const raw = localStorage.getItem('attendance_dashboard_duty_requests');
@@ -579,7 +587,13 @@ const DutyOutsideSystem = ({ employeesData, setEmployeesData }) => {
         const res = await fetch(`${supabaseUrl}/rest/v1/duty_requests?select=*&order=created_at.desc`, {
           headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` }
         });
-        if (res.ok) setRequests(await res.json());
+        if (res.ok) {
+          const data = await res.json();
+          setRequests(data);
+          // Seed the change detector off the same newest-first slice the probe reads, so the
+          // first poll after a load does not re-download a table nobody has touched.
+          fingerprintRef.current = fingerprintOf(data);
+        }
       } else {
         const raw = localStorage.getItem('attendance_dashboard_duty_requests');
         setRequests(raw ? JSON.parse(raw) : []);

@@ -161,11 +161,27 @@ const fetchScanWorkLocations = async (cfg, scanIds) => {
 
   try {
     const idList = scanIds.map(id => `"${id}"`).join(',');
-    const res = await fetch(
+    const headers = { apikey: cfg.key, Authorization: `Bearer ${cfg.key}` };
+    const base =
       `${cfg.url}/rest/v1/attendance_logs` +
-      `?select=employee_id,detected_location_name&employee_id=in.(${idList})&limit=2000`,
-      { headers: { apikey: cfg.key, Authorization: `Bearer ${cfg.key}` } }
+      `?select=employee_id,detected_location_name&employee_id=in.(${idList})`;
+
+    // Six months of scans is plenty to tell where somebody works, and it stops this read from
+    // growing with the table forever. The ordering matters as much as the window: `limit` on
+    // its own returned an arbitrary 2000 rows, so a long-serving employee could be judged on
+    // where they scanned years ago. Newest-first makes the cap mean "the most recent 2000".
+    const since = new Date();
+    since.setMonth(since.getMonth() - 6);
+    const sinceStr = since.toISOString().slice(0, 10);
+
+    let res = await fetch(
+      `${base}&work_date=gte.${sinceStr}&order=work_date.desc&limit=2000`, { headers }
     );
+    // The scan system owns this table and has changed its columns before. If `work_date` is not
+    // there, fall back to the unfiltered read rather than silently resolving nobody's location.
+    if (!res.ok && res.status === 400) {
+      res = await fetch(`${base}&limit=2000`, { headers });
+    }
     if (!res.ok) return resolved;
 
     const tally = new Map();
