@@ -51,18 +51,24 @@ const NotificationBell = ({ onNavigate }) => {
     let leaveItems = [];
     let dutyItems = [];
 
+    // Named columns, never '*'. This bell polls every 60s, and leave_requests carries
+    // attachment_url — a base64 data URI averaging ~736 kB per row. Letting PostgREST
+    // default to '*' pulled ~22 MB on every tick and is what drained the egress quota.
+    const LEAVE_COLS = 'id,employee_name,leave_type,days,director_comment,status,created_at';
+    const DUTY_COLS = 'id,employee_name,destination,objective,director_comment,status,created_at';
+
     if (cfg) {
       if (isAdmin) {
         // Fetch pending requests for admins/directors
         try {
-          const res = await fetch(`${cfg.url}/rest/v1/leave_requests?status=eq.pending&order=created_at.desc&limit=30`, {
+          const res = await fetch(`${cfg.url}/rest/v1/leave_requests?select=${LEAVE_COLS}&status=eq.pending&order=created_at.desc&limit=30`, {
             headers: { 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` }
           });
           if (res.ok) leaveItems = await res.json();
         } catch (e) { console.error('Notif: leave fetch failed', e); }
 
         try {
-          const res = await fetch(`${cfg.url}/rest/v1/duty_requests?status=eq.pending&order=created_at.desc&limit=30`, {
+          const res = await fetch(`${cfg.url}/rest/v1/duty_requests?select=${DUTY_COLS}&status=eq.pending&order=created_at.desc&limit=30`, {
             headers: { 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` }
           });
           if (res.ok) dutyItems = await res.json();
@@ -70,14 +76,14 @@ const NotificationBell = ({ onNavigate }) => {
       } else {
         // Fetch rejected requests for normal users
         try {
-          const res = await fetch(`${cfg.url}/rest/v1/leave_requests?employee_id=eq.${currentUser.id}&status=eq.rejected&order=created_at.desc&limit=30`, {
+          const res = await fetch(`${cfg.url}/rest/v1/leave_requests?select=${LEAVE_COLS}&employee_id=eq.${currentUser.id}&status=eq.rejected&order=created_at.desc&limit=30`, {
             headers: { 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` }
           });
           if (res.ok) leaveItems = await res.json();
         } catch (e) { console.error('Notif: leave fetch failed', e); }
 
         try {
-          const res = await fetch(`${cfg.url}/rest/v1/duty_requests?employee_id=eq.${currentUser.id}&status=eq.rejected&order=created_at.desc&limit=30`, {
+          const res = await fetch(`${cfg.url}/rest/v1/duty_requests?select=${DUTY_COLS}&employee_id=eq.${currentUser.id}&status=eq.rejected&order=created_at.desc&limit=30`, {
             headers: { 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` }
           });
           if (res.ok) dutyItems = await res.json();

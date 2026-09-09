@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import PrintableLeavePdf from './PrintableLeavePdf';
+import { uploadAttachment } from '../utils/cloudinaryUpload.js';
 import { useAuth } from '../context/AuthContext';
 import HolidayCalendar, { loadHolidays, countWorkingDays } from './HolidayCalendar';
 import { getSupabaseConfig } from '../config/supabaseConfig.js';
@@ -153,7 +154,7 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [attachmentName, setAttachmentName] = useState(''); // Simulated file
-  const [, setAttachmentFile] = useState(null); // Actual file object
+  const [attachmentFile, setAttachmentFile] = useState(null); // Actual file object — uploaded to Cloudinary on submit
   const [attachmentPreview, setAttachmentPreview] = useState(null); // Base64 preview
   const [attachmentDragOver, setAttachmentDragOver] = useState(false); // Drag state
   const [formError, setFormError] = useState('');
@@ -679,14 +680,29 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
       };
       const since = new Date();
       since.setFullYear(since.getFullYear() - 2);
-      const base = `${supabaseUrl}/rest/v1/leave_requests?select=*&order=created_at.desc`;
+
+      // Named columns, never '*'. attachment_url holds a base64 data URI averaging ~736 kB
+      // per row; nothing on this screen renders it, and the print modal fetches it itself
+      // for the one request it opens. Reading it for every row here is what drained the
+      // project's egress quota. Everything the printed form needs is listed.
+      const cols = [
+        'id', 'employee_id', 'employee_name', 'position', 'location',
+        'leave_type', 'start_date', 'end_date', 'days', 'reason',
+        'phone', 'address', 'status', 'director_comment', 'created_at',
+        'last_leave_type', 'last_leave_start_date', 'last_leave_end_date', 'last_leave_days',
+        'vacation_accumulated', 'vacation_quota_current_year', 'vacation_quota_total',
+        'vacation_taken', 'vacation_remaining'
+      ].join(',');
+      const base = `${supabaseUrl}/rest/v1/leave_requests?select=${cols}&order=created_at.desc`;
 
       let response = await fetch(
         `${base}&created_at=gte.${encodeURIComponent(since.toISOString())}`, { headers }
       );
-      // Better to read everything than to read nothing if that column is not there.
+      // Better to read everything than to read nothing if a column above is not there.
       if (!response.ok && response.status === 400) {
-        response = await fetch(base, { headers });
+        response = await fetch(
+          `${supabaseUrl}/rest/v1/leave_requests?select=*&order=created_at.desc`, { headers }
+        );
       }
       if (response.ok) {
         const data = await response.json();
@@ -915,11 +931,33 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
       return;
     }
 
-    const finalLeaveType = leaveTimeSlot === 'morning' 
-      ? `${leaveType} (ครึ่งวันเช้า)` 
-      : leaveTimeSlot === 'afternoon' 
-      ? `${leaveType} (ครึ่งวันบ่าย)` 
+    const finalLeaveType = leaveTimeSlot === 'morning'
+      ? `${leaveType} (ครึ่งวันเช้า)`
+      : leaveTimeSlot === 'afternoon'
+      ? `${leaveType} (ครึ่งวันบ่าย)`
       : leaveType;
+
+    // The attachment goes to Cloudinary and only its URL is stored. Writing the base64
+    // preview into the row instead is what pushed leave_requests to 47 MB and drained
+    // the egress quota. A failed upload stops the submit rather than silently falling
+    // back to base64 — the person can retry, or remove the file and send without it.
+    let uploadedAttachmentUrl = null;
+    if (attachmentFile) {
+      setLoading(true);
+      try {
+        uploadedAttachmentUrl = await uploadAttachment(attachmentFile);
+      } catch (err) {
+        setLoading(false);
+        setFormError(
+          `❌ อัปโหลดเอกสารแนบไม่สำเร็จ: ${err.message} — ` +
+          'ลองใหม่อีกครั้ง หรือกดลบไฟล์แนบออกแล้วส่งใบลาโดยไม่มีเอกสารแนบ'
+        );
+        return;
+      }
+      setLoading(false);
+    } else if (attachmentName) {
+      uploadedAttachmentUrl = `file://${attachmentName}`;
+    }
 
     const newRequest = {
       id: supabaseConnected ? undefined : `local-${Date.now()}`,
@@ -934,7 +972,7 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
       reason: reason.trim(),
       phone: phone.trim(),
       address: address.trim(),
-      attachment_url: attachmentPreview || (attachmentName ? `file://${attachmentName}` : null),
+      attachment_url: uploadedAttachmentUrl,
       status: 'pending',
       director_comment: '',
       created_at: new Date().toISOString(),

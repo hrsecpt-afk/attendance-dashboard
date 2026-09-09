@@ -1,10 +1,43 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { getSupabaseConfig } from '../config/supabaseConfig.js';
 
 const PrintableLeavePdf = ({ request, onClose }) => {
   const [mobilePreviewScale, setMobilePreviewScale] = useState(1);
   const [mounted, setMounted] = useState(false);
   const [showAttachment, setShowAttachment] = useState(false);
+
+  // The attachment is a base64 data URI averaging ~736 kB, so the list screens that open
+  // this modal deliberately leave attachment_url out of their queries — pulling it for
+  // every row is what drained the project's egress quota. It is fetched here instead, for
+  // the one request actually being printed. A parent that still passes the column through
+  // is honoured as-is, so nothing refetches needlessly.
+  const [attachmentUrl, setAttachmentUrl] = useState(
+    'attachment_url' in (request || {}) ? request.attachment_url : null
+  );
+
+  useEffect(() => {
+    if (!request || 'attachment_url' in request || !request.id) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const cfg = getSupabaseConfig();
+        if (!cfg) return;
+        const res = await fetch(
+          `${cfg.url}/rest/v1/leave_requests?select=attachment_url&id=eq.${request.id}&limit=1`,
+          { headers: { 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` } }
+        );
+        if (!res.ok) return;
+        const rows = await res.json();
+        if (!cancelled) setAttachmentUrl(rows?.[0]?.attachment_url || null);
+      } catch (e) {
+        console.error('Failed to load leave attachment', e);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [request]);
 
   useEffect(() => {
     setMounted(true);
@@ -71,9 +104,16 @@ const PrintableLeavePdf = ({ request, onClose }) => {
   const lastEndThai = parseDateThaiParts(request.last_leave_end_date);
 
   const isVacation = request.leave_type?.startsWith('ลาพักผ่อน');
-  const hasAttachment = Boolean(request.attachment_url);
-  const isImageAttachment = request.attachment_url?.startsWith('data:image');
-  const isPdfAttachment = request.attachment_url?.startsWith('data:application/pdf');
+  // Attachments arrive in two shapes: an https URL for anything uploaded to Cloudinary,
+  // and a base64 data URI for the older rows written before that change (plus the local
+  // preview shown before a request is saved). Both still have to render.
+  const hasAttachment = Boolean(attachmentUrl);
+  const isImageAttachment =
+    attachmentUrl?.startsWith('data:image') ||
+    /^https?:\/\/\S+\.(jpe?g|png|gif|webp|bmp|heic|heif)(\?|#|$)/i.test(attachmentUrl || '');
+  const isPdfAttachment =
+    attachmentUrl?.startsWith('data:application/pdf') ||
+    /^https?:\/\/\S+\.pdf(\?|#|$)/i.test(attachmentUrl || '');
 
   const previewModal = (
     <div className="print-modal-overlay">
@@ -111,17 +151,17 @@ const PrintableLeavePdf = ({ request, onClose }) => {
               <button onClick={() => setShowAttachment(false)}>✕ ปิด</button>
             </div>
             {isImageAttachment ? (
-              <img src={request.attachment_url} alt="เอกสารแนบใบลา" className="attachment-viewer-image" />
+              <img src={attachmentUrl} alt="เอกสารแนบใบลา" className="attachment-viewer-image" />
             ) : isPdfAttachment ? (
               <div className="attachment-viewer-file">
                 <div style={{ fontSize: '2rem' }}>📄</div>
                 <div>ไฟล์ PDF แนบมากับใบลา</div>
-                <a href={request.attachment_url} download="เอกสารแนบ.pdf">ดาวน์โหลดไฟล์ PDF</a>
+                <a href={attachmentUrl} download="เอกสารแนบ.pdf">ดาวน์โหลดไฟล์ PDF</a>
               </div>
             ) : (
               <div className="attachment-viewer-file">
                 <div style={{ fontSize: '2rem' }}>📁</div>
-                <div>{request.attachment_url.replace('file://', '')}</div>
+                <div>{attachmentUrl.replace('file://', '')}</div>
               </div>
             )}
           </div>
@@ -361,15 +401,15 @@ const PrintableLeavePdf = ({ request, onClose }) => {
         </div>
 
         {/* Attachment Preview Section */}
-        {request.attachment_url && (
+        {attachmentUrl && (
           <div className="mobile-preview-attachment" style={{ marginTop: '24px', borderTop: '1px solid #ccc', paddingTop: '16px' }}>
             <div style={{ fontWeight: 'bold', fontSize: '13pt', marginBottom: '10px' }}>
               📎 เอกสารแนบ (ใบรับรองแพทย์ / หลักฐานประกอบ)
             </div>
-            {request.attachment_url.startsWith('data:image') ? (
+            {isImageAttachment ? (
               <div style={{ textAlign: 'center' }}>
                 <img
-                  src={request.attachment_url}
+                  src={attachmentUrl}
                   alt="เอกสารแนบ"
                   style={{
                     maxWidth: '100%',
@@ -382,13 +422,13 @@ const PrintableLeavePdf = ({ request, onClose }) => {
                   }}
                 />
               </div>
-            ) : request.attachment_url.startsWith('data:application/pdf') ? (
+            ) : isPdfAttachment ? (
               <div style={{ padding: '12px', background: '#f5f5f5', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <span style={{ fontSize: '2rem' }}>📄</span>
                 <div>
                   <div style={{ fontWeight: 600, fontSize: '11.5pt' }}>ไฟล์ PDF แนบมาด้วย</div>
                   <a
-                    href={request.attachment_url}
+                    href={attachmentUrl}
                     download="เอกสารแนบ.pdf"
                     style={{ color: '#2563eb', fontSize: '10.5pt', textDecoration: 'underline' }}
                     className="no-print"
@@ -399,7 +439,7 @@ const PrintableLeavePdf = ({ request, onClose }) => {
               </div>
             ) : (
               <div style={{ padding: '10px', background: '#f5f5f5', borderRadius: '6px', fontSize: '11pt', color: '#555' }}>
-                📁 ชื่อไฟล์: {request.attachment_url.replace('file://', '')}
+                📁 ชื่อไฟล์: {attachmentUrl.replace('file://', '')}
               </div>
             )}
           </div>

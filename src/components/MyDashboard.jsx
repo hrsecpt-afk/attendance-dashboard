@@ -273,8 +273,13 @@ const MyDashboard = ({ currentUser, employeesData = [], overridesVersion = 0 }) 
       const cfg = getSupabaseCfg();
       if (cfg) {
         try {
-          // Fetch leave requests from Supabase
-          const leaveRes = await fetch(`${cfg.url}/rest/v1/leave_requests?employee_id=eq.${currentUser.employeeId}&order=created_at.desc`, {
+          // Fetch leave requests from Supabase. Named columns, never the '*' default:
+          // leave_requests carries attachment_url, a base64 data URI averaging ~736 kB
+          // per row, and this screen never renders it. Duty requests below can stay on
+          // '*' — that table has no such column and is a few dozen kB in total.
+          const leaveCols = 'id,employee_id,employee_name,leave_type,days,start_date,' +
+            'end_date,reason,status,director_comment,created_at';
+          const leaveRes = await fetch(`${cfg.url}/rest/v1/leave_requests?select=${leaveCols}&employee_id=eq.${currentUser.employeeId}&order=created_at.desc`, {
             headers: { 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` }
           });
           if (leaveRes.ok) {
