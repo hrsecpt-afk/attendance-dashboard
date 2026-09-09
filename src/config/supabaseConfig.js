@@ -5,23 +5,33 @@
 // 1. Main project (obxgfqztkbmoqyicjjuk) - app_state key-value storage
 // 2. Secondary project (vayvssbxuskhyujtbtyw) - attendance check-in data (read-only)
 
-const getEnvOrDefault = (key, defaultValue) => {
-  if (typeof window !== 'undefined' && window.__ENV__) {
-    return window.__ENV__[key] || defaultValue;
+// Values come from .env via the window.__ENV__ object vite.config.js injects at build
+// time. Deliberately no hardcoded fallbacks: these keys used to sit right here in the
+// source, and because vite.config.js read process.env instead of loading .env, the
+// fallbacks were what every build actually shipped — .env was dead weight for months.
+// A missing key is now loud (build-time warning from vite.config.js, console error here)
+// rather than silently papered over.
+const env = (typeof window !== 'undefined' && window.__ENV__) || {};
+
+const required = (key) => {
+  const value = env[key];
+  if (!value) {
+    console.error(`[config] ${key} is missing from .env — Supabase calls will fail.`);
+    return '';
   }
-  return defaultValue;
+  return value;
 };
 
 export const SUPABASE_CONFIG = {
   // Main project for app_state table
   main: {
-    url: getEnvOrDefault('VITE_SUPABASE_MAIN_URL', 'https://obxgfqztkbmoqyicjjuk.supabase.co'),
-    key: getEnvOrDefault('VITE_SUPABASE_MAIN_KEY', 'sb_publishable_HzHy2N6TJe9cFPvsRJ7YHw_d3J8-NXn'),
+    url: required('VITE_SUPABASE_MAIN_URL'),
+    key: required('VITE_SUPABASE_MAIN_KEY'),
   },
   // Secondary project for attendance check-in times (read-only)
   secondary: {
-    url: getEnvOrDefault('VITE_SUPABASE_SECONDARY_URL', 'https://vayvssbxuskhyujtbtyw.supabase.co'),
-    key: getEnvOrDefault('VITE_SUPABASE_SECONDARY_KEY', 'sb_publishable_yjyN0-SOXFwTPoOolSmKBw_QDyFe2rZ'),
+    url: required('VITE_SUPABASE_SECONDARY_URL'),
+    key: required('VITE_SUPABASE_SECONDARY_KEY'),
   },
 };
 
