@@ -100,7 +100,7 @@ const UserManagement = ({ employeesData = [] }) => {
   const handleDisplayNameChange = (value) => {
     setFormDisplayName(value);
     if (value.trim()) {
-      const clean = (name) => name.replace(/^(นาย|นางสาว|นาง|ดร\.|ครูผู้ช่วย|ครู|ผอ\.|ผู้อำนวยการ)\s*/, '').replace(/\s+/g, '').trim();
+      const clean = (name) => String(name || '').replace(/\s*[\(\[（].*?[\)\]）]\s*/g, '').replace(/^(ว่าที่ร้อยตรีหญิง|ว่าที่ร้อยตรี|ว่าที่ร\.ต\.|นาย|นางสาว|นาง|ดร\.|ครูผู้ช่วย|ครู|ผอ\.|ผู้อำนวยการ)\s*/, '').replace(/\s+/g, '').trim();
       const targetClean = clean(value);
       const matched = employeesData.find(emp => clean(emp.name) === targetClean);
       if (matched) {
@@ -125,7 +125,7 @@ const UserManagement = ({ employeesData = [] }) => {
     );
     if (duplicate) return setFormError('ชื่อผู้ใช้นี้ถูกใช้แล้ว');
 
-    const clean = (name) => name.replace(/^(นาย|นางสาว|นาง|ดร\.|ครูผู้ช่วย|ครู|ผอ\.|ผู้อำนวยการ)\s*/, '').replace(/\s+/g, '').trim();
+    const clean = (name) => String(name || '').replace(/\s*[\(\[（].*?[\)\]）]\s*/g, '').replace(/^(ว่าที่ร้อยตรีหญิง|ว่าที่ร้อยตรี|ว่าที่ร\.ต\.|นาย|นางสาว|นาง|ดร\.|ครูผู้ช่วย|ครู|ผอ\.|ผู้อำนวยการ)\s*/, '').replace(/\s+/g, '').trim();
     const targetClean = clean(formDisplayName);
     let linkedEmpId = formEmployeeId ? String(formEmployeeId) : null;
     

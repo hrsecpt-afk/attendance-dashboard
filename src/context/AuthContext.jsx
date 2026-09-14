@@ -36,9 +36,10 @@ const uniqueUsers = (...lists) => {
 };
 
 const cleanLoginName = (name) => String(name ?? '')
-  .replace(/^(นาย|นางสาว|นาง|ดร\.|ครูผู้ช่วย|ครู|ผอ\.|ผู้อำนวยการ)\s*/u, '')
+  .replace(/\s*[\(\[（].*?[\)\]）]\s*/g, '')
+  .replace(/^(ว่าที่ร้อยตรีหญิง|ว่าที่ร้อยตรี|ว่าที่ร\.ต\.|นาย|นางสาว|นาง|ดร\.|ครูผู้ช่วย|ครู|ผอ\.|ผู้อำนวยการ)\s*/u, '')
   .replace(/^คุณ\s*/u, '')
-  .replace(/^(à¸™à¸²à¸¢|à¸™à¸²à¸‡à¸ªà¸²à¸§|à¸™à¸²à¸‡|à¸”à¸£\.|à¸„à¸£à¸¹à¸œà¸¹à¹‰à¸Šà¹ˆà¸§à¸¢|à¸„à¸£à¸¹|à¸œà¸­\.|à¸œà¸¹à¹‰à¸­à¸³à¸™à¸§à¸¢à¸à¸²à¸£)\s*/, '')
+  .replace(/^(à¸™à¸²à¸¢|à¸™à¸²à¸‡à¸ªà¸²à¸§|à¸™à¸²à¸‡|à¸”à¸£\.|à¸„à¸£à¸¹à¸œà¸¹à¹‰à¸Šà¹ˆà¸§à¸¢|à¸„à¸£à¸¹|à¸œà¸­\.|à¸œà¸¹à¹‰à¸­à¸³à¸™à¸§à¸¢à¸ à¸²à¸£)\s*/, '')
   .replace(/\s+/g, '')
   .trim()
   .toLowerCase();
@@ -331,7 +332,7 @@ export const AuthProvider = ({ children }) => {
       }
     }
     
-    const clean = (name) => name.replace(/^(นาย|นางสาว|นาง|ดร\.|ครูผู้ช่วย|ครู|ผอ\.|ผู้อำนวยการ)\s*/, '').replace(/\s+/g, '').trim().toLowerCase();
+    const clean = (name) => String(name ?? '').replace(/\s*[\(\[（].*?[\)\]）]\s*/g, '').replace(/^(ว่าที่ร้อยตรีหญิง|ว่าที่ร้อยตรี|ว่าที่ร\.ต\.|นาย|นางสาว|นาง|ดร\.|ครูผู้ช่วย|ครู|ผอ\.|ผู้อำนวยการ)\s*/, '').replace(/\s+/g, '').trim().toLowerCase();
     const targetClean = clean(username);
     freshUsers = uniqueUsers(freshUsers, DEFAULT_USERS);
     const usernameInput = String(username ?? '').trim();

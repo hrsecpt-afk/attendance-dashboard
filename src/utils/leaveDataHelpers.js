@@ -208,13 +208,25 @@ export const getLocationRank = (loc) => {
 
 export const cleanNameForMatch = (nameStr) => {
   if (!nameStr) return '';
-  nameStr = nameStr.replace(/\s*\(.*?\)\s*/g, '');
-  let clean = String(nameStr).replace(/\s+/g, '');
-  const prefixes = ['นาย', 'นางสาว', 'นาง', 'เด็กชาย', 'เด็กหญิง', 'ด.ช.', 'ด.ญ.', 'ครู', 'ผอ.', 'ผอ', 'รองผอ.', 'รองผอ'];
-  for (const pref of prefixes) {
-    if (clean.startsWith(pref)) {
-      clean = clean.substring(pref.length);
-      break;
+  let clean = String(nameStr)
+    .replace(/[\u200B-\u200D\uFEFF\u00A0]/g, '')
+    .replace(/\s*[\(\[（].*?[\)\]）]\s*/g, '')
+    .replace(/\s*[\(\[（].*$/g, '')
+    .replace(/\s+/g, '');
+  const prefixes = [
+    'ว่าที่ร้อยตรีหญิง', 'ว่าที่ร้อยตรี', 'ว่าที่ร.ต.หญิง', 'ว่าที่ร.ต.',
+    'นาย', 'นางสาว', 'นาง', 'เด็กชาย', 'เด็กหญิง', 'ด.ช.', 'ด.ญ.',
+    'ครูผู้ช่วย', 'ครู', 'ผอ.', 'ผอ', 'รองผอ.', 'รองผอ'
+  ];
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const pref of prefixes) {
+      if (clean.startsWith(pref)) {
+        clean = clean.substring(pref.length);
+        changed = true;
+        break;
+      }
     }
   }
   return clean;

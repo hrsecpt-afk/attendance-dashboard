@@ -41,28 +41,51 @@ const extractTimeOnly = (val) => {
 
 const cleanNameForMatch = (nameStr) => {
   if (!nameStr) return '';
-  let clean = String(nameStr).replace(/\s+/g, '');
-  const prefixes = ['นาย', 'นางสาว', 'นาง', 'เด็กชาย', 'เด็กหญิง', 'ด.ช.', 'ด.ญ.', 'ครู', 'ผอ.', 'ผอ', 'รองผอ.', 'รองผอ'];
-  for (const pref of prefixes) {
-    if (clean.startsWith(pref)) {
-      clean = clean.substring(pref.length);
-      break;
+  let clean = String(nameStr)
+    .replace(/[\u200B-\u200D\uFEFF\u00A0]/g, '')
+    .replace(/\s*[\(\[（].*?[\)\]）]\s*/g, '')
+    .replace(/\s*[\(\[（].*$/g, '')
+    .replace(/\s+/g, '');
+  const prefixes = [
+    'ว่าที่ร้อยตรีหญิง', 'ว่าที่ร้อยตรี', 'ว่าที่ร.ต.หญิง', 'ว่าที่ร.ต.',
+    'นาย', 'นางสาว', 'นาง', 'เด็กชาย', 'เด็กหญิง', 'ด.ช.', 'ด.ญ.',
+    'ครูผู้ช่วย', 'ครู', 'ผอ.', 'ผอ', 'รองผอ.', 'รองผอ'
+  ];
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const pref of prefixes) {
+      if (clean.startsWith(pref)) {
+        clean = clean.substring(pref.length);
+        changed = true;
+        break;
+      }
     }
   }
   return clean;
 };
 
 const cleanPersonName = (nameStr) => {
-  if (!nameStr) return '';
-  let clean = String(nameStr).replace(/\s+/g, '');
-  const prefixes = ['นาย', 'นางสาว', 'นาง', 'เด็กชาย', 'เด็กหญิง', 'ด.ช.', 'ด.ญ.', 'ครูผู้ช่วย', 'ครู', 'ผอ.', 'ผอ', 'รองผอ.', 'รองผอ'];
-  for (const pref of prefixes) {
-    if (clean.startsWith(pref)) {
-      clean = clean.substring(pref.length);
-      break;
+  return cleanNameForMatch(nameStr);
+};
+
+const levenshteinDistance = (a, b) => {
+  const an = a ? a.length : 0;
+  const bn = b ? b.length : 0;
+  if (an === 0) return bn;
+  if (bn === 0) return an;
+  const matrix = Array.from({ length: bn + 1 }, (_, i) => [i]);
+  for (let j = 0; j <= an; j++) matrix[0][j] = j;
+  for (let i = 1; i <= bn; i++) {
+    for (let j = 1; j <= an; j++) {
+      if (b.charAt(i - 1) === a.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(matrix[i - 1][j - 1] + 1, matrix[i][j - 1] + 1, matrix[i - 1][j] + 1);
+      }
     }
   }
-  return cleanNameForMatch(clean);
+  return matrix[bn][an];
 };
 
 const getEmployeeNameFromRow = (row) => {
@@ -177,8 +200,10 @@ const MyDashboard = ({ currentUser, employeesData = [], overridesVersion = 0 }) 
                 const empRel = row.employees || row.employee;
                 if (empRel) {
                   const relName = getEmployeeNameFromRow(row);
-                  if (relName && cleanPersonName(relName) === cleanEmployeeName) {
-                    return true;
+                  if (relName) {
+                    const cleanRel = cleanPersonName(relName);
+                    if (cleanRel === cleanEmployeeName) return true;
+                    if (cleanEmployeeName.length >= 4 && levenshteinDistance(cleanRel, cleanEmployeeName) <= 2) return true;
                   }
                   const relIds = [empRel.id, empRel.employee_id, empRel.employeeId, empRel.employee_code, empRel.employeeCode];
                   if (relIds.some(id => id != null && candidateIds.has(String(id)))) {
@@ -187,8 +212,10 @@ const MyDashboard = ({ currentUser, employeesData = [], overridesVersion = 0 }) 
                 }
                 // 2. Check direct fields
                 const directName = getEmployeeNameFromRow(row);
-                if (directName && cleanPersonName(directName) === cleanEmployeeName) {
-                  return true;
+                if (directName) {
+                  const cleanDirect = cleanPersonName(directName);
+                  if (cleanDirect === cleanEmployeeName) return true;
+                  if (cleanEmployeeName.length >= 4 && levenshteinDistance(cleanDirect, cleanEmployeeName) <= 2) return true;
                 }
                 // 3. Check direct employee_id
                 if (row.employee_id && candidateIds.has(String(row.employee_id))) {

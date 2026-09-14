@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { restoreSettingsFromCloud } from './utils/cloudSettings.js';
 import { getAppState, setAppState } from './utils/appState.js';
-import { getSupabaseConfig } from './config/supabaseConfig.js';
+import { getSupabaseConfig, getMainSupabaseConfig } from './config/supabaseConfig.js';
 import {
   MONTHS_LIST,
   VIEWS,
@@ -111,6 +111,12 @@ const EXCLUDED_SCAN_IDS = new Set([
   '99999999-9999-9999-9999-999999999997',
   '99999999-9999-9999-9999-999999999996',
   '999999', '999998', '999997', '999996'
+]);
+
+const EXCLUDED_SCAN_NAMES = new Set([
+  'ญาณิศาแสนพลเมือง',
+  'รัตนาพรแดนกาไสย',
+  'นราทิพย์จาบประโคน'
 ]);
 
 // The scan system stores "นางสาว ทิพวรรณ แสงสี", and sometimes repeats the title
@@ -229,7 +235,7 @@ const buildNewEmployeesFromScan = (scanEmployees, roster, alreadyEnrolled) => {
     if (EXCLUDED_SCAN_IDS.has(String(scanEmp.id))) return;
     const name = tidyScanName(scanEmp.full_name);
     const key = cleanNameForMatch(name);
-    if (!key || known.has(key) || alreadyEnrolled.has(key)) return;
+    if (!key || known.has(key) || alreadyEnrolled.has(key) || EXCLUDED_SCAN_NAMES.has(key)) return;
 
     known.add(key);
     alreadyEnrolled.add(key);
@@ -240,7 +246,7 @@ const buildNewEmployeesFromScan = (scanEmployees, roster, alreadyEnrolled) => {
       position: scanEmp.position || '',
       // Filled in from the scan logs by the caller; the centre is the fallback for
       // someone who has not scanned anywhere yet.
-      location: 'ศูนย์การศึกษาพิเศษฯ',
+      location: scanEmp.location || 'ศูนย์การศึกษาพิเศษฯ',
       scanId: String(scanEmp.id),
       sortIndex: 999,
       leaves: buildEmptyLeaveYear()
@@ -439,30 +445,70 @@ function App() {
     const fetchEmployeesFromSupabase = async () => {
       const configKey = 'attendance_dashboard_supabase_config';
       const saved = localStorage.getItem(configKey);
-      if (!saved) return;
+      let cfg = null;
+      try {
+        if (saved) cfg = JSON.parse(saved);
+      } catch {}
 
       try {
-        const cfg = JSON.parse(saved);
-        if (!cfg.url || !cfg.key) return;
-
         // 1. Fetch employees. Only the five columns the roster is actually built
         // from — `select=*` also dragged down the face-scan system's own columns
         // (photo paths, embeddings, timestamps) that this app never reads.
-        const empHeaders = { 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` };
-        const empUrl = `${cfg.url}/rest/v1/employees`;
-        let empRes = await fetch(
-          `${empUrl}?select=id,full_name,position,department,location`, { headers: empHeaders }
-        );
-        // That table belongs to the scan system and has changed shape before, so
-        // a missing column must not take the whole roster down with it.
-        if (!empRes.ok && empRes.status === 400) {
-          empRes = await fetch(`${empUrl}?select=*`, { headers: empHeaders });
+        let dbEmps = [];
+        if (cfg?.url && cfg?.key) {
+          try {
+            const empHeaders = { 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` };
+            const empUrl = `${cfg.url}/rest/v1/employees`;
+            let empRes = await fetch(
+              `${empUrl}?select=id,full_name,position,department,location`, { headers: empHeaders }
+            );
+            // That table belongs to the scan system and has changed shape before, so
+            // a missing column must not take the whole roster down with it.
+            if (!empRes.ok && empRes.status === 400) {
+              empRes = await fetch(`${empUrl}?select=*`, { headers: empHeaders });
+            }
+            if (empRes.ok) {
+              const resData = await empRes.json();
+              if (Array.isArray(resData)) dbEmps = resData;
+            }
+          } catch (scanErr) {
+            console.warn("Scan system employees fetch skipped or failed", scanErr);
+          }
+
+          // If direct employees table is not accessible (or returned empty),
+          // extract all active employees directly from attendance_logs with their location
+          if (!dbEmps || dbEmps.length === 0) {
+            try {
+              const empHeaders = { 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` };
+              const logRes = await fetch(
+                `${cfg.url}/rest/v1/attendance_logs?select=employee_id,detected_location_name,work_date,employees(id,full_name,position,department)&order=work_date.desc&limit=2500`,
+                { headers: empHeaders }
+              );
+              if (logRes.ok) {
+                const logs = await logRes.json();
+                if (Array.isArray(logs)) {
+                  const empMap = new Map();
+                  logs.forEach(row => {
+                    if (row.employees && row.employees.id && row.employees.full_name) {
+                      if (!empMap.has(row.employees.id)) {
+                        empMap.set(row.employees.id, {
+                          id: row.employees.id,
+                          full_name: row.employees.full_name,
+                          position: row.employees.position || '',
+                          department: row.employees.department || '',
+                          location: scanLocationToRoster(row.detected_location_name) || 'ศูนย์การศึกษาพิเศษฯ'
+                        });
+                      }
+                    }
+                  });
+                  dbEmps = Array.from(empMap.values());
+                }
+              }
+            } catch (logErr) {
+              console.warn("Scan system attendance_logs fetch skipped or failed", logErr);
+            }
+          }
         }
-        if (!empRes.ok) {
-          setIsInitialLoadCompleted(true);
-          return;
-        }
-        let dbEmps = await empRes.json();
 
         // Defensive: drop any legacy dummy system rows if they ever got created.
         dbEmps = dbEmps.filter(emp =>
@@ -511,11 +557,11 @@ function App() {
               if (Array.isArray(parsed) && parsed.length > 0) {
                 // Anyone registered for face-scan but missing from the cloud
                 // roster is a new hire - enrol them and give them a login.
-                const newHires = buildNewEmployeesFromScan(
+                const newHires = (dbEmps && dbEmps.length > 0) ? buildNewEmployeesFromScan(
                   dbEmps, parsed, enrolledScanNamesRef.current
-                );
+                ) : [];
 
-                if (newHires.length > 0) {
+                if (newHires.length > 0 && cfg?.url && cfg?.key) {
                   // Give them the workplace they actually scan in at, not the
                   // functional unit the scan system stores as `department`.
                   const locations = await fetchScanWorkLocations(
@@ -529,15 +575,58 @@ function App() {
                 }
 
                 const roster = newHires.length > 0 ? [...parsed, ...newHires] : parsed;
+                const sortedRoster = sortEmployeesByUserListOrder(syncEmployeeDetailsWithRaw(roster));
 
-                setEmployeesData(sortEmployeesByUserListOrder(syncEmployeeDetailsWithRaw(roster)));
-                lastCloudSnapshotRef.current = cloudEmployees;
-                cacheEmployeeIdMap(roster);
+                setEmployeesData(sortedRoster);
+                const newSerialized = serializeEmployeesForCloud(sortedRoster);
+                lastCloudSnapshotRef.current = newSerialized;
+                cacheEmployeeIdMap(sortedRoster);
                 console.log("☁️ Restored employeesData from Supabase Cloud Sync");
 
                 if (newHires.length > 0) {
-                  // Leaving lastCloudSnapshotRef on the pre-enrolment blob lets the
-                  // auto-save effect notice the difference and push the new roster.
+                  // Push to Main Supabase Cloud app_state immediately
+                  setAppState('employees_data', newSerialized).catch(e =>
+                    console.error("Failed to sync new hires to app_state", e)
+                  );
+
+                  // Push to Main Supabase tables immediately
+                  const mainCfg = getMainSupabaseConfig();
+                  if (mainCfg?.url && mainCfg?.key) {
+                    fetch(`${mainCfg.url}/rest/v1/employees`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': mainCfg.key,
+                        'Authorization': `Bearer ${mainCfg.key}`,
+                        'Prefer': 'resolution=merge-duplicates'
+                      },
+                      body: JSON.stringify(newHires.map(h => ({
+                        id: h.id,
+                        full_name: h.name,
+                        position: h.position || 'พนักงานราชการ',
+                        location: h.location || 'ศูนย์การศึกษาพิเศษฯ'
+                      })))
+                    }).catch(e => console.error("Failed to insert new hires to Main Supabase", e));
+
+                    fetch(`${mainCfg.url}/rest/v1/leave_balances`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': mainCfg.key,
+                        'Authorization': `Bearer ${mainCfg.key}`,
+                        'Prefer': 'resolution=merge-duplicates'
+                      },
+                      body: JSON.stringify(newHires.map(h => ({
+                        employee_id: h.id,
+                        sick_remaining: 30,
+                        personal_remaining: 45,
+                        maternity_remaining: 90,
+                        vacation_remaining: 30,
+                        ordination_remaining: 120
+                      })))
+                    }).catch(e => console.error("Failed to insert leave balances for new hires", e));
+                  }
+
                   const newAccounts = buildUsersForEmployees(newHires, usersRef.current);
                   if (newAccounts.length > 0) {
                     updateUsersRef.current([...usersRef.current, ...newAccounts]);
@@ -567,19 +656,22 @@ function App() {
 
         // 2. Fetch leave balances (resilient fetch)
         let dbBals = [];
-        try {
-          const balUrl = `${cfg.url}/rest/v1/leave_balances`;
-          const balCols = 'employee_id,sick_remaining,personal_remaining,' +
-            'maternity_remaining,vacation_remaining,ordination_remaining';
-          let balRes = await fetch(`${balUrl}?select=${balCols}`, { headers: empHeaders });
-          if (!balRes.ok && balRes.status === 400) {
-            balRes = await fetch(`${balUrl}?select=*`, { headers: empHeaders });
+        if (cfg?.url && cfg?.key) {
+          try {
+            const empHeaders = { 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` };
+            const balUrl = `${cfg.url}/rest/v1/leave_balances`;
+            const balCols = 'employee_id,sick_remaining,personal_remaining,' +
+              'maternity_remaining,vacation_remaining,ordination_remaining';
+            let balRes = await fetch(`${balUrl}?select=${balCols}`, { headers: empHeaders });
+            if (!balRes.ok && balRes.status === 400) {
+              balRes = await fetch(`${balUrl}?select=*`, { headers: empHeaders });
+            }
+            if (balRes.ok) {
+              dbBals = await balRes.json();
+            }
+          } catch (e) {
+            console.error("Resilient fetch: leave_balances table not available", e);
           }
-          if (balRes.ok) {
-            dbBals = await balRes.json();
-          }
-        } catch (e) {
-          console.error("Resilient fetch: leave_balances table not available", e);
         }
 
         const balMap = {};
@@ -750,54 +842,57 @@ function App() {
       }
     };
 
-    // If Supabase is configured, sync write
-    const saved = localStorage.getItem('attendance_dashboard_supabase_config');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed.url && parsed.key) {
-          const table = parsed.employeesTable || 'employees';
-          const cols = parsed.supabaseColumns || { id: 'id', fullName: 'full_name', position: 'position', location: 'department' };
-          
-          await fetch(`${parsed.url}/rest/v1/${table}`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': parsed.key,
-              'Authorization': `Bearer ${parsed.key}`
-            },
-            body: JSON.stringify({
-              [cols.id]: newId,
-              [cols.fullName]: newEmp.name,
-              [cols.position]: newEmp.position,
-              [cols.location]: newEmp.location
-            })
-          });
+    const nextEmployees = [...employeesData, newEmp];
+    setEmployeesData(nextEmployees);
 
-          // write initial empty balances in Supabase
-          await fetch(`${parsed.url}/rest/v1/leave_balances`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': parsed.key,
-              'Authorization': `Bearer ${parsed.key}`
-            },
-            body: JSON.stringify({
-              employee_id: newId,
-              sick_remaining: 30,
-              personal_remaining: 45,
-              maternity_remaining: 90,
-              vacation_remaining: 30,
-              ordination_remaining: 120
-            })
-          }).catch(err => console.error(err));
-        }
+    // Save directly to cloud app_state immediately
+    try {
+      await setAppState('employees_data', serializeEmployeesForCloud(nextEmployees));
+    } catch (e) {
+      console.error('Failed to sync app_state on add', e);
+    }
+
+    // Also persist to Main Supabase tables
+    const mainCfg = getMainSupabaseConfig();
+    if (mainCfg && mainCfg.url && mainCfg.key) {
+      try {
+        await fetch(`${mainCfg.url}/rest/v1/employees`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': mainCfg.key,
+            'Authorization': `Bearer ${mainCfg.key}`
+          },
+          body: JSON.stringify({
+            id: newId,
+            full_name: newEmp.name,
+            position: newEmp.position,
+            location: newEmp.location
+          })
+        });
+
+        // write initial empty balances in Supabase
+        await fetch(`${mainCfg.url}/rest/v1/leave_balances`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': mainCfg.key,
+            'Authorization': `Bearer ${mainCfg.key}`
+          },
+          body: JSON.stringify({
+            employee_id: newId,
+            sick_remaining: 30,
+            personal_remaining: 45,
+            maternity_remaining: 90,
+            vacation_remaining: 30,
+            ordination_remaining: 120
+          })
+        }).catch(err => console.error(err));
       } catch (err) {
         console.error("Supabase write failed", err);
       }
     }
 
-    setEmployeesData(prev => [...prev, newEmp]);
     setNewEmpName('');
     setNewEmpPos('');
     setNewEmpLoc('');
@@ -813,23 +908,34 @@ function App() {
       return;
     }
 
-    // If Supabase is configured, sync delete
-    const saved = localStorage.getItem('attendance_dashboard_supabase_config');
-    if (saved) {
+    const nextEmployees = employeesData.filter(e => e.id !== empId);
+    setEmployeesData(nextEmployees);
+
+    // Save directly to cloud app_state immediately
+    try {
+      await setAppState('employees_data', serializeEmployeesForCloud(nextEmployees));
+    } catch (e) {
+      console.error('Failed to sync app_state on delete', e);
+    }
+
+    // Also persist delete to Main Supabase tables
+    const mainCfg = getMainSupabaseConfig();
+    if (mainCfg && mainCfg.url && mainCfg.key) {
       try {
-        const parsed = JSON.parse(saved);
-        if (parsed.url && parsed.key) {
-          const table = parsed.employeesTable || 'employees';
-          const cols = parsed.supabaseColumns || { id: 'id', fullName: 'full_name', position: 'position', location: 'department' };
-          
-          await fetch(`${parsed.url}/rest/v1/${table}?${cols.id}=eq.${empId}`, {
-            method: 'DELETE',
-            headers: {
-              'apikey': parsed.key,
-              'Authorization': `Bearer ${parsed.key}`
-            }
-          });
-        }
+        await fetch(`${mainCfg.url}/rest/v1/employees?id=eq.${empId}`, {
+          method: 'DELETE',
+          headers: {
+            'apikey': mainCfg.key,
+            'Authorization': `Bearer ${mainCfg.key}`
+          }
+        });
+        await fetch(`${mainCfg.url}/rest/v1/leave_balances?employee_id=eq.${empId}`, {
+          method: 'DELETE',
+          headers: {
+            'apikey': mainCfg.key,
+            'Authorization': `Bearer ${mainCfg.key}`
+          }
+        }).catch(() => {});
       } catch (err) {
         console.error("Supabase delete failed", err);
       }
@@ -906,31 +1012,26 @@ function App() {
       }
     }).catch(err => console.error('Immediate employees_data sync failed in handleUpdateEmployee', err));
 
-    // Sync changes to Supabase if config is present
+    // Sync changes to Main Supabase table if present
     try {
-      const savedConfig = localStorage.getItem('attendance_dashboard_supabase_config');
-      if (savedConfig) {
-        const cfg = JSON.parse(savedConfig);
-        if (cfg.url && cfg.key) {
-          const table = cfg.employeesTable || 'employees';
-          const cols = cfg.supabaseColumns || { id: 'id', fullName: 'full_name', position: 'position', location: 'department' };
-          fetch(`${cfg.url}/rest/v1/${table}?${cols.id}=eq.${updatedEmpForActiveMonth.id}`, {
-            method: 'PATCH',
-            headers: { 
-              'Content-Type': 'application/json', 
-              'apikey': cfg.key, 
-              'Authorization': `Bearer ${cfg.key}` 
-            },
-            body: JSON.stringify({ 
-              [cols.fullName]: updatedEmpForActiveMonth.name, 
-              [cols.position]: updatedEmpForActiveMonth.position, 
-              [cols.location]: updatedEmpForActiveMonth.location 
-            })
-          }).catch(err => console.error('Supabase patch failed in handleUpdateEmployee', err));
-        }
+      const mainCfg = getMainSupabaseConfig();
+      if (mainCfg && mainCfg.url && mainCfg.key) {
+        fetch(`${mainCfg.url}/rest/v1/employees?id=eq.${updatedEmpForActiveMonth.id}`, {
+          method: 'PATCH',
+          headers: { 
+            'Content-Type': 'application/json', 
+            'apikey': mainCfg.key, 
+            'Authorization': `Bearer ${mainCfg.key}` 
+          },
+          body: JSON.stringify({ 
+            full_name: updatedEmpForActiveMonth.name, 
+            position: updatedEmpForActiveMonth.position, 
+            location: updatedEmpForActiveMonth.location 
+          })
+        }).catch(err => console.error('Main Supabase patch failed in handleUpdateEmployee', err));
       }
     } catch (err) {
-      console.error('Failed to parse Supabase config in handleUpdateEmployee', err);
+      console.error('Failed to sync Main Supabase in handleUpdateEmployee', err);
     }
   };
 

@@ -1,4 +1,7 @@
 import React, { useState, useMemo } from 'react';
+import { getMainSupabaseConfig } from '../config/supabaseConfig.js';
+import { setAppState } from '../utils/appState.js';
+import { serializeEmployeesForCloud } from '../utils/leaveDataHelpers.js';
 
 // ────────────────────────────────────────────────────────
 // Helpers
@@ -42,13 +45,7 @@ const LOCATION_OPTIONS = [
 ];
 
 const getSupabaseConfig = () => {
-  try {
-    const saved = localStorage.getItem('attendance_dashboard_supabase_config');
-    if (!saved) return null;
-    const parsed = JSON.parse(saved);
-    if (parsed.url && parsed.key) return parsed;
-    return null;
-  } catch { return null; }
+  return getMainSupabaseConfig();
 };
 
 // ────────────────────────────────────────────────────────
@@ -254,7 +251,7 @@ const PersonnelManager = ({ employeesData, setEmployeesData }) => {
 
   const handleSyncAllToSupabase = async () => {
     const config = getSupabaseConfig();
-    if (!config) {
+    if (!config || !config.url || !config.key) {
       alert("❌ ไม่พบข้อมูลการเชื่อมต่อ Supabase หรือยังไม่ได้เชื่อมต่อ!");
       return;
     }
@@ -265,7 +262,10 @@ const PersonnelManager = ({ employeesData, setEmployeesData }) => {
 
     setSyncing(true);
     try {
-      // 1. Sync employees
+      // 1. Sync to app_state key-value store first so the roster is permanently preserved
+      await setAppState('employees_data', serializeEmployeesForCloud(employeesData));
+
+      // 2. Sync employees
       const employeesPayload = employeesData.map(emp => ({
         id: emp.id,
         full_name: emp.name,
@@ -285,7 +285,7 @@ const PersonnelManager = ({ employeesData, setEmployeesData }) => {
       });
       if (!empRes.ok) throw new Error(await empRes.text());
 
-      // 2. Sync leave balances
+      // 3. Sync leave balances
       const balancesPayload = employeesData.map(emp => {
         const lb = emp.leaves?.all || {};
         return {
@@ -340,7 +340,7 @@ const PersonnelManager = ({ employeesData, setEmployeesData }) => {
 
   // ── ADD Employee ──────────────────────────────────────
   const handleAdd = async (data) => {
-    const newId = employeesData.length > 0 ? Math.max(...employeesData.map(e => e.id)) + 1 : 1;
+    const newId = employeesData.length > 0 ? Math.max(...employeesData.map(e => (typeof e.id === 'number' ? e.id : 0))) + 1 : 1;
     const newEmp = {
       id: newId,
       name: data.name,
@@ -357,11 +357,21 @@ const PersonnelManager = ({ employeesData, setEmployeesData }) => {
       }
     };
 
+    const nextEmployees = [...employeesData, newEmp];
+    setEmployeesData(nextEmployees);
+
+    // Save directly to cloud app_state immediately
+    try {
+      await setAppState('employees_data', serializeEmployeesForCloud(nextEmployees));
+    } catch (e) {
+      console.error('Failed to sync app_state on add', e);
+    }
+
     const cfg = getSupabaseConfig();
-    if (cfg) {
+    if (cfg && cfg.url && cfg.key) {
       try {
         const table = cfg.employeesTable || 'employees';
-        const cols = cfg.supabaseColumns || { id: 'id', fullName: 'full_name', position: 'position', location: 'department' };
+        const cols = cfg.supabaseColumns || { id: 'id', fullName: 'full_name', position: 'position', location: 'location' };
         await fetch(`${cfg.url}/rest/v1/${table}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` },
@@ -378,7 +388,6 @@ const PersonnelManager = ({ employeesData, setEmployeesData }) => {
       } catch (err) { console.error('Supabase add failed', err); }
     }
 
-    setEmployeesData(prev => [...prev, newEmp]);
     setShowModal(false);
     setEditTarget(null);
     showSuccess(`✅ เพิ่มบุคลากร "${newEmp.name}" เรียบร้อยแล้ว!`);
@@ -386,11 +395,24 @@ const PersonnelManager = ({ employeesData, setEmployeesData }) => {
 
   // ── EDIT Employee ─────────────────────────────────────
   const handleEdit = async (data) => {
+    const nextEmployees = employeesData.map(e => e.id === editTarget.id
+      ? { ...e, name: data.name, position: data.position, location: data.location, phone: data.phone, email: data.email }
+      : e
+    );
+    setEmployeesData(nextEmployees);
+
+    // Save directly to cloud app_state immediately
+    try {
+      await setAppState('employees_data', serializeEmployeesForCloud(nextEmployees));
+    } catch (e) {
+      console.error('Failed to sync app_state on edit', e);
+    }
+
     const cfg = getSupabaseConfig();
-    if (cfg) {
+    if (cfg && cfg.url && cfg.key) {
       try {
         const table = cfg.employeesTable || 'employees';
-        const cols = cfg.supabaseColumns || { id: 'id', fullName: 'full_name', position: 'position', location: 'department' };
+        const cols = cfg.supabaseColumns || { id: 'id', fullName: 'full_name', position: 'position', location: 'location' };
         await fetch(`${cfg.url}/rest/v1/${table}?${cols.id}=eq.${editTarget.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json', 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` },
@@ -399,10 +421,6 @@ const PersonnelManager = ({ employeesData, setEmployeesData }) => {
       } catch (err) { console.error('Supabase edit failed', err); }
     }
 
-    setEmployeesData(prev => prev.map(e => e.id === editTarget.id
-      ? { ...e, name: data.name, position: data.position, location: data.location, phone: data.phone, email: data.email }
-      : e
-    ));
     setShowModal(false);
     setEditTarget(null);
     showSuccess(`✏️ แก้ไขข้อมูล "${data.name}" เรียบร้อยแล้ว!`);
@@ -413,8 +431,18 @@ const PersonnelManager = ({ employeesData, setEmployeesData }) => {
     const emp = employeesData.find(e => e.id === empId);
     if (!emp) return;
 
+    const nextEmployees = employeesData.filter(e => e.id !== empId);
+    setEmployeesData(nextEmployees);
+
+    // Save directly to cloud app_state immediately
+    try {
+      await setAppState('employees_data', serializeEmployeesForCloud(nextEmployees));
+    } catch (e) {
+      console.error('Failed to sync app_state on delete', e);
+    }
+
     const cfg = getSupabaseConfig();
-    if (cfg) {
+    if (cfg && cfg.url && cfg.key) {
       try {
         const table = cfg.employeesTable || 'employees';
         const cols = cfg.supabaseColumns || { id: 'id' };
@@ -422,10 +450,13 @@ const PersonnelManager = ({ employeesData, setEmployeesData }) => {
           method: 'DELETE',
           headers: { 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` }
         });
+        await fetch(`${cfg.url}/rest/v1/leave_balances?employee_id=eq.${empId}`, {
+          method: 'DELETE',
+          headers: { 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` }
+        }).catch(() => {});
       } catch (err) { console.error('Supabase delete failed', err); }
     }
 
-    setEmployeesData(prev => prev.filter(e => e.id !== empId));
     setDeleteConfirmId(null);
     showSuccess(`🗑️ ลบ "${emp.name}" ออกจากระบบเรียบร้อยแล้ว`);
   };

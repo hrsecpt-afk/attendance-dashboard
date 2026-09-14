@@ -404,7 +404,7 @@ const DutyOutsideSystem = ({ employeesData, setEmployeesData }) => {
     }
 
     if (currentUser.displayName) {
-      const cleanName = (n) => (n || '').replace(/^(นาย|นางสาว|นาง|ดร\.|ครูผู้ช่วย|ครู|ผอ\.|ผู้อำนวยการ)\s*/, '').replace(/\s+/g, '').toLowerCase();
+      const cleanName = (n) => String(n || '').replace(/\s*[\(\[（].*?[\)\]）]\s*/g, '').replace(/^(ว่าที่ร้อยตรีหญิง|ว่าที่ร้อยตรี|ว่าที่ร\.ต\.|นาย|นางสาว|นาง|ดร\.|ครูผู้ช่วย|ครู|ผอ\.|ผู้อำนวยการ)\s*/, '').replace(/\s+/g, '').toLowerCase();
       const target = cleanName(currentUser.displayName);
       const matched = employeesData.find(e => cleanName(e.name) === target);
       if (matched) {

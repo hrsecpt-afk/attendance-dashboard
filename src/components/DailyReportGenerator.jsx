@@ -197,18 +197,50 @@ const DailyReportGenerator = ({ employeesData, onDailyOverridesSaved }) => {
     return String(val);
   };
 
-  // Helper to clean Thai name for fuzzy matching by removing spaces and common prefixes
+  // Helper to clean Thai name for fuzzy matching by removing spaces, zero-width chars, brackets/parentheses and common prefixes
   const cleanNameForMatch = (nameStr) => {
     if (!nameStr) return '';
-    let clean = String(nameStr).replace(/\s+/g, '');
-    const prefixes = ['นาย', 'นางสาว', 'นาง', 'เด็กชาย', 'เด็กหญิง', 'ด.ช.', 'ด.ญ.', 'ครู', 'ผอ.', 'ผอ', 'รองผอ.', 'รองผอ'];
-    for (const pref of prefixes) {
-      if (clean.startsWith(pref)) {
-        clean = clean.substring(pref.length);
-        break;
+    let clean = String(nameStr)
+      .replace(/[\u200B-\u200D\uFEFF\u00A0]/g, '')
+      .replace(/\s*[\(\[（].*?[\)\]）]\s*/g, '')
+      .replace(/\s*[\(\[（].*$/g, '')
+      .replace(/\s+/g, '');
+    const prefixes = [
+      'ว่าที่ร้อยตรีหญิง', 'ว่าที่ร้อยตรี', 'ว่าที่ร.ต.หญิง', 'ว่าที่ร.ต.',
+      'นาย', 'นางสาว', 'นาง', 'เด็กชาย', 'เด็กหญิง', 'ด.ช.', 'ด.ญ.',
+      'ครูผู้ช่วย', 'ครู', 'ผอ.', 'ผอ', 'รองผอ.', 'รองผอ'
+    ];
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const pref of prefixes) {
+        if (clean.startsWith(pref)) {
+          clean = clean.substring(pref.length);
+          changed = true;
+          break;
+        }
       }
     }
     return clean;
+  };
+
+  const levenshteinDistance = (a, b) => {
+    const an = a ? a.length : 0;
+    const bn = b ? b.length : 0;
+    if (an === 0) return bn;
+    if (bn === 0) return an;
+    const matrix = Array.from({ length: bn + 1 }, (_, i) => [i]);
+    for (let j = 0; j <= an; j++) matrix[0][j] = j;
+    for (let i = 1; i <= bn; i++) {
+      for (let j = 1; j <= an; j++) {
+        if (b.charAt(i - 1) === a.charAt(j - 1)) {
+          matrix[i][j] = matrix[i - 1][j - 1];
+        } else {
+          matrix[i][j] = Math.min(matrix[i - 1][j - 1] + 1, matrix[i][j - 1] + 1, matrix[i - 1][j] + 1);
+        }
+      }
+    }
+    return matrix[bn][an];
   };
 
   // Fetch function to call Supabase REST API
@@ -309,6 +341,26 @@ const DailyReportGenerator = ({ employeesData, onDailyOverridesSaved }) => {
         if (row.employee_id && !isNaN(row.employee_id)) {
           const found = employeesData.find(e => e.id === Number(row.employee_id));
           if (found) return found;
+        }
+
+        // 4. Fuzzy match if exact match wasn't found (handles minor spelling differences e.g. ปิ่นประดิบ vs ปิ่นประดับ)
+        const targetName = (empRel && (empRel.full_name || empRel.name || empRel.fullname)) ||
+                           row.employee_name || row.name || '';
+        if (targetName) {
+          const cleanTarget = cleanNameForMatch(targetName);
+          if (cleanTarget.length >= 4) {
+            let bestMatch = null;
+            let minDistance = 999;
+            for (const emp of employeesData) {
+              const cleanEmp = cleanNameForMatch(emp.name);
+              const dist = levenshteinDistance(cleanTarget, cleanEmp);
+              if (dist <= 2 && dist < minDistance) {
+                minDistance = dist;
+                bestMatch = emp;
+              }
+            }
+            if (bestMatch) return bestMatch;
+          }
         }
 
         return null;
