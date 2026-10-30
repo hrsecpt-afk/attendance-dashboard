@@ -210,8 +210,8 @@ export const cleanNameForMatch = (nameStr) => {
   if (!nameStr) return '';
   let clean = String(nameStr)
     .replace(/[\u200B-\u200D\uFEFF\u00A0]/g, '')
-    .replace(/\s*[\(\[（].*?[\)\]）]\s*/g, '')
-    .replace(/\s*[\(\[（].*$/g, '')
+    .replace(/\s*[([（].*?[)\]）]\s*/g, '')
+    .replace(/\s*[([（].*$/g, '')
     .replace(/\s+/g, '');
   const prefixes = [
     'ว่าที่ร้อยตรีหญิง', 'ว่าที่ร้อยตรี', 'ว่าที่ร.ต.หญิง', 'ว่าที่ร.ต.',

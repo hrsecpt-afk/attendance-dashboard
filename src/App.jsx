@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { restoreSettingsFromCloud } from './utils/cloudSettings.js';
 import { getAppState, setAppState } from './utils/appState.js';
-import { getSupabaseConfig, getMainSupabaseConfig } from './config/supabaseConfig.js';
+import { getSupabaseConfig, getMainSupabaseConfig, SUPABASE_CONFIG } from './config/supabaseConfig.js';
 import {
   MONTHS_LIST,
   VIEWS,
@@ -387,9 +387,9 @@ function App() {
   useEffect(() => {
     const configKey = 'attendance_dashboard_supabase_config';
     const current = localStorage.getItem(configKey);
-    const cfg = getSupabaseConfig();
-    const targetUrl = cfg.url;
-    const targetKey = cfg.key;
+    const secondaryCfg = SUPABASE_CONFIG?.secondary || getSupabaseConfig();
+    const targetUrl = secondaryCfg.url;
+    const targetKey = secondaryCfg.key;
 
     let needsUpdate = false;
     try {

@@ -74,12 +74,11 @@ const LeaveCharts = ({ data }) => {
   ];
 
   // Draw donut path calculation
-  let accumulatedAngle = 0;
   const donutArcs = donutData.map((d, idx) => {
+    const prevSum = donutData.slice(0, idx).reduce((sum, item) => sum + item.value, 0);
     const angle = (d.value / totalLocationLeave) * 360;
-    const startAngle = accumulatedAngle;
+    const startAngle = (prevSum / totalLocationLeave) * 360;
     const endAngle = startAngle + angle;
-    accumulatedAngle = endAngle;
 
     // Convert polar to cartesian coordinates
     const r = 50; // radius

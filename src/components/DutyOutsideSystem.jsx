@@ -16,6 +16,12 @@ const safeAlert = (msg) => {
 // ─── Status helpers ────────────────────────────────────────────────────────
 const isUuidValue = (value) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ''));
 
+const cleanPersonName = (n) => String(n || '')
+  .replace(/\s*[([（].*?[)\]）]\s*/g, '')
+  .replace(/^(ว่าที่ร้อยตรีหญิง|ว่าที่ร้อยตรี|ว่าที่ร\.ต\.|นาย|นางสาว|นาง|ดร\.|ครูผู้ช่วย|ครู|ผอ\.|ผู้อำนวยการ)\s*/, '')
+  .replace(/\s+/g, '')
+  .toLowerCase();
+
 const STATUS_META = {
   draft:     { label: 'ร่างคำขอ',         color: '#94a3b8', bg: 'rgba(148,163,184,0.12)', border: 'rgba(148,163,184,0.3)' },
   pending:   { label: 'รออนุมัติ',         color: '#f59e0b', bg: 'rgba(245,158,11,0.12)',  border: 'rgba(245,158,11,0.3)'  },
@@ -256,19 +262,19 @@ const MiniBarChart = ({ data, colorVar = 'var(--primary)' }) => {
 
 // ─── Donut Chart ───────────────────────────────────────────────────────────
 const DonutChart = ({ segments }) => {
-  const total = segments.reduce((a, b) => a + b.value, 0) || 1;
-  let cumulative = 0;
+  const activeSegments = segments.filter(s => s.value > 0);
+  const total = activeSegments.reduce((a, b) => a + b.value, 0) || 1;
   const r = 40, cx = 50, cy = 50, strokeW = 16;
   const circumference = 2 * Math.PI * r;
   const colors = ['#9f7aea', '#10b981', '#ef4444', '#f59e0b', '#06b6d4', '#8b5cf6'];
   return (
     <svg width="100" height="100" viewBox="0 0 100 100">
       <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth={strokeW} />
-      {segments.filter(s => s.value > 0).map((seg, i) => {
+      {activeSegments.map((seg, i) => {
+        const prevTotal = activeSegments.slice(0, i).reduce((sum, s) => sum + s.value, 0);
         const pct = seg.value / total;
         const dash = pct * circumference;
-        const offset = circumference - cumulative * circumference;
-        cumulative += pct;
+        const offset = circumference - (prevTotal / total) * circumference;
         return (
           <circle key={i} cx={cx} cy={cy} r={r} fill="none"
             stroke={colors[i % colors.length]} strokeWidth={strokeW}
@@ -404,7 +410,7 @@ const DutyOutsideSystem = ({ employeesData, setEmployeesData }) => {
     }
 
     if (currentUser.displayName) {
-      const cleanName = (n) => String(n || '').replace(/\s*[\(\[（].*?[\)\]）]\s*/g, '').replace(/^(ว่าที่ร้อยตรีหญิง|ว่าที่ร้อยตรี|ว่าที่ร\.ต\.|นาย|นางสาว|นาง|ดร\.|ครูผู้ช่วย|ครู|ผอ\.|ผู้อำนวยการ)\s*/, '').replace(/\s+/g, '').toLowerCase();
+      const cleanName = (n) => String(n || '').replace(/\s*[([（].*?[)\]）]\s*/g, '').replace(/^(ว่าที่ร้อยตรีหญิง|ว่าที่ร้อยตรี|ว่าที่ร\.ต\.|นาย|นางสาว|นาง|ดร\.|ครูผู้ช่วย|ครู|ผอ\.|ผู้อำนวยการ)\s*/, '').replace(/\s+/g, '').toLowerCase();
       const target = cleanName(currentUser.displayName);
       const matched = employeesData.find(e => cleanName(e.name) === target);
       if (matched) {
@@ -518,6 +524,29 @@ const DutyOutsideSystem = ({ employeesData, setEmployeesData }) => {
     } catch (e) { console.error('Silent sync failed:', e); }
   };
 
+  // ── DB helpers ──────────────────────────────────────────────────────────
+  const loadDatabase = async () => {
+    setLoading(true);
+    try {
+      if (supabaseConnected) {
+        const res = await fetch(`${supabaseUrl}/rest/v1/duty_requests?select=*&order=created_at.desc`, {
+          headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setRequests(data);
+          // Seed the change detector off the same newest-first slice the probe reads, so the
+          // first poll after a load does not re-download a table nobody has touched.
+          fingerprintRef.current = fingerprintOf(data);
+        }
+      } else {
+        const raw = localStorage.getItem('attendance_dashboard_duty_requests');
+        setRequests(raw ? JSON.parse(raw) : []);
+      }
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
+  };
+
   // ── Init ────────────────────────────────────────────────────────────────
   useEffect(() => {
     const saved = localStorage.getItem('attendance_dashboard_supabase_config');
@@ -578,29 +607,6 @@ const DutyOutsideSystem = ({ employeesData, setEmployeesData }) => {
     if (role === 'requester') setActiveTab('my_dashboard');
     else setActiveTab('director_dashboard');
   }, [role]);
-
-  // ── DB helpers ──────────────────────────────────────────────────────────
-  const loadDatabase = async () => {
-    setLoading(true);
-    try {
-      if (supabaseConnected) {
-        const res = await fetch(`${supabaseUrl}/rest/v1/duty_requests?select=*&order=created_at.desc`, {
-          headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setRequests(data);
-          // Seed the change detector off the same newest-first slice the probe reads, so the
-          // first poll after a load does not re-download a table nobody has touched.
-          fingerprintRef.current = fingerprintOf(data);
-        }
-      } else {
-        const raw = localStorage.getItem('attendance_dashboard_duty_requests');
-        setRequests(raw ? JSON.parse(raw) : []);
-      }
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); }
-  };
 
   const saveRequests = (updated) => {
     setRequests(updated);
@@ -954,8 +960,12 @@ const DutyOutsideSystem = ({ employeesData, setEmployeesData }) => {
   // ── Filtered data ────────────────────────────────────────────────────────
   const filteredRequests = useMemo(() => {
     return requests.filter(r => {
-      if (currentUser && currentUser.role === 'user' && currentUser.employeeId) {
-        if (String(r.employee_id) !== String(currentUser.employeeId)) return false;
+      if (currentUser && currentUser.role === 'user') {
+        const matchesId = r.employee_id != null && currentUser.employeeId != null && String(r.employee_id) === String(currentUser.employeeId);
+        const cleanU = cleanPersonName(currentUser.displayName || '');
+        const cleanR = cleanPersonName(r.employee_name || '');
+        const matchesName = cleanU && cleanR && (cleanR === cleanU || cleanR.includes(cleanU) || cleanU.includes(cleanR));
+        if (!matchesId && !matchesName) return false;
       }
       if (filterName && !r.employee_name?.includes(filterName) && !r.position?.includes(filterName)) return false;
       if (filterStatus !== 'all' && r.status !== filterStatus) return false;

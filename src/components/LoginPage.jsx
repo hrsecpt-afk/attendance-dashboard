@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 
-const DEFAULT_LOGO_URL = '/logo.png';
+const DEFAULT_LOGO_URL = `${import.meta.env.BASE_URL}logo.png`;
 
 const LoginPage = () => {
   const { login, authError } = useAuth();

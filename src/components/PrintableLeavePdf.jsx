@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { getSupabaseConfig } from '../config/supabaseConfig.js';
+import html2pdf from 'html2pdf.js';
 
 const PrintableLeavePdf = ({ request, onClose }) => {
   const [mobilePreviewScale, setMobilePreviewScale] = useState(1);
@@ -103,7 +104,45 @@ const PrintableLeavePdf = ({ request, onClose }) => {
   const lastStartThai = parseDateThaiParts(request.last_leave_start_date);
   const lastEndThai = parseDateThaiParts(request.last_leave_end_date);
 
-  const isVacation = request.leave_type?.startsWith('ลาพักผ่อน');
+  const isVacation = Boolean(request.leave_type?.includes('พักผ่อน'));
+  const isSick = Boolean(request.leave_type?.includes('ป่วย'));
+  const isPersonal = Boolean(request.leave_type?.includes('กิจ'));
+  const isMaternity = Boolean(request.leave_type?.includes('คลอด'));
+
+  // Strip token and email from reason before displaying on the official form
+  const cleanReason = (request.reason || '')
+    .replace(/\[EMAIL:.*?\]/g, '')
+    .replace(/\[TOKEN:.*?\]/g, '')
+    .trim();
+
+  // Parse director feedback, signature and timestamp
+  const rawComment = request.director_comment || '';
+  const signatureImg = rawComment.match(/\[SIGNATURE:(.*?)\]/)?.[1] || null;
+  const signedAt = rawComment.match(/\[SIGNED_AT:(.*?)\]/)?.[1] || null;
+  const cleanComment = rawComment
+    .replace(/\[SIGNATURE:.*?\]/g, '')
+    .replace(/\[SIGNED_AT:.*?\]/g, '')
+    .trim();
+
+  const signedDateThai = signedAt ? parseDateThaiParts(signedAt) : { day: '.......', month: '................', year: '.......' };
+
+  // Calculate statistics for the table
+  const isLastSick = Boolean(request.last_leave_type?.includes('ป่วย'));
+  const isLastPersonal = Boolean(request.last_leave_type?.includes('กิจ'));
+  const isLastMaternity = Boolean(request.last_leave_type?.includes('คลอด'));
+
+  const pastSick = parseFloat(isLastSick ? request.last_leave_days || 0 : 0);
+  const currentSick = isSick ? parseFloat(request.days || 0) : 0;
+  const totalSick = (isSick ? currentSick : 0) + pastSick;
+
+  const pastPersonal = parseFloat(isLastPersonal ? request.last_leave_days || 0 : 0);
+  const currentPersonal = isPersonal ? parseFloat(request.days || 0) : 0;
+  const totalPersonal = currentPersonal + pastPersonal;
+
+  const pastMaternity = parseFloat(isLastMaternity ? request.last_leave_days || 0 : 0);
+  const currentMaternity = isMaternity ? parseFloat(request.days || 0) : 0;
+  const totalMaternity = currentMaternity + pastMaternity;
+
   // Attachments arrive in two shapes: an https URL for anything uploaded to Cloudinary,
   // and a base64 data URI for the older rows written before that change (plus the local
   // preview shown before a request is saved). Both still have to render.
@@ -115,6 +154,35 @@ const PrintableLeavePdf = ({ request, onClose }) => {
     attachmentUrl?.startsWith('data:application/pdf') ||
     /^https?:\/\/\S+\.pdf(\?|#|$)/i.test(attachmentUrl || '');
 
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+
+  const handleDownloadPdf = async () => {
+    const element = document.getElementById('print-area');
+    if (!element) return;
+    setDownloadingPdf(true);
+    const cleanEmpName = (request.employee_name || 'ใบลา').replace(/\s+/g, '_');
+    const cleanType = (request.leave_type || 'ขอลา').replace(/\s+/g, '_');
+    const filename = `${cleanType}_${cleanEmpName}_${request.start_date || 'doc'}.pdf`;
+
+    try {
+      await html2pdf()
+        .set({
+          margin: 0,
+          filename: filename,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true, letterRendering: true, backgroundColor: '#ffffff', windowWidth: 794 },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        })
+        .from(element)
+        .save();
+    } catch (err) {
+      console.error('Failed to download PDF directly, opening print dialog', err);
+      window.print();
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
+
   const previewModal = (
     <div className="print-modal-overlay">
       <div className="print-modal-actions no-print" style={{
@@ -123,6 +191,8 @@ const PrintableLeavePdf = ({ request, onClose }) => {
         right: '20px',
         zIndex: 9999,
         display: 'flex',
+        flexWrap: 'wrap',
+        maxWidth: 'calc(100vw - 40px)',
         gap: '10px',
         background: 'rgba(0,0,0,0.85)',
         padding: '12px 18px',
@@ -131,11 +201,47 @@ const PrintableLeavePdf = ({ request, onClose }) => {
         alignItems: 'center'
       }}>
         <span style={{ color: '#fff', fontSize: '0.85rem', fontWeight: 600 }}>👁️ ตัวอย่างใบลาขออนุมัติออนไลน์</span>
-        <button onClick={() => window.print()} style={{ padding: '8px 16px', background: '#10b981', border: 'none', color: '#fff', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.8rem' }}>🖨️ สั่งพิมพ์ใบลา</button>
+        <button
+          onClick={handleDownloadPdf}
+          disabled={downloadingPdf}
+          style={{
+            padding: '8px 16px',
+            background: '#2563eb',
+            border: 'none',
+            color: '#fff',
+            borderRadius: '8px',
+            cursor: downloadingPdf ? 'not-allowed' : 'pointer',
+            fontWeight: 'bold',
+            fontSize: '0.8rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}
+        >
+          {downloadingPdf ? '⏳ กำลังสร้าง PDF...' : '📥 ดาวน์โหลด PDF'}
+        </button>
+        <button
+          onClick={() => window.print()}
+          style={{
+            padding: '8px 16px',
+            background: '#10b981',
+            border: 'none',
+            color: '#fff',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            fontSize: '0.8rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}
+        >
+          🖨️ สั่งพิมพ์ใบลา
+        </button>
         {hasAttachment && (
           <button
             onClick={() => setShowAttachment(true)}
-            style={{ padding: '8px 16px', background: '#2563eb', border: 'none', color: '#fff', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.8rem' }}
+            style={{ padding: '8px 16px', background: '#8b5cf6', border: 'none', color: '#fff', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.8rem' }}
           >
             📎 ดูเอกสารแนบ
           </button>
@@ -173,149 +279,189 @@ const PrintableLeavePdf = ({ request, onClose }) => {
         style={{
           '--mobile-preview-scale': mobilePreviewScale,
           '--mobile-preview-width': `${794 * mobilePreviewScale}px`,
-          '--mobile-preview-height': `${1123 * mobilePreviewScale}px`
+          '--mobile-preview-height': `${1123 * mobilePreviewScale}px`,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.2)'
         }}
       >
       <div id="print-area" className="printable-document" style={{
         background: '#fff',
         color: '#000',
-        padding: '2.0cm 2.0cm 2.0cm 2.0cm',
+        padding: '1.2cm 1.8cm 1.0cm 1.8cm',
         width: '210mm',
         minHeight: '297mm',
-        margin: '20px auto',
+        margin: '0 auto',
         fontFamily: '"TH SarabunPSK", "Sarabun", sans-serif',
-        fontSize: '16pt',
-        lineHeight: '1.25',
-        boxShadow: '0 0 10px rgba(0,0,0,0.15)',
+        fontSize: '15pt',
+        lineHeight: '1.32',
         position: 'relative',
         boxSizing: 'border-box'
       }}>
         
         {/* Document Title */}
-        <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '20pt', marginBottom: '15px', textDecoration: 'underline' }}>
+        <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '18pt', marginBottom: '6px' }}>
           {isVacation ? 'ใบลาพักผ่อน' : 'ใบลาป่วย ลาคลอดบุตร ลากิจส่วนตัว'}
         </div>
 
-        {/* Written At and Date Block */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginBottom: '20px' }}>
-          <div style={{ width: '280px' }}>เขียนที่ ศูนย์การศึกษาพิเศษ ประจำจังหวัดปทุมธานี</div>
-          <div style={{ width: '280px', display: 'flex', justifyContent: 'flex-start', gap: '4px' }}>
-            วันที่ <span style={{ borderBottom: '1px dotted #000', minWidth: '35px', textAlign: 'center' }}>{docDate.day}</span> 
-            เดือน <span style={{ borderBottom: '1px dotted #000', minWidth: '80px', textAlign: 'center' }}>{docDate.month}</span> 
-            พ.ศ. <span style={{ borderBottom: '1px dotted #000', minWidth: '50px', textAlign: 'center' }}>{docDate.year}</span>
+        {/* Header Block: Top Right */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginBottom: '8px' }}>
+          <div style={{ width: '310px', textAlign: 'left', lineHeight: '1.4' }}>
+            <div>ศูนย์การศึกษาพิเศษ ประจำจังหวัดปทุมธานี</div>
+            <div style={{ display: 'flex', gap: '4px' }}>
+              วันที่ <span style={{ borderBottom: '1px dotted #000', minWidth: '35px', textAlign: 'center', fontWeight: 'bold' }}>{docDate.day}</span> 
+              เดือน <span style={{ borderBottom: '1px dotted #000', minWidth: '80px', textAlign: 'center', fontWeight: 'bold' }}>{docDate.month}</span> 
+              พ.ศ. <span style={{ borderBottom: '1px dotted #000', minWidth: '45px', textAlign: 'center', fontWeight: 'bold' }}>{docDate.year}</span>
+            </div>
           </div>
         </div>
 
         {/* Subject & To Block */}
-        <div style={{ marginBottom: '12px' }}>
-          <strong>เรื่อง</strong> {isVacation ? 'ขอลาพักผ่อน' : `ขอลา${request.leave_type}`}
+        <div style={{ marginBottom: '5px' }}>
+          <strong>เรื่อง</strong> {isVacation ? 'ขอลาพักผ่อน' : (request.leave_type?.startsWith('ขอ') ? request.leave_type : (request.leave_type?.startsWith('ลา') ? `ขอ${request.leave_type}` : `ขอลา${request.leave_type || 'ป่วย'}`))}
         </div>
-        <div style={{ marginBottom: '18px' }}>
+        <div style={{ marginBottom: '10px' }}>
           <strong>เรียน</strong> ผู้อำนวยการศูนย์การศึกษาพิเศษ ประจำจังหวัดปทุมธานี
         </div>
 
         {/* Form Body Context */}
         {isVacation ? (
           /* VACATION LEAVE FORM CONTENT */
-          <div style={{ textAlign: 'justify', textIndent: '1.5cm', marginBottom: '15px', lineHeight: '1.3' }}>
-            ข้าพเจ้า <span style={{ borderBottom: '1px dotted #000', minWidth: '150px', display: 'inline-block', textAlign: 'center', fontWeight: 'bold' }}>{request.employee_name}</span> 
-            ตำแหน่ง <span style={{ borderBottom: '1px dotted #000', minWidth: '120px', display: 'inline-block', textAlign: 'center' }}>{request.position || 'พนักงาน'}</span> 
-            สังกัด <span style={{ borderBottom: '1px dotted #000', minWidth: '220px', display: 'inline-block', textAlign: 'center' }}>ศูนย์การศึกษาพิเศษ ประจำจังหวัดปทุมธานี สำนักบริหารงานการศึกษาพิเศษ</span>
-            <br />
-            มีวันลาพักผ่อนสะสมปี 2568 <span style={{ borderBottom: '1px dotted #000', minWidth: '40px', display: 'inline-block', textAlign: 'center', fontWeight: 'bold' }}>{request.vacation_accumulated || 0}</span> วันทำการ 
-            มีสิทธิ์วันลาพักผ่อนปี 2569 <span style={{ borderBottom: '1px dotted #000', minWidth: '40px', display: 'inline-block', textAlign: 'center', fontWeight: 'bold' }}>{request.vacation_quota_current_year || 10}</span> วันทำการ 
-            รวมวันลาพักผ่อนทั้งหมด <span style={{ borderBottom: '1px dotted #000', minWidth: '40px', display: 'inline-block', textAlign: 'center', fontWeight: 'bold' }}>{request.vacation_quota_total || 10}</span> วันทำการ
-            <br />
-            ลาพักผ่อนมาแล้ว <span style={{ borderBottom: '1px dotted #000', minWidth: '40px', display: 'inline-block', textAlign: 'center', fontWeight: 'bold' }}>{request.vacation_taken || 0}</span> วันทำการ 
-            สิทธิ์วันลาพักผ่อนคงเหลือปี 2569 <span style={{ borderBottom: '1px dotted #000', minWidth: '40px', display: 'inline-block', textAlign: 'center', fontWeight: 'bold' }}>{request.vacation_remaining || 0}</span> วันทำการ
-            <br />
-            ขอลาพักผ่อนตั้งแต่วันที่ <span style={{ borderBottom: '1px dotted #000', minWidth: '35px', display: 'inline-block', textAlign: 'center' }}>{startDateThai.day}</span> 
-            เดือน <span style={{ borderBottom: '1px dotted #000', minWidth: '70px', display: 'inline-block', textAlign: 'center' }}>{startDateThai.month}</span> 
-            พ.ศ. <span style={{ borderBottom: '1px dotted #000', minWidth: '50px', display: 'inline-block', textAlign: 'center' }}>{startDateThai.year}</span>
-            ถึงวันที่ <span style={{ borderBottom: '1px dotted #000', minWidth: '35px', display: 'inline-block', textAlign: 'center' }}>{endDateThai.day}</span> 
-            เดือน <span style={{ borderBottom: '1px dotted #000', minWidth: '70px', display: 'inline-block', textAlign: 'center' }}>{endDateThai.month}</span> 
-            พ.ศ. <span style={{ borderBottom: '1px dotted #000', minWidth: '50px', display: 'inline-block', textAlign: 'center' }}>{endDateThai.year}</span>
-            มีกำหนด <span style={{ borderBottom: '1px dotted #000', minWidth: '40px', display: 'inline-block', textAlign: 'center', fontWeight: 'bold' }}>{request.days}</span> วัน
+          <div style={{ lineHeight: '1.4', marginBottom: '10px' }}>
+            <div style={{ textIndent: '1.5cm', marginBottom: '4px' }}>
+              ข้าพเจ้า <span style={{ borderBottom: '1px dotted #000', padding: '0 8px', fontWeight: 'bold' }}>{request.employee_name}</span> 
+              ตำแหน่ง <span style={{ borderBottom: '1px dotted #000', padding: '0 8px' }}>{request.position || 'พนักงาน'}</span>
+            </div>
+            <div style={{ marginBottom: '4px' }}>
+              สังกัด <span style={{ borderBottom: '1px dotted #000', padding: '0 8px' }}>ศูนย์การศึกษาพิเศษ ประจำจังหวัดปทุมธานี สำนักบริหารงานการศึกษาพิเศษ</span>
+            </div>
+            <div style={{ marginBottom: '4px' }}>
+              มีวันลาพักผ่อนสะสมปี 2568 <span style={{ borderBottom: '1px dotted #000', padding: '0 8px', fontWeight: 'bold' }}>{request.vacation_accumulated || 0}</span> วันทำการ 
+              มีสิทธิ์วันลาพักผ่อนปี 2569 <span style={{ borderBottom: '1px dotted #000', padding: '0 8px', fontWeight: 'bold' }}>{request.vacation_quota_current_year || 10}</span> วันทำการ 
+              รวมวันลาพักผ่อนทั้งหมด <span style={{ borderBottom: '1px dotted #000', padding: '0 8px', fontWeight: 'bold' }}>{request.vacation_quota_total || 10}</span> วันทำการ
+            </div>
+            <div style={{ marginBottom: '4px' }}>
+              ลาพักผ่อนมาแล้ว <span style={{ borderBottom: '1px dotted #000', padding: '0 8px', fontWeight: 'bold' }}>{request.vacation_taken || 0}</span> วันทำการ 
+              สิทธิ์วันลาพักผ่อนคงเหลือปี 2569 <span style={{ borderBottom: '1px dotted #000', padding: '0 8px', fontWeight: 'bold' }}>{request.vacation_remaining || 0}</span> วันทำการ
+            </div>
+            <div style={{ marginBottom: '4px' }}>
+              ขอลาพักผ่อนตั้งแต่วันที่ <span style={{ borderBottom: '1px dotted #000', padding: '0 8px', fontWeight: 'bold' }}>{startDateThai.day}</span> 
+              เดือน <span style={{ borderBottom: '1px dotted #000', padding: '0 8px', fontWeight: 'bold' }}>{startDateThai.month}</span> 
+              พ.ศ. <span style={{ borderBottom: '1px dotted #000', padding: '0 8px', fontWeight: 'bold' }}>{startDateThai.year}</span> 
+              ถึงวันที่ <span style={{ borderBottom: '1px dotted #000', padding: '0 8px', fontWeight: 'bold' }}>{endDateThai.day}</span> 
+              เดือน <span style={{ borderBottom: '1px dotted #000', padding: '0 8px', fontWeight: 'bold' }}>{endDateThai.month}</span> 
+              พ.ศ. <span style={{ borderBottom: '1px dotted #000', padding: '0 8px', fontWeight: 'bold' }}>{endDateThai.year}</span> 
+              มีกำหนด <span style={{ borderBottom: '1px dotted #000', padding: '0 8px', fontWeight: 'bold' }}>{request.days}</span> วัน
+            </div>
+            <div style={{ marginBottom: '4px' }}>
+              ในระหว่างลาจะติดต่อข้าพเจ้าได้ที่ <span style={{ borderBottom: '1px dotted #000', padding: '0 8px' }}>{request.address || '-'}</span>
+            </div>
+            <div style={{ marginBottom: '10px' }}>
+              หมายเลขโทรศัพท์ <span style={{ borderBottom: '1px dotted #000', padding: '0 8px', fontWeight: 'bold' }}>{request.phone || '-'}</span>
+            </div>
           </div>
         ) : (
           /* SICK/PERSONAL/MATERNITY LEAVE FORM CONTENT */
-          <div style={{ textAlign: 'justify', textIndent: '1.5cm', marginBottom: '15px', lineHeight: '1.3' }}>
-            ข้าพเจ้า <span style={{ borderBottom: '1px dotted #000', minWidth: '150px', display: 'inline-block', textAlign: 'center', fontWeight: 'bold' }}>{request.employee_name}</span> 
-            ตำแหน่ง <span style={{ borderBottom: '1px dotted #000', minWidth: '120px', display: 'inline-block', textAlign: 'center' }}>{request.position || 'พนักงาน'}</span> 
-            สังกัด <span style={{ borderBottom: '1px dotted #000', minWidth: '220px', display: 'inline-block', textAlign: 'center' }}>ศูนย์การศึกษาพิเศษ ประจำจังหวัดปทุมธานี สำนักบริหารงานการศึกษาพิเศษ</span>
-            <br />
-            ขอลา &nbsp;
-            <span style={{ fontSize: '12pt', border: '1px solid #000', padding: '0 4px', marginRight: '4px', verticalAlign: 'middle' }}>
-              {request.leave_type?.startsWith('ลาป่วย') ? '✓' : ' '}
-            </span> ป่วย เนื่องจาก <span style={{ borderBottom: '1px dotted #000', minWidth: '220px', display: 'inline-block', textAlign: 'center' }}>{request.leave_type?.startsWith('ลาป่วย') ? request.reason : '..........................................................'}</span>
-            <br />
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            <span style={{ fontSize: '12pt', border: '1px solid #000', padding: '0 4px', marginRight: '4px', verticalAlign: 'middle' }}>
-              {request.leave_type?.startsWith('ลากิจ') ? '✓' : ' '}
-            </span> กิจส่วนตัว เนื่องจาก <span style={{ borderBottom: '1px dotted #000', minWidth: '220px', display: 'inline-block', textAlign: 'center' }}>{request.leave_type?.startsWith('ลากิจ') ? request.reason : '..........................................................'}</span>
-            <br />
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            <span style={{ fontSize: '12pt', border: '1px solid #000', padding: '0 4px', marginRight: '4px', verticalAlign: 'middle' }}>
-              {request.leave_type?.startsWith('ลาคลอด') ? '✓' : ' '}
-            </span> คลอดบุตร
-            <br />
-            ตั้งแต่วันที่ <span style={{ borderBottom: '1px dotted #000', minWidth: '35px', display: 'inline-block', textAlign: 'center' }}>{startDateThai.day}</span> 
-            เดือน <span style={{ borderBottom: '1px dotted #000', minWidth: '70px', display: 'inline-block', textAlign: 'center' }}>{startDateThai.month}</span> 
-            พ.ศ. <span style={{ borderBottom: '1px dotted #000', minWidth: '50px', display: 'inline-block', textAlign: 'center' }}>{startDateThai.year}</span>
-            ถึงวันที่ <span style={{ borderBottom: '1px dotted #000', minWidth: '35px', display: 'inline-block', textAlign: 'center' }}>{endDateThai.day}</span> 
-            เดือน <span style={{ borderBottom: '1px dotted #000', minWidth: '70px', display: 'inline-block', textAlign: 'center' }}>{endDateThai.month}</span> 
-            พ.ศ. <span style={{ borderBottom: '1px dotted #000', minWidth: '50px', display: 'inline-block', textAlign: 'center' }}>{endDateThai.year}</span>
-            มีกำหนด <span style={{ borderBottom: '1px dotted #000', minWidth: '40px', display: 'inline-block', textAlign: 'center', fontWeight: 'bold' }}>{request.days}</span> วัน
-            <br />
-            และข้าพเจ้าได้ลา &nbsp;
-            <span style={{ fontSize: '12pt', border: '1px solid #000', padding: '0 4px', marginRight: '4px', verticalAlign: 'middle' }}>
-              {request.last_leave_type === 'ป่วย' ? '✓' : ' '}
-            </span> ป่วย &nbsp;&nbsp;&nbsp;&nbsp;
-            <span style={{ fontSize: '12pt', border: '1px solid #000', padding: '0 4px', marginRight: '4px', verticalAlign: 'middle' }}>
-              {request.last_leave_type === 'กิจส่วนตัว' ? '✓' : ' '}
-            </span> กิจส่วนตัว &nbsp;&nbsp;&nbsp;&nbsp;
-            <span style={{ fontSize: '12pt', border: '1px solid #000', padding: '0 4px', marginRight: '4px', verticalAlign: 'middle' }}>
-              {request.last_leave_type === 'คลอดบุตร' ? '✓' : ' '}
-            </span> คลอดบุตร ครั้งสุดท้าย
-            <br />
-            ตั้งแต่วันที่ <span style={{ borderBottom: '1px dotted #000', minWidth: '35px', display: 'inline-block', textAlign: 'center' }}>{lastStartThai.day}</span> 
-            เดือน <span style={{ borderBottom: '1px dotted #000', minWidth: '70px', display: 'inline-block', textAlign: 'center' }}>{lastStartThai.month}</span> 
-            พ.ศ. <span style={{ borderBottom: '1px dotted #000', minWidth: '50px', display: 'inline-block', textAlign: 'center' }}>{lastStartThai.year}</span>
-            ถึงวันที่ <span style={{ borderBottom: '1px dotted #000', minWidth: '35px', display: 'inline-block', textAlign: 'center' }}>{lastEndThai.day}</span> 
-            เดือน <span style={{ borderBottom: '1px dotted #000', minWidth: '70px', display: 'inline-block', textAlign: 'center' }}>{lastEndThai.month}</span> 
-            พ.ศ. <span style={{ borderBottom: '1px dotted #000', minWidth: '50px', display: 'inline-block', textAlign: 'center' }}>{lastEndThai.year}</span>
-            มีกำหนด <span style={{ borderBottom: '1px dotted #000', minWidth: '40px', display: 'inline-block', textAlign: 'center', fontWeight: 'bold' }}>{request.last_leave_days || ' - '}</span> วัน
+          <div style={{ lineHeight: '1.4', marginBottom: '8px' }}>
+            <div style={{ textIndent: '1.5cm', marginBottom: '4px' }}>
+              ข้าพเจ้า <span style={{ borderBottom: '1px dotted #000', padding: '0 8px', fontWeight: 'bold' }}>{request.employee_name}</span> 
+              ตำแหน่ง <span style={{ borderBottom: '1px dotted #000', padding: '0 8px' }}>{request.position || 'พนักงาน'}</span>
+            </div>
+            <div style={{ marginBottom: '4px' }}>
+              สังกัด <span style={{ borderBottom: '1px dotted #000', padding: '0 8px' }}>ศูนย์การศึกษาพิเศษ ประจำจังหวัดปทุมธานี สำนักบริหารงานการศึกษาพิเศษ</span>
+            </div>
+
+            <div style={{ margin: '4px 0 6px 0', display: 'flex', alignItems: 'center' }}>
+              <div style={{ width: '55px', paddingLeft: '1.5cm', whiteSpace: 'nowrap' }}>ขอลา</div>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <span style={{ display: 'inline-block', width: '14px', height: '14px', border: '1px solid #000', textAlign: 'center', lineHeight: '12px', fontSize: '10pt', marginRight: '6px', flexShrink: 0 }}>
+                    {isSick ? '✓' : ''}
+                  </span>
+                  <span style={{ width: '45px', flexShrink: 0 }}>ป่วย</span>
+                  <span style={{ marginRight: '6px', flexShrink: 0 }}>เนื่องจาก</span>
+                  <span style={{ flex: 1, borderBottom: '1px dotted #000', padding: '0 4px', fontWeight: isSick ? 'bold' : 'normal', minHeight: '18px' }}>
+                    {isSick ? cleanReason : ''}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <span style={{ display: 'inline-block', width: '14px', height: '14px', border: '1px solid #000', textAlign: 'center', lineHeight: '12px', fontSize: '10pt', marginRight: '6px', flexShrink: 0 }}>
+                    {isPersonal ? '✓' : ''}
+                  </span>
+                  <span style={{ width: '45px', flexShrink: 0 }}>กิจส่วนตัว</span>
+                  <span style={{ marginRight: '6px', flexShrink: 0 }}>เนื่องจาก</span>
+                  <span style={{ flex: 1, borderBottom: '1px dotted #000', padding: '0 4px', fontWeight: isPersonal ? 'bold' : 'normal', minHeight: '18px' }}>
+                    {isPersonal ? cleanReason : ''}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <span style={{ display: 'inline-block', width: '14px', height: '14px', border: '1px solid #000', textAlign: 'center', lineHeight: '12px', fontSize: '10pt', marginRight: '6px', flexShrink: 0 }}>
+                    {isMaternity ? '✓' : ''}
+                  </span>
+                  <span>คลอดบุตร</span>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '4px' }}>
+              ตั้งแต่วันที่ <span style={{ borderBottom: '1px dotted #000', padding: '0 6px', fontWeight: 'bold' }}>{startDateThai.day}</span> 
+              เดือน <span style={{ borderBottom: '1px dotted #000', padding: '0 6px', fontWeight: 'bold' }}>{startDateThai.month}</span> 
+              พ.ศ. <span style={{ borderBottom: '1px dotted #000', padding: '0 6px', fontWeight: 'bold' }}>{startDateThai.year}</span> 
+              ถึงวันที่ <span style={{ borderBottom: '1px dotted #000', padding: '0 6px', fontWeight: 'bold' }}>{endDateThai.day}</span> 
+              เดือน <span style={{ borderBottom: '1px dotted #000', padding: '0 6px', fontWeight: 'bold' }}>{endDateThai.month}</span> 
+              พ.ศ. <span style={{ borderBottom: '1px dotted #000', padding: '0 6px', fontWeight: 'bold' }}>{endDateThai.year}</span>
+            </div>
+
+            <div style={{ marginBottom: '4px' }}>
+              มีกำหนด <span style={{ borderBottom: '1px dotted #000', padding: '0 8px', fontWeight: 'bold' }}>{request.days}</span> วัน 
+              และข้าพเจ้าได้ลา&nbsp;
+              <span style={{ display: 'inline-block', width: '14px', height: '14px', border: '1px solid #000', textAlign: 'center', lineHeight: '12px', fontSize: '10pt', verticalAlign: 'middle', marginRight: '4px' }}>
+                {isLastSick ? '✓' : ''}
+              </span> ป่วย&nbsp;&nbsp;&nbsp;&nbsp;
+              <span style={{ display: 'inline-block', width: '14px', height: '14px', border: '1px solid #000', textAlign: 'center', lineHeight: '12px', fontSize: '10pt', verticalAlign: 'middle', marginRight: '4px' }}>
+                {isLastPersonal ? '✓' : ''}
+              </span> กิจส่วนตัว&nbsp;&nbsp;&nbsp;&nbsp;
+              <span style={{ display: 'inline-block', width: '14px', height: '14px', border: '1px solid #000', textAlign: 'center', lineHeight: '12px', fontSize: '10pt', verticalAlign: 'middle', marginRight: '4px' }}>
+                {isLastMaternity ? '✓' : ''}
+              </span> คลอดบุตร
+            </div>
+
+            <div style={{ marginBottom: '4px' }}>
+              ครั้งสุดท้ายตั้งแต่วันที่ <span style={{ borderBottom: '1px dotted #000', padding: '0 6px' }}>{lastStartThai.day}</span> 
+              เดือน <span style={{ borderBottom: '1px dotted #000', padding: '0 6px' }}>{lastStartThai.month}</span> 
+              พ.ศ. <span style={{ borderBottom: '1px dotted #000', padding: '0 6px' }}>{lastStartThai.year}</span> 
+              ถึง วันที่ <span style={{ borderBottom: '1px dotted #000', padding: '0 6px' }}>{lastEndThai.day}</span> 
+              เดือน <span style={{ borderBottom: '1px dotted #000', padding: '0 6px' }}>{lastEndThai.month}</span> 
+              พ.ศ. <span style={{ borderBottom: '1px dotted #000', padding: '0 6px' }}>{lastEndThai.year}</span>
+            </div>
+
+            <div style={{ marginBottom: '4px' }}>
+              มีกำหนด <span style={{ borderBottom: '1px dotted #000', padding: '0 8px', fontWeight: 'bold' }}>{request.last_leave_days || '-'}</span> วัน 
+              ในระหว่างลาจะติดต่อข้าพเจ้าได้ที่ <span style={{ borderBottom: '1px dotted #000', padding: '0 6px' }}>{request.address || '-'}</span>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
+              <span>หมายเลขโทรศัพท์ <span style={{ borderBottom: '1px dotted #000', minWidth: '160px', display: 'inline-block', textAlign: 'center', fontWeight: 'bold' }}>{request.phone || '-'}</span></span>
+            </div>
           </div>
         )}
 
-        {/* Contact address & phone block */}
-        <div style={{ textIndent: '1.5cm', marginBottom: '25px', lineHeight: '1.3' }}>
-          ในระหว่างลาจะติดต่อข้าพเจ้าได้ที่ <span style={{ borderBottom: '1px dotted #000', minWidth: '420px', display: 'inline-block', paddingLeft: '4px' }}>{request.address || '-'}</span>
-          <br />
-          หมายเลขโทรศัพท์ <span style={{ borderBottom: '1px dotted #000', minWidth: '220px', display: 'inline-block', paddingLeft: '4px' }}>{request.phone || '-'}</span>
-        </div>
-
         {/* Requester Signature Block */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '35px', marginRight: '1cm' }}>
-          <div style={{ textAlign: 'center', width: '250px' }}>
-            <div style={{ marginBottom: '25px' }}>ขอแสดงความนับถือ</div>
-            <div>(ลงชื่อ)............................................................</div>
-            <div style={{ marginTop: '5px' }}>({request.employee_name})</div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px', marginRight: '0.5cm' }}>
+          <div style={{ textAlign: 'center', minWidth: '220px', lineHeight: '1.35' }}>
+            <div>ลงชื่อ............................................................</div>
+            <div style={{ marginTop: '2px' }}>({request.employee_name})</div>
           </div>
         </div>
 
-        <hr style={{ border: '0.5px solid #000', margin: '20px 0' }} />
-
-        {/* Split Section: Leave Stats (Left) & Director Decision (Right) */}
-        <div style={{ display: 'flex', width: '100%', gap: '40px', fontSize: '13pt', lineHeight: '1.3' }}>
+        {/* Split Section: Leave Stats (Left) & Approvals (Right) */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', fontSize: '11.5pt', lineHeight: '1.3' }}>
           
-          {/* Left Side: Stats Check */}
-          <div style={{ width: '45%', border: '1px solid #000', padding: '12px', borderRadius: '4px' }}>
+          {/* Left Side: Stats Check & Personnel Staff Signatures */}
+          <div style={{ width: '48%', display: 'flex', flexDirection: 'column' }}>
             {isVacation ? (
               /* Vacation Left Side Stats display */
-              <div>
-                <div style={{ textAlign: 'center', fontWeight: 'bold', marginBottom: '8px' }}>สถิติการลาพักผ่อนในงบประมาณนี้</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '12pt' }}>
+              <div style={{ border: '1px solid #000', padding: '8px', borderRadius: '3px', marginBottom: '10px' }}>
+                <div style={{ textAlign: 'center', fontWeight: 'bold', marginBottom: '4px', fontSize: '11.5pt' }}>สถิติการลาพักผ่อนในปีงบประมาณนี้</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '11pt' }}>
                   <div>- วันลาสะสม: <strong>{request.vacation_accumulated || 0}</strong> วันทำการ</div>
                   <div>- มีสิทธิลาปีนี้: <strong>{request.vacation_quota_current_year || 10}</strong> วันทำการ</div>
                   <div>- รวมเป็น: <strong>{request.vacation_quota_total || 10}</strong> วันทำการ</div>
@@ -326,83 +472,124 @@ const PrintableLeavePdf = ({ request, onClose }) => {
               </div>
             ) : (
               /* Sick/Personal/Maternity Left Side Stats display */
-              <div>
-                <div style={{ textAlign: 'center', fontWeight: 'bold', marginBottom: '8px' }}>สถิติการลาในปีงบประมาณนี้</div>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', fontSize: '11pt' }}>
+              <div style={{ marginBottom: '8px' }}>
+                <div style={{ fontWeight: 'bold', marginBottom: '4px', fontSize: '11.5pt' }}>สถิติการลาในปีงบประมาณนี้</div>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', fontSize: '10.5pt', border: '1px solid #000' }}>
                   <thead>
-                    <tr style={{ borderBottom: '1px solid #000' }}>
-                      <th style={{ textAlign: 'left', padding: '2px' }}>ประเภทลา</th>
-                      <th>ลามาแล้ว</th>
-                      <th>ลาครั้งนี้</th>
-                      <th>รวม</th>
+                    <tr>
+                      <th style={{ border: '1px solid #000', padding: '3px 4px', fontSize: '10pt', fontWeight: 600 }}>ประเภทลา</th>
+                      <th style={{ border: '1px solid #000', padding: '3px 2px', fontSize: '9pt', fontWeight: 600, lineHeight: '1.15' }}>ลามาแล้ว<br/>(วันทำการ)</th>
+                      <th style={{ border: '1px solid #000', padding: '3px 2px', fontSize: '9pt', fontWeight: 600, lineHeight: '1.15' }}>ลาครั้งนี้<br/>(วันทำการ)</th>
+                      <th style={{ border: '1px solid #000', padding: '3px 2px', fontSize: '9pt', fontWeight: 600, lineHeight: '1.15' }}>รวมเป็น<br/>(วันทำการ)</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr style={{ borderBottom: '0.5px solid #ccc' }}>
-                      <td style={{ textAlign: 'left', padding: '2px' }}>ป่วย</td>
-                      <td>{request.leave_type === 'ลาป่วย' ? request.last_leave_days || 0 : 0} วัน</td>
-                      <td>{request.leave_type === 'ลาป่วย' ? request.days : 0} วัน</td>
-                      <td>{request.leave_type === 'ลาป่วย' ? (parseFloat(request.last_leave_days || 0) + parseFloat(request.days)) : 0} วัน</td>
+                    <tr>
+                      <td style={{ border: '1px solid #000', padding: '2px 4px', textAlign: 'left' }}>ป่วย</td>
+                      <td style={{ border: '1px solid #000', padding: '2px' }}>{pastSick > 0 ? pastSick : '-'}</td>
+                      <td style={{ border: '1px solid #000', padding: '2px', fontWeight: isSick ? 'bold' : 'normal' }}>{isSick ? request.days : '-'}</td>
+                      <td style={{ border: '1px solid #000', padding: '2px', fontWeight: isSick ? 'bold' : 'normal' }}>{totalSick > 0 ? totalSick : '-'}</td>
                     </tr>
-                    <tr style={{ borderBottom: '0.5px solid #ccc' }}>
-                      <td style={{ textAlign: 'left', padding: '2px' }}>กิจส่วนตัว</td>
-                      <td>{request.leave_type === 'ลากิจ' ? request.last_leave_days || 0 : 0} วัน</td>
-                      <td>{request.leave_type === 'ลากิจ' ? request.days : 0} วัน</td>
-                      <td>{request.leave_type === 'ลากิจ' ? (parseFloat(request.last_leave_days || 0) + parseFloat(request.days)) : 0} วัน</td>
+                    <tr>
+                      <td style={{ border: '1px solid #000', padding: '2px 4px', textAlign: 'left' }}>กิจส่วนตัว</td>
+                      <td style={{ border: '1px solid #000', padding: '2px' }}>{pastPersonal > 0 ? pastPersonal : '-'}</td>
+                      <td style={{ border: '1px solid #000', padding: '2px', fontWeight: isPersonal ? 'bold' : 'normal' }}>{isPersonal ? request.days : '-'}</td>
+                      <td style={{ border: '1px solid #000', padding: '2px', fontWeight: isPersonal ? 'bold' : 'normal' }}>{totalPersonal > 0 ? totalPersonal : '-'}</td>
                     </tr>
-                    <tr style={{ borderBottom: '0.5px solid #ccc' }}>
-                      <td style={{ textAlign: 'left', padding: '2px' }}>คลอดบุตร</td>
-                      <td>{request.leave_type === 'ลาคลอด' ? request.last_leave_days || 0 : 0} วัน</td>
-                      <td>{request.leave_type === 'ลาคลอด' ? request.days : 0} วัน</td>
-                      <td>{request.leave_type === 'ลาคลอด' ? (parseFloat(request.last_leave_days || 0) + parseFloat(request.days)) : 0} วัน</td>
+                    <tr>
+                      <td style={{ border: '1px solid #000', padding: '2px 4px', textAlign: 'left' }}>คลอดบุตร</td>
+                      <td style={{ border: '1px solid #000', padding: '2px' }}>{pastMaternity > 0 ? pastMaternity : '-'}</td>
+                      <td style={{ border: '1px solid #000', padding: '2px', fontWeight: isMaternity ? 'bold' : 'normal' }}>{isMaternity ? request.days : '-'}</td>
+                      <td style={{ border: '1px solid #000', padding: '2px', fontWeight: isMaternity ? 'bold' : 'normal' }}>{totalMaternity > 0 ? totalMaternity : '-'}</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
             )}
-            <div style={{ marginTop: '20px', textAlign: 'center' }}>
-              <div>(ลงชื่อ)...................................................... ผู้ตรวจ</div>
-              <div style={{ fontSize: '10.5pt', color: '#444', marginTop: '4px' }}>เจ้าหน้าที่งานข้อมูล/สารสนเทศงานบุคคล</div>
+
+            {/* Staff Signature 1: Reviewer */}
+            <div style={{ marginTop: '8px', textAlign: 'center', lineHeight: '1.25' }}>
+              <div>ลงชื่อ............................................................ผู้ตรวจสอบ</div>
+              <div style={{ marginTop: '2px' }}>(นายณัฐิวุฒิ พลนาคู)</div>
+              <div style={{ fontSize: '10pt', color: '#000' }}>ตำแหน่ง ครูผู้ช่วย</div>
+              <div style={{ marginTop: '2px', fontSize: '10pt' }}>วันที่........../........../..........</div>
+            </div>
+
+            {/* Staff Signature 2: Head of Personnel */}
+            <div style={{ marginTop: '12px', textAlign: 'center', lineHeight: '1.25' }}>
+              <div>ลงชื่อ............................................................หัวหน้ากลุ่มบริหารงานบุคคล</div>
+              <div style={{ marginTop: '2px' }}>(นายโกสินทร์ ยังมี)</div>
+              <div style={{ fontSize: '10pt', color: '#000' }}>ตำแหน่ง ครู</div>
+              <div style={{ marginTop: '2px', fontSize: '10pt' }}>วันที่........../........../..........</div>
             </div>
           </div>
 
-          {/* Right Side: Director Approval */}
-          <div style={{ width: '55%', border: '1px solid #000', padding: '12px', borderRadius: '4px' }}>
-            <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>คำสั่งผู้อำนวยการ</div>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '15px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ border: '1px solid #000', width: '15px', height: '15px', display: 'inline-block', textAlign: 'center', lineHeight: '11px', fontWeight: 'bold' }}>
-                  {request.status === 'approved' ? '✓' : ''}
-                </span>
-                <span>อนุมัติ</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ border: '1px solid #000', width: '15px', height: '15px', display: 'inline-block', textAlign: 'center', lineHeight: '11px', fontWeight: 'bold' }}>
-                  {request.status === 'rejected' ? '✓' : ''}
-                </span>
-                <span>ไม่อนุมัติ เนื่องจาก..............................................</span>
+          {/* Right Side: Deputy Director & Director Approval */}
+          <div style={{ width: '48%', display: 'flex', flexDirection: 'column' }}>
+            {/* 1. Deputy Director Block */}
+            <div style={{ marginBottom: '12px' }}>
+              <div style={{ fontWeight: 'bold', fontSize: '11pt' }}>ความเห็นผู้บังคับบัญชา</div>
+              <div style={{ fontSize: '11pt', marginTop: '1px' }}>ความคิดเห็นรองผู้อำนวยการ</div>
+              <div style={{ fontSize: '10.5pt', marginTop: '3px' }}>ความเห็นเพิ่มเติม......................................................................</div>
+              <div style={{ fontSize: '10.5pt', marginTop: '2px' }}>......................................................................................................</div>
+              <div style={{ marginTop: '8px', textAlign: 'center', lineHeight: '1.25' }}>
+                <div>(ลงชื่อ)................................................................................</div>
+                <div style={{ marginTop: '2px' }}>(นายชัยธวัช สาทถาพร)</div>
+                <div style={{ fontSize: '9.5pt' }}>รองผู้อำนวยการศูนย์การศึกษาพิเศษประจำจังหวัดปทุมธานี</div>
+                <div style={{ marginTop: '2px', fontSize: '9.5pt' }}>วันที่........../........../..........</div>
               </div>
             </div>
 
-            {request.director_comment && (
-              <div style={{ marginBottom: '10px', padding: '6px', background: '#f5f5f5', borderRadius: '4px', fontStyle: 'italic', fontSize: '11.5pt' }}>
-                หมายเหตุ ผอ.: {request.director_comment}
+            {/* 2. Director Order Block */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontWeight: 'bold', fontSize: '11pt' }}>
+                <span>คำสั่ง</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <span style={{ display: 'inline-block', width: '14px', height: '14px', border: '1px solid #000', textAlign: 'center', lineHeight: '12px', fontSize: '10pt' }}>
+                    {request.status === 'approved' ? '✓' : ''}
+                  </span>
+                  <span>อนุญาต</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <span style={{ display: 'inline-block', width: '14px', height: '14px', border: '1px solid #000', textAlign: 'center', lineHeight: '12px', fontSize: '10pt' }}>
+                    {request.status === 'rejected' ? '✓' : ''}
+                  </span>
+                  <span>ไม่อนุญาต</span>
+                </div>
               </div>
-            )}
-
-            <div style={{ marginTop: '25px', textAlign: 'center' }}>
-              <div>(ลงชื่อ).............................................................</div>
-              <div style={{ marginTop: '5px' }}>ผู้อำนวยการศูนย์การศึกษาพิเศษประจำจังหวัดปทุมธานี</div>
-              <div style={{ marginTop: '4px' }}>วันที่......./.............../.......</div>
+              <div style={{ fontSize: '10.5pt', marginTop: '4px' }}>
+                ความเห็นเพิ่มเติม {cleanComment ? <span style={{ fontWeight: 'bold' }}>{cleanComment}</span> : '......................................................................'}
+              </div>
+              <div style={{ fontSize: '10.5pt', marginTop: '2px' }}>
+                ......................................................................................................
+              </div>
+              <div style={{ marginTop: '8px', textAlign: 'center', lineHeight: '1.25' }}>
+                {signatureImg ? (
+                  <div style={{ marginBottom: '2px' }}>
+                    <img src={signatureImg} alt="ลายเซ็นผู้อำนวยการ" style={{ maxHeight: '42px', margin: '0 auto', display: 'block', objectFit: 'contain' }} />
+                  </div>
+                ) : (
+                  <div>(ลงชื่อ)................................................................................</div>
+                )}
+                <div style={{ marginTop: '2px' }}>(นางสาวภัทรภร หมื่นมะเริง)</div>
+                <div style={{ fontSize: '9.5pt' }}>ผู้อำนวยการศูนย์การศึกษาพิเศษประจำจังหวัดปทุมธานี</div>
+                <div style={{ marginTop: '2px', fontSize: '9.5pt' }}>
+                  {signedAt ? (
+                    `วันที่ ${signedDateThai.day} เดือน ${signedDateThai.month} พ.ศ. ${signedDateThai.year}`
+                  ) : (
+                    'วันที่........../........../..........'
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
         </div>
 
+
         {/* Attachment Preview Section */}
         {attachmentUrl && (
-          <div className="mobile-preview-attachment" style={{ marginTop: '24px', borderTop: '1px solid #ccc', paddingTop: '16px' }}>
+          <div className="mobile-preview-attachment" style={{ marginTop: '24px', borderTop: '1px solid #ccc', paddingTop: '16px', pageBreakBefore: 'always', breakBefore: 'page' }}>
             <div style={{ fontWeight: 'bold', fontSize: '13pt', marginBottom: '10px' }}>
               📎 เอกสารแนบ (ใบรับรองแพทย์ / หลักฐานประกอบ)
             </div>
@@ -578,7 +765,7 @@ const PrintableLeavePdf = ({ request, onClose }) => {
             margin: 0 auto 8px auto;
             padding: 8px !important;
             display: grid !important;
-            grid-template-columns: repeat(${hasAttachment ? 3 : 2}, minmax(0, 1fr));
+            grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 8px !important;
             border-radius: 10px !important;
           }

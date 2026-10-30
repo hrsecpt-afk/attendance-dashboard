@@ -43,8 +43,8 @@ const cleanNameForMatch = (nameStr) => {
   if (!nameStr) return '';
   let clean = String(nameStr)
     .replace(/[\u200B-\u200D\uFEFF\u00A0]/g, '')
-    .replace(/\s*[\(\[（].*?[\)\]）]\s*/g, '')
-    .replace(/\s*[\(\[（].*$/g, '')
+    .replace(/\s*[([（].*?[)\]）]\s*/g, '')
+    .replace(/\s*[([（].*$/g, '')
     .replace(/\s+/g, '');
   const prefixes = [
     'ว่าที่ร้อยตรีหญิง', 'ว่าที่ร้อยตรี', 'ว่าที่ร.ต.หญิง', 'ว่าที่ร.ต.',
@@ -298,30 +298,56 @@ const MyDashboard = ({ currentUser, employeesData = [], overridesVersion = 0 }) 
     const fetchMyRequests = async () => {
       setLoading(true);
       const cfg = getSupabaseCfg();
+      const targetName = (employee?.name || currentUser.displayName || '').trim();
+      const cleanUName = cleanPersonName(targetName);
+      const matchesUser = (r) => {
+        if (r.employee_id != null && currentUser.employeeId != null && String(r.employee_id) === String(currentUser.employeeId)) return true;
+        const cleanRName = cleanPersonName(r.employee_name || '');
+        if (cleanUName && cleanRName && (cleanRName === cleanUName || cleanRName.includes(cleanUName) || cleanUName.includes(cleanRName))) return true;
+        return false;
+      };
+
       if (cfg) {
         try {
-          // Fetch leave requests from Supabase. Named columns, never the '*' default:
-          // leave_requests carries attachment_url, a base64 data URI averaging ~736 kB
-          // per row, and this screen never renders it. Duty requests below can stay on
-          // '*' — that table has no such column and is a few dozen kB in total.
+          // Fetch leave requests from Supabase. Named columns, never '*'
           const leaveCols = 'id,employee_id,employee_name,leave_type,days,start_date,' +
             'end_date,reason,status,director_comment,created_at';
-          const leaveRes = await fetch(`${cfg.url}/rest/v1/leave_requests?select=${leaveCols}&employee_id=eq.${currentUser.employeeId}&order=created_at.desc`, {
-            headers: { 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` }
-          });
-          if (leaveRes.ok) {
-            const data = await leaveRes.json();
-            setLeaveRequests(data);
+          let leaveData = [];
+          if (targetName) {
+            const byNameRes = await fetch(`${cfg.url}/rest/v1/leave_requests?select=${leaveCols}&employee_name=eq.${encodeURIComponent(targetName)}&order=created_at.desc`, {
+              headers: { 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` }
+            });
+            if (byNameRes.ok) leaveData = await byNameRes.json();
           }
+          if (!leaveData || leaveData.length === 0) {
+            const leaveRes = await fetch(`${cfg.url}/rest/v1/leave_requests?select=${leaveCols}&order=created_at.desc&limit=150`, {
+              headers: { 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` }
+            });
+            if (leaveRes.ok) {
+              const all = await leaveRes.json();
+              leaveData = all.filter(matchesUser);
+            }
+          }
+          setLeaveRequests(leaveData);
 
           // Fetch duty requests from Supabase
-          const dutyRes = await fetch(`${cfg.url}/rest/v1/duty_requests?employee_id=eq.${currentUser.employeeId}&order=created_at.desc`, {
-            headers: { 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` }
-          });
-          if (dutyRes.ok) {
-            const data = await dutyRes.json();
-            setDutyRequests(data);
+          let dutyData = [];
+          if (targetName) {
+            const byNameRes = await fetch(`${cfg.url}/rest/v1/duty_requests?select=*&employee_name=eq.${encodeURIComponent(targetName)}&order=created_at.desc`, {
+              headers: { 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` }
+            });
+            if (byNameRes.ok) dutyData = await byNameRes.json();
           }
+          if (!dutyData || dutyData.length === 0) {
+            const dutyRes = await fetch(`${cfg.url}/rest/v1/duty_requests?select=*&order=created_at.desc&limit=150`, {
+              headers: { 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` }
+            });
+            if (dutyRes.ok) {
+              const all = await dutyRes.json();
+              dutyData = all.filter(matchesUser);
+            }
+          }
+          setDutyRequests(dutyData);
         } catch (e) {
           console.error("Failed to fetch my requests from Supabase", e);
         }
@@ -330,12 +356,12 @@ const MyDashboard = ({ currentUser, employeesData = [], overridesVersion = 0 }) 
         try {
           const lr = localStorage.getItem('leave_requests_v2');
           if (lr) {
-            const filtered = JSON.parse(lr).filter(r => String(r.employee_id) === String(currentUser.employeeId));
+            const filtered = JSON.parse(lr).filter(r => matchesUser(r));
             setLeaveRequests(filtered.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)));
           }
           const dr = localStorage.getItem('duty_requests');
           if (dr) {
-            const filtered = JSON.parse(dr).filter(r => String(r.employee_id) === String(currentUser.employeeId));
+            const filtered = JSON.parse(dr).filter(r => matchesUser(r));
             setDutyRequests(filtered.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)));
           }
         } catch {}

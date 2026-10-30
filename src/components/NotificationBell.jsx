@@ -74,23 +74,41 @@ const NotificationBell = ({ onNavigate }) => {
           if (res.ok) dutyItems = await res.json();
         } catch (e) { console.error('Notif: duty fetch failed', e); }
       } else {
-        // Fetch rejected requests for normal users
+        // Fetch approved & rejected requests for normal users
+        const empId = currentUser.employeeId || currentUser.id;
+        const userDisplay = (currentUser.displayName || '').replace(/\s+/g, '');
+        const isMyItem = (item) => {
+          if (item.employee_id != null && empId != null && String(item.employee_id) === String(empId)) return true;
+          if (item.employee_name && userDisplay) {
+            const iName = String(item.employee_name).replace(/\s+/g, '');
+            return iName.includes(userDisplay) || userDisplay.includes(iName);
+          }
+          return false;
+        };
+
         try {
-          const res = await fetch(`${cfg.url}/rest/v1/leave_requests?select=${LEAVE_COLS}&employee_id=eq.${currentUser.id}&status=eq.rejected&order=created_at.desc&limit=30`, {
+          const res = await fetch(`${cfg.url}/rest/v1/leave_requests?select=${LEAVE_COLS}&status=in.(approved,rejected)&order=created_at.desc&limit=50`, {
             headers: { 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` }
           });
-          if (res.ok) leaveItems = await res.json();
+          if (res.ok) {
+            const allLeaves = await res.json();
+            leaveItems = allLeaves.filter(isMyItem);
+          }
         } catch (e) { console.error('Notif: leave fetch failed', e); }
 
         try {
-          const res = await fetch(`${cfg.url}/rest/v1/duty_requests?select=${DUTY_COLS}&employee_id=eq.${currentUser.id}&status=eq.rejected&order=created_at.desc&limit=30`, {
+          const res = await fetch(`${cfg.url}/rest/v1/duty_requests?select=${DUTY_COLS}&status=in.(approved,rejected)&order=created_at.desc&limit=50`, {
             headers: { 'apikey': cfg.key, 'Authorization': `Bearer ${cfg.key}` }
           });
-          if (res.ok) dutyItems = await res.json();
+          if (res.ok) {
+            const allDuties = await res.json();
+            dutyItems = allDuties.filter(isMyItem);
+          }
         } catch (e) { console.error('Notif: duty fetch failed', e); }
       }
     } else {
       // Fallback to localStorage
+      const empId = String(currentUser.employeeId || currentUser.id);
       try {
         const lr = localStorage.getItem('attendance_dashboard_leave_requests') || localStorage.getItem('leave_requests_v2');
         if (lr) {
@@ -98,7 +116,7 @@ const NotificationBell = ({ onNavigate }) => {
           if (isAdmin) {
             leaveItems = parsed.filter(r => r.status === 'pending');
           } else {
-            leaveItems = parsed.filter(r => String(r.employee_id) === String(currentUser.id) && r.status === 'rejected');
+            leaveItems = parsed.filter(r => (String(r.employee_id) === empId || String(r.employee_name) === String(currentUser.displayName)) && (r.status === 'approved' || r.status === 'rejected'));
           }
         }
       } catch {}
@@ -109,7 +127,7 @@ const NotificationBell = ({ onNavigate }) => {
           if (isAdmin) {
             dutyItems = parsed.filter(r => r.status === 'pending');
           } else {
-            dutyItems = parsed.filter(r => String(r.employee_id) === String(currentUser.id) && r.status === 'rejected');
+            dutyItems = parsed.filter(r => (String(r.employee_id) === empId || String(r.employee_name) === String(currentUser.displayName)) && (r.status === 'approved' || r.status === 'rejected'));
           }
         }
       } catch {}
@@ -313,7 +331,7 @@ const NotificationBell = ({ onNavigate }) => {
             }}
               onClick={() => { onNavigate && onNavigate(isAdmin ? 'leave_system' : 'my_dashboard'); setOpen(false); }}
             >
-              📬 ใบลา{isAdmin ? 'รออนุมัติ' : 'ถูกตีกลับ'} {leaveNotifs.length} รายการ
+              📬 ใบลา{isAdmin ? 'รออนุมัติ' : 'ผลพิจารณา'} {leaveNotifs.length} รายการ
             </span>
             <span style={{
               background: unreadDuty > 0 ? (isAdmin ? 'rgba(239,68,68,0.12)' : 'rgba(245,158,11,0.12)') : 'rgba(255,255,255,0.04)',
@@ -324,7 +342,7 @@ const NotificationBell = ({ onNavigate }) => {
             }}
               onClick={() => { onNavigate && onNavigate(isAdmin ? 'out_of_office' : 'my_dashboard'); setOpen(false); }}
             >
-              🚗 ออกนอกพื้นที่{isAdmin ? 'รออนุมัติ' : 'ถูกตีกลับ'} {dutyNotifs.length} รายการ
+              🚗 ออกนอกพื้นที่{isAdmin ? 'รออนุมัติ' : 'ผลพิจารณา'} {dutyNotifs.length} รายการ
             </span>
           </div>
 

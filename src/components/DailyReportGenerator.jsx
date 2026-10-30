@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { isAppleMobile, printHtmlDocument, exportPdf } from '../utils/exportDocument.js';
+import { exportPdf } from '../utils/exportDocument.js';
 import { setAppState } from '../utils/appState.js';
 import { getSupabaseConfig, getMainSupabaseConfig } from '../config/supabaseConfig.js';
 
@@ -45,6 +45,20 @@ const getPersonnelCategory = (position) => {
 // All employees can take vacation leave (ลาพักผ่อน)
 const canTakeVacation = () => true;
 
+const formatThaiDate = (rawDate) => {
+  if (!rawDate) return '';
+  const dateParts = rawDate.split('-');
+  const year = parseInt(dateParts[0]);
+  const monthIndex = parseInt(dateParts[1]) - 1;
+  const day = parseInt(dateParts[2]);
+  
+  const months = [
+    "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+    "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+  ];
+  return `${day} ${months[monthIndex]} พ.ศ. ${year + 543}`;
+};
+
 const DailyReportGenerator = ({ employeesData, onDailyOverridesSaved }) => {
   const [rawDate, setRawDate] = useState(() => {
     const today = new Date();
@@ -54,6 +68,8 @@ const DailyReportGenerator = ({ employeesData, onDailyOverridesSaved }) => {
     const dd = String(today.getDate()).padStart(2, '0');
     return `${yyyy}-${mm}-${dd}`;
   });
+
+  const formattedThaiDate = useMemo(() => formatThaiDate(rawDate), [rawDate]);
 
   const [search, setSearch] = useState('');
   const [attendanceStatuses, setAttendanceStatuses] = useState({});
@@ -86,7 +102,7 @@ const DailyReportGenerator = ({ employeesData, onDailyOverridesSaved }) => {
   const [supabaseDateCol, setSupabaseDateCol] = useState('work_date');
   const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState(false);
   const [isSupabaseConnected, setIsSupabaseConnected] = useState(true);
-  const [apiLoading, setApiLoading] = useState(false);
+  const [_apiLoading, setApiLoading] = useState(false);
   const [apiStatus, setApiStatus] = useState('');
 
   // Helper to generate realistic check-in times
@@ -94,7 +110,6 @@ const DailyReportGenerator = ({ employeesData, onDailyOverridesSaved }) => {
     const pad = (n) => String(n).padStart(2, '0');
     
     if (type === 'normal') {
-      const hoursChoice = [6, 7, 8];
       const weights = [0.15, 0.75, 0.1]; // 7am is most common
       const r = Math.random();
       let h = 7;
@@ -202,8 +217,8 @@ const DailyReportGenerator = ({ employeesData, onDailyOverridesSaved }) => {
     if (!nameStr) return '';
     let clean = String(nameStr)
       .replace(/[\u200B-\u200D\uFEFF\u00A0]/g, '')
-      .replace(/\s*[\(\[（].*?[\)\]）]\s*/g, '')
-      .replace(/\s*[\(\[（].*$/g, '')
+      .replace(/\s*[([（].*?[)\]）]\s*/g, '')
+      .replace(/\s*[([（].*$/g, '')
       .replace(/\s+/g, '');
     const prefixes = [
       'ว่าที่ร้อยตรีหญิง', 'ว่าที่ร้อยตรี', 'ว่าที่ร.ต.หญิง', 'ว่าที่ร.ต.',
@@ -248,7 +263,7 @@ const DailyReportGenerator = ({ employeesData, onDailyOverridesSaved }) => {
     const url = configOverride ? configOverride.url : supabaseUrl.trim();
     const key = configOverride ? configOverride.key : supabaseKey.trim();
     const table = configOverride ? configOverride.table : supabaseTable.trim();
-    const matchCol = configOverride ? configOverride.matchCol : supabaseMatchCol;
+    const _matchCol = configOverride ? configOverride.matchCol : supabaseMatchCol;
     const dateCol = configOverride ? configOverride.dateCol : supabaseDateCol.trim();
 
     if (!url || !key) return;
@@ -450,10 +465,11 @@ const DailyReportGenerator = ({ employeesData, onDailyOverridesSaved }) => {
   const fetchLeavesForDate = async (targetDate) => {
     const map = new Map();
     try {
-      const cfg = getMainSupabaseConfig();
+      const cfg = getSupabaseConfig() || getMainSupabaseConfig();
+      if (!cfg?.url || !cfg?.key) return map;
       const query =
         `${cfg.url}/rest/v1/leave_requests` +
-        `?select=employee_id,leave_type,start_date,end_date,status` +
+        `?select=employee_id,employee_name,leave_type,start_date,end_date,status` +
         `&start_date=lte.${targetDate}&end_date=gte.${targetDate}` +
         `&status=in.(approved,pending)`;
       const res = await fetch(query, {
@@ -463,9 +479,18 @@ const DailyReportGenerator = ({ employeesData, onDailyOverridesSaved }) => {
       const rows = await res.json();
       rows.forEach(row => {
         const status = leaveTypeToStatus(row.leave_type);
-        if (!status || row.employee_id == null) return;
+        if (!status) return;
+
+        let empId = row.employee_id != null ? String(row.employee_id) : null;
+        if (!empId && row.employee_name) {
+          const cleanRowName = cleanNameForMatch(row.employee_name);
+          const matched = employeesData.find(e => cleanNameForMatch(e.name) === cleanRowName);
+          if (matched) empId = String(matched.id);
+        }
+        if (!empId) return;
+
         // An approved request wins over a pending one for the same person.
-        const key = String(row.employee_id);
+        const key = empId;
         if (map.has(key) && map.get(key).approved && row.status !== 'approved') return;
         map.set(key, { status, approved: row.status === 'approved' });
       });
@@ -706,21 +731,6 @@ const DailyReportGenerator = ({ employeesData, onDailyOverridesSaved }) => {
       setIsSupabaseModalOpen(true);
     }
   };
-
-  // Convert Gregorian date (YYYY-MM-DD) to Thai Buddhist Era string
-  const formattedThaiDate = useMemo(() => {
-    if (!rawDate) return '';
-    const dateParts = rawDate.split('-');
-    const year = parseInt(dateParts[0]);
-    const monthIndex = parseInt(dateParts[1]) - 1;
-    const day = parseInt(dateParts[2]);
-    
-    const months = [
-      "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
-      "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
-    ];
-    return `${day} ${months[monthIndex]} พ.ศ. ${year + 543}`;
-  }, [rawDate]);
 
   // Handle single employee status change and auto time generation
   const handleStatusChange = (empId, status) => {
@@ -1735,7 +1745,7 @@ const DailyReportGenerator = ({ employeesData, onDailyOverridesSaved }) => {
               {filteredEmployees.map((emp, index) => {
                 const currentStatus = attendanceStatuses[emp.id] || 'present';
                 const currentCheckIn = checkInTimes[emp.id] || '-';
-                const cat = getPersonnelCategory(emp.position);
+                const _cat = getPersonnelCategory(emp.position);
                 
                 return (
                   <tr key={emp.id} style={{ cursor: 'default' }}>

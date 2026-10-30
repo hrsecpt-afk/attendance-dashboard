@@ -52,10 +52,10 @@ const PrintableDutyPdf = ({ request, onClose }) => {
         
         {/* Header Section */}
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-          <div><strong>เลขที่เอกสาร:</strong> {request.id || `REQ-${Date.now()}`}</div>
+          <div><strong>เลขที่เอกสาร:</strong> {request.id || 'REQ-DRAFT'}</div>
           <div style={{ textAlign: 'right' }}>
             <div>เขียนที่ {request.location || 'ศูนย์การศึกษาพิเศษประจำจังหวัด'}</div>
-            <div>วันที่ {formatDateThai(request.created_at || new Date())}</div>
+            <div>วันที่ {formatDateThai(request.created_at)}</div>
           </div>
         </div>
 

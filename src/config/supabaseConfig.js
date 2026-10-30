@@ -41,7 +41,7 @@ export const getSupabaseConfig = () => {
     const saved = localStorage.getItem('attendance_dashboard_supabase_config');
     if (saved) {
       const parsed = JSON.parse(saved);
-      if (parsed.url && parsed.key) {
+      if (parsed.url && parsed.key && !parsed.url.includes('obxgfqztkbmoqyicjjuk')) {
         return {
           url: parsed.url.trim(),
           key: parsed.key.trim(),

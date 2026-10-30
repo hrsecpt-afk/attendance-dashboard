@@ -5,7 +5,7 @@
 
 -- 1. ตารางข้อมูลบุคลากร (employees)
 CREATE TABLE IF NOT EXISTS public.employees (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     full_name TEXT NOT NULL,
     position TEXT,
     location TEXT,

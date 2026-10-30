@@ -20,7 +20,7 @@ const safeAlert = (msg) => {
 
 const cleanPersonName = (name) => {
   if (!name) return '';
-  let clean = String(name).replace(/\s*[\(\[（].*?[\)\]）]\s*/g, '').replace(/\s+/g, '');
+  let clean = String(name).replace(/\s*[([（].*?[)\]）]\s*/g, '').replace(/\s+/g, '');
   const prefixes = [
     'ว่าที่ร้อยตรีหญิง', 'ว่าที่ร้อยตรี', 'ว่าที่ร.ต.',
     'นาย', 'นางสาว', 'นาง', 'ดร.', 'ครูผู้ช่วย', 'ครู', 'ผอ.', 'ผู้อำนวยการ',
@@ -65,10 +65,16 @@ const createEmptyLeave = (vacationRemaining = 30) => ({
   outOfArea: { count: 0, hours: 0, days: 0 },
 });
 
+const generateApprovalToken = () => Math.random().toString(36).substring(2) + Date.now().toString(36);
+const generateLocalLeaveId = () => `local-${Date.now()}`;
+
 const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
   const { currentUser } = useAuth();
   const [role, setRole] = useState(() => {
     // Lock or set default role based on current user session role
+    if (currentUser?.role === 'director') return 'director';
+    if (currentUser?.role === 'admin') return 'admin';
+    if (currentUser?.role === 'user') return 'requester';
     try {
       const saved = sessionStorage.getItem('attendance_current_session');
       if (saved) {
@@ -81,6 +87,8 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
     return 'requester';
   }); // requester, director, admin
   const [activeTab, setActiveTab] = useState(() => {
+    if (currentUser?.role === 'director') return 'history';
+    if (currentUser?.role === 'admin') return 'balances';
     try {
       const saved = sessionStorage.getItem('attendance_current_session');
       if (saved) {
@@ -91,6 +99,7 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
     } catch {}
     return 'form';
   }); // form, history, dashboard, balances, settings
+
   const [loading, setLoading] = useState(false);
   const [requests, setRequests] = useState([]);
   const [balances, setBalances] = useState({});
@@ -154,6 +163,7 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
   const [reason, setReason] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
+  const [applicantEmail, setApplicantEmail] = useState('');
   const [attachmentName, setAttachmentName] = useState(''); // Simulated file
   const [attachmentFile, setAttachmentFile] = useState(null); // Actual file object — uploaded to Cloudinary on submit
   const [attachmentPreview, setAttachmentPreview] = useState(null); // Base64 preview
@@ -200,6 +210,16 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
   const [historyFilterDateFrom, setHistoryFilterDateFrom] = useState('');
   const [historyFilterDateTo, setHistoryFilterDateTo] = useState('');
   const [historyViewMode, setHistoryViewMode] = useState('cards'); // 'cards' | 'table'
+
+  // Keep role in sync with logged-in user
+  useEffect(() => {
+    if (!currentUser) return;
+    if (currentUser.role === 'director') {
+      setRole('director');
+      setActiveTab('history');
+      setHistoryFilterStatus('pending');
+    }
+  }, [currentUser]);
 
   // Public Holidays (loaded from localStorage, seeded with 2025 defaults)
   const [holidays, setHolidays] = useState(() => loadHolidays());
@@ -447,6 +467,7 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
 
   // Director feedback state
   const [directorComment, setDirectorComment] = useState('');
+  const [directorComments, setDirectorComments] = useState({});
 
   // Lightweight inline toast (replaces blocking alert() on director actions)
   const [toast, setToast] = useState(null);
@@ -532,6 +553,167 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
     }
   };
 
+  // REST API calls to Supabase for requests
+  const fetchSupabaseRequests = async (overrideUrl, overrideKey) => {
+    try {
+      const currentUrl = overrideUrl || supabaseUrl || getSupabaseConfig()?.url;
+      const currentKey = overrideKey || supabaseKey || getSupabaseConfig()?.key;
+      if (!currentUrl || !currentKey) return;
+
+      const headers = {
+        'apikey': currentKey,
+        'Authorization': `Bearer ${currentKey}`
+      };
+      const since = new Date();
+      since.setFullYear(since.getFullYear() - 2);
+
+      const cols = [
+        'id', 'employee_id', 'employee_name', 'position', 'location',
+        'leave_type', 'start_date', 'end_date', 'days', 'reason',
+        'phone', 'address', 'status', 'director_comment', 'created_at',
+        'vacation_accumulated', 'vacation_quota_current_year', 'vacation_quota_total',
+        'vacation_taken', 'vacation_remaining'
+      ].join(',');
+      const base = `${currentUrl}/rest/v1/leave_requests?select=${cols}&order=created_at.desc&limit=200`;
+
+      let response = await fetch(
+        `${base}&created_at=gte.${encodeURIComponent(since.toISOString())}`, { headers }
+      );
+      if (!response.ok) {
+        const baseCols = 'id,employee_id,employee_name,position,location,leave_type,start_date,end_date,days,reason,phone,address,status,director_comment,created_at';
+        response = await fetch(
+          `${currentUrl}/rest/v1/leave_requests?select=${baseCols}&order=created_at.desc&limit=200&created_at=gte.${encodeURIComponent(since.toISOString())}`,
+          { headers }
+        );
+      }
+      if (!response.ok) {
+        const baseCols = 'id,employee_id,employee_name,position,location,leave_type,start_date,end_date,days,reason,phone,address,status,director_comment,created_at';
+        response = await fetch(
+          `${currentUrl}/rest/v1/leave_requests?select=${baseCols}&order=created_at.desc&limit=200`,
+          { headers }
+        );
+      }
+      if (response.ok) {
+        const data = await response.json();
+        setRequests(data);
+        try {
+          localStorage.setItem('attendance_dashboard_leave_requests', JSON.stringify(data));
+        } catch (_) {}
+      }
+    } catch (e) {
+      console.error("Failed to load Supabase leave requests", e);
+    }
+  };
+
+  // REST API calls to Supabase for balances
+  const fetchSupabaseBalances = async (overrideUrl, overrideKey) => {
+    try {
+      const currentUrl = overrideUrl || supabaseUrl || getSupabaseConfig()?.url;
+      const currentKey = overrideKey || supabaseKey || getSupabaseConfig()?.key;
+      if (!currentUrl || !currentKey) return;
+
+      const balCols = 'employee_id,sick_remaining,personal_remaining,' +
+        'maternity_remaining,vacation_remaining,ordination_remaining';
+      const headers = {
+        'apikey': currentKey,
+        'Authorization': `Bearer ${currentKey}`
+      };
+      let response = await fetch(`${currentUrl}/rest/v1/leave_balances?select=${balCols}`, { headers });
+      if (!response.ok && response.status === 400) {
+        response = await fetch(`${currentUrl}/rest/v1/leave_balances?select=*`, { headers });
+      }
+      if (response.ok) {
+        const data = await response.json();
+        const balMap = {};
+        data.forEach(b => {
+          balMap[b.employee_id] = {
+            sick: b.sick_remaining,
+            personal: b.personal_remaining,
+            maternity: b.maternity_remaining,
+            vacation: b.vacation_remaining,
+            ordination: b.ordination_remaining
+          };
+        });
+        setBalances(balMap);
+        try {
+          localStorage.setItem('attendance_dashboard_leave_balances', JSON.stringify(balMap));
+        } catch (_) {}
+      }
+    } catch (e) {
+      console.error("Failed to load Supabase balances", e);
+    }
+  };
+
+  // Silent Database Loader for background polling
+  const loadDatabaseSilently = async (overrideCfg) => {
+    try {
+      const cfg = overrideCfg || (supabaseUrl && supabaseKey ? { url: supabaseUrl, key: supabaseKey } : getSupabaseConfig());
+      if (cfg && cfg.url && cfg.key) {
+        await fetchSupabaseRequests(cfg.url, cfg.key);
+      }
+    } catch (e) {
+      console.warn("Silent reload of leave requests failed", e);
+    }
+  };
+
+  // General Database Loader (Local or Supabase)
+  const loadDatabase = async (overrideCfg) => {
+    // 1. Immediately hydrate from cache so the user never sees an empty screen / endless spinner
+    try {
+      const localReqs = localStorage.getItem('attendance_dashboard_leave_requests');
+      if (localReqs) {
+        const parsed = JSON.parse(localReqs);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setRequests(parsed);
+        }
+      }
+      const localBals = localStorage.getItem('attendance_dashboard_leave_balances');
+      if (localBals) {
+        setBalances(JSON.parse(localBals));
+      }
+    } catch (_) {}
+
+    setLoading(true);
+    try {
+      const cfg = overrideCfg || (supabaseUrl && supabaseKey ? { url: supabaseUrl, key: supabaseKey } : getSupabaseConfig());
+      if (cfg && cfg.url && cfg.key) {
+        // Fetch from Supabase
+        await fetchSupabaseRequests(cfg.url, cfg.key);
+        await fetchSupabaseBalances(cfg.url, cfg.key);
+      } else {
+        // Load from LocalStorage
+        const localReqs = localStorage.getItem('attendance_dashboard_leave_requests');
+        if (localReqs) {
+          setRequests(JSON.parse(localReqs));
+        } else {
+          setRequests([]);
+        }
+
+        const localBals = localStorage.getItem('attendance_dashboard_leave_balances');
+        if (localBals) {
+          setBalances(JSON.parse(localBals));
+        } else {
+          // Initialize empty balances for all employees
+          const initBals = {};
+          employeesData.forEach(emp => {
+            initBals[emp.id] = {
+              sick: 30,
+              personal: 45,
+              maternity: 90,
+              vacation: emp.leaves?.vacation?.remaining !== undefined ? emp.leaves.vacation.remaining : 30,
+              ordination: 120
+            };
+          });
+          setBalances(initBals);
+          localStorage.setItem('attendance_dashboard_leave_balances', JSON.stringify(initBals));
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Load configs and initial databases
   useEffect(() => {
@@ -541,15 +723,16 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
     if (savedSupabase) {
       try {
         const parsed = JSON.parse(savedSupabase);
-        if (parsed.url && parsed.key) config = parsed;
+        if (parsed.url && parsed.key && !parsed.url.includes('obxgfqztkbmoqyicjjuk')) config = parsed;
       } catch (e) {}
     }
     if (!config.url || !config.key) {
       config = getSupabaseConfig();
     }
+    const hasSupabase = !!(config.url && config.key);
     setSupabaseUrl(config.url);
     setSupabaseKey(config.key);
-    setSupabaseConnected(true);
+    setSupabaseConnected(hasSupabase);
 
     // 2. Load Telegram configurations
     const savedTelegramToken = localStorage.getItem('leave_telegram_bot_token') || '';
@@ -558,8 +741,35 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
     setTelegramChatId(savedTelegramChatId);
 
     // 3. Load Leave Database (Local or Supabase)
-    loadDatabase();
-  }, [supabaseConnected]);
+    loadDatabase(config);
+
+    // 4. Polling for live updates (runs every 60s while tab is visible)
+    let timer = null;
+    const startPolling = () => {
+      if (timer === null) timer = setInterval(() => loadDatabaseSilently(config), 60000);
+    };
+    const stopPolling = () => {
+      if (timer !== null) {
+        clearInterval(timer);
+        timer = null;
+      }
+    };
+    const handleVisibility = () => {
+      if (document.hidden) {
+        stopPolling();
+      } else {
+        loadDatabaseSilently(config);
+        startPolling();
+      }
+    };
+    if (!document.hidden) startPolling();
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      stopPolling();
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, []);
 
   // Auto-calculate detailed leave statistics
   useEffect(() => {
@@ -622,130 +832,6 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
     setVacationRemaining(remaining);
   }, [selectedEmployeeId, leaveType, requests, balances]);
 
-  // General Database Loader (Local or Supabase)
-  const loadDatabase = async () => {
-    setLoading(true);
-    try {
-      if (supabaseConnected) {
-        // Fetch from Supabase
-        await fetchSupabaseRequests();
-        await fetchSupabaseBalances();
-      } else {
-        // Load from LocalStorage
-        const localReqs = localStorage.getItem('attendance_dashboard_leave_requests');
-        if (localReqs) {
-          setRequests(JSON.parse(localReqs));
-        } else {
-          setRequests([]);
-        }
-
-        const localBals = localStorage.getItem('attendance_dashboard_leave_balances');
-        if (localBals) {
-          setBalances(JSON.parse(localBals));
-        } else {
-          // Initialize empty balances for all employees
-          const initBals = {};
-          employeesData.forEach(emp => {
-            initBals[emp.id] = {
-              sick: 30,
-              personal: 45,
-              maternity: 90,
-              vacation: emp.leaves?.vacation?.remaining !== undefined ? emp.leaves.vacation.remaining : 30,
-              ordination: 120
-            };
-          });
-          setBalances(initBals);
-          localStorage.setItem('attendance_dashboard_leave_balances', JSON.stringify(initBals));
-        }
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // REST API calls to Supabase for requests
-  const fetchSupabaseRequests = async () => {
-    try {
-      // Unbounded, this read grew with the table forever: every load re-downloaded
-      // every leave request since the system started, long free-text reason and all.
-      //
-      // The bound is a date, not a row count, and that distinction matters — these
-      // rows are summed into this year's vacation-taken figure and the approved-leave
-      // breakdown, so dropping the Nth-oldest row would quietly make those totals
-      // wrong. Two years always covers the current year in full, whatever the volume.
-      const headers = {
-        'apikey': supabaseKey,
-        'Authorization': `Bearer ${supabaseKey}`
-      };
-      const since = new Date();
-      since.setFullYear(since.getFullYear() - 2);
-
-      // Named columns, never '*'. attachment_url holds a base64 data URI averaging ~736 kB
-      // per row; nothing on this screen renders it, and the print modal fetches it itself
-      // for the one request it opens. Reading it for every row here is what drained the
-      // project's egress quota. Everything the printed form needs is listed.
-      const cols = [
-        'id', 'employee_id', 'employee_name', 'position', 'location',
-        'leave_type', 'start_date', 'end_date', 'days', 'reason',
-        'phone', 'address', 'status', 'director_comment', 'created_at',
-        'last_leave_type', 'last_leave_start_date', 'last_leave_end_date', 'last_leave_days',
-        'vacation_accumulated', 'vacation_quota_current_year', 'vacation_quota_total',
-        'vacation_taken', 'vacation_remaining'
-      ].join(',');
-      const base = `${supabaseUrl}/rest/v1/leave_requests?select=${cols}&order=created_at.desc`;
-
-      let response = await fetch(
-        `${base}&created_at=gte.${encodeURIComponent(since.toISOString())}`, { headers }
-      );
-      // Better to read everything than to read nothing if a column above is not there.
-      if (!response.ok && response.status === 400) {
-        response = await fetch(
-          `${supabaseUrl}/rest/v1/leave_requests?select=*&order=created_at.desc`, { headers }
-        );
-      }
-      if (response.ok) {
-        const data = await response.json();
-        setRequests(data);
-      }
-    } catch (e) {
-      console.error("Failed to load Supabase leave requests", e);
-    }
-  };
-
-  // REST API calls to Supabase for balances
-  const fetchSupabaseBalances = async () => {
-    try {
-      const balCols = 'employee_id,sick_remaining,personal_remaining,' +
-        'maternity_remaining,vacation_remaining,ordination_remaining';
-      const headers = {
-        'apikey': supabaseKey,
-        'Authorization': `Bearer ${supabaseKey}`
-      };
-      let response = await fetch(`${supabaseUrl}/rest/v1/leave_balances?select=${balCols}`, { headers });
-      if (!response.ok && response.status === 400) {
-        response = await fetch(`${supabaseUrl}/rest/v1/leave_balances?select=*`, { headers });
-      }
-      if (response.ok) {
-        const data = await response.json();
-        const balMap = {};
-        data.forEach(b => {
-          balMap[b.employee_id] = {
-            sick: b.sick_remaining,
-            personal: b.personal_remaining,
-            maternity: b.maternity_remaining,
-            vacation: b.vacation_remaining,
-            ordination: b.ordination_remaining
-          };
-        });
-        setBalances(balMap);
-      }
-    } catch (e) {
-      console.error("Failed to load Supabase balances", e);
-    }
-  };
-
   // Save Settings callback
   const handleSaveSettings = (e) => {
     e.preventDefault();
@@ -797,13 +883,27 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
     return balances[selectedEmployeeId] || defaultBal;
   }, [selectedEmployeeId, balances]);
 
+  const formatLeaveType = (type) => {
+    if (!type) return '-';
+    const map = {
+      sick: 'ลาป่วย',
+      personal: 'ลากิจส่วนตัว',
+      vacation: 'ลาพักผ่อน',
+      maternity: 'ลาคลอดบุตร',
+      wifeAssist: 'ลาไปช่วยเหลือภริยาที่คลอดบุตร',
+      ordination: 'ลาอุปสมบท / พิธีฮัจญ์',
+      military: 'ลาระดมพล / ทหาร',
+    };
+    return map[type] || type;
+  };
+
   const getBalanceField = (type) => {
     if (!type) return 'sick';
-    if (type.startsWith('ลาป่วย')) return 'sick';
-    if (type.startsWith('ลากิจ')) return 'personal';
-    if (type.startsWith('ลาคลอด')) return 'maternity';
-    if (type.startsWith('ลาพักผ่อน')) return 'vacation';
-    if (type.startsWith('ลาอุปสมบท')) return 'ordination';
+    if (type.startsWith('ลาป่วย') || type === 'sick') return 'sick';
+    if (type.startsWith('ลากิจ') || type === 'personal') return 'personal';
+    if (type.startsWith('ลาคลอด') || type === 'maternity') return 'maternity';
+    if (type.startsWith('ลาพักผ่อน') || type === 'vacation') return 'vacation';
+    if (type.startsWith('ลาอุปสมบท') || type === 'ordination') return 'ordination';
     return 'sick';
   };
 
@@ -960,8 +1060,11 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
       uploadedAttachmentUrl = `file://${attachmentName}`;
     }
 
+    const approvalToken = generateApprovalToken();
+    const enrichedReason = `${reason.trim()} ${applicantEmail.trim() ? `[EMAIL:${applicantEmail.trim()}]` : ''} [TOKEN:${approvalToken}]`.trim();
+
     const newRequest = {
-      id: supabaseConnected ? undefined : `local-${Date.now()}`,
+      id: supabaseConnected ? undefined : generateLocalLeaveId(),
       employee_id: selectedEmployee?.id || selectedEmployeeId,
       employee_name: selectedEmployee?.name || '',
       position: selectedEmployee?.position || '',
@@ -970,7 +1073,7 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
       start_date: startDate,
       end_date: endDate,
       days: calculatedDaysCount,
-      reason: reason.trim(),
+      reason: enrichedReason,
       phone: phone.trim(),
       address: address.trim(),
       attachment_url: uploadedAttachmentUrl,
@@ -998,7 +1101,8 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
         const postHeaders = {
           'Content-Type': 'application/json',
           'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Prefer': 'return=representation'
         };
         const supabaseRequest = {
           ...newRequest,
@@ -1014,7 +1118,7 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
           const errText = await res.text();
           let errObj = {};
           try { errObj = JSON.parse(errText); } catch (_) {}
-          if (errObj.code === 'PGRST204') {
+          if (res.status === 400 || errObj.code === 'PGRST204' || errObj.code === '42703') {
             // Retry with base columns only
             const baseRequest = {
               employee_id: supabaseRequest.employee_id,
@@ -1042,6 +1146,15 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
             throw new Error(errText);
           }
         }
+        let savedItem = newRequest;
+        try {
+          const created = await res.json();
+          if (Array.isArray(created) && created.length > 0) {
+            savedItem = created[0];
+          }
+        } catch (_) {}
+        // Optimistically add new leave request to state so it appears immediately
+        setRequests(prev => [savedItem, ...prev.filter(r => r.id !== savedItem.id && r.id !== newRequest.id)]);
         await fetchSupabaseRequests();
       } else {
         // Local Save
@@ -1052,6 +1165,29 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
 
       setFormSuccess('✅ ยื่นคำขอสำเร็จแล้ว! ระบบกำลังนำส่งเรื่องให้ผู้อำนวยการพิจารณา');
       sendTelegramNotification(newRequest);
+
+      // Trigger Director Email Notification
+      try {
+        fetch('/api/send-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'send_director_notification',
+            requestData: {
+              id: newRequest.id,
+              employee_name: newRequest.employee_name,
+              position: newRequest.position,
+              leave_type: newRequest.leave_type,
+              start_date: newRequest.start_date,
+              end_date: newRequest.end_date,
+              days: newRequest.days,
+              reason: reason.trim(),
+              token: approvalToken,
+              attachment_url: newRequest.attachment_url,
+            }
+          })
+        }).catch(() => {});
+      } catch {}
 
       // Clear Form fields
       setReason('');
@@ -1076,7 +1212,7 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
     if (!req || req.status === newStatus) return;
     if (syncingIds.includes(requestId)) return;
 
-    const comment = directorComment.trim();
+    const comment = (directorComments[requestId] !== undefined ? directorComments[requestId] : directorComment).trim();
     const updatedReq = { ...req, status: newStatus, director_comment: comment };
     const isApprove = newStatus === 'approved';
     const balKey = getBalanceField(req.leave_type);
@@ -1092,6 +1228,11 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
     setRequests(nextRequests);
     if (isApprove) setBalances(nextBalances);
     setDirectorComment('');
+    setDirectorComments(prev => {
+      const next = { ...prev };
+      delete next[requestId];
+      return next;
+    });
     setSyncingIds(ids => [...ids, requestId]);
     showToast('success', isApprove
       ? `✅ อนุมัติใบลาของ ${req.employee_name} เรียบร้อยแล้ว`
@@ -1136,6 +1277,32 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
 
       // Telegram must never hold up the click
       sendStatusUpdateNotification(updatedReq);
+
+      // Email notification to applicant if email was provided
+      try {
+        const applicantEmailMatch = (req.reason || '').match(/\[EMAIL:(.*?)\]/);
+        const appEmail = applicantEmailMatch ? applicantEmailMatch[1] : null;
+        if (appEmail) {
+          fetch('/api/send-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'send_applicant_approval_notification',
+              requestData: {
+                id: updatedReq.id,
+                employee_name: updatedReq.employee_name,
+                leave_type: updatedReq.leave_type,
+                start_date: updatedReq.start_date,
+                end_date: updatedReq.end_date,
+                days: updatedReq.days,
+                applicant_email: appEmail,
+                status: newStatus,
+                director_comment: comment,
+              }
+            })
+          }).catch(() => {});
+        }
+      } catch {}
     } catch (err) {
       // Roll back just this request (other optimistic edits stay intact)
       setRequests(prev => prev.map(r => (r.id === requestId ? req : r)));
@@ -1333,6 +1500,10 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
       setActiveTab('form');
     } else if (newRole === 'director') {
       setActiveTab('history');
+      setHistoryFilterStatus('pending');
+      setHistoryFilterType('all');
+      setHistorySearchName('');
+      loadDatabaseSilently();
     } else {
       setActiveTab('dashboard');
     }
@@ -1837,6 +2008,17 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
             </div>
 
             <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px' }}>📧 อีเมลสำหรับรับผลการพิจารณาและดาวน์โหลดใบลา (PDF)</label>
+              <input 
+                type="email" 
+                value={applicantEmail} 
+                onChange={(e) => setApplicantEmail(e.target.value)}
+                placeholder="เช่น your-email@gmail.com หรือ hr.secpt@gmail.com"
+                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-dark)', color: 'var(--text-main)' }}
+              />
+            </div>
+
+            <div>
               <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '8px' }}>📁 แนบเอกสารเพิ่มเติม (เช่น ใบรับรองแพทย์ / ไฟล์ภาพ)</label>
               {/* Drop Zone */}
               <div
@@ -1961,7 +2143,9 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
 
       {/* History and Status Tab */}
       {!loading && activeTab === 'history' && (() => {
-        const isRequester = role === 'requester' || role === 'user' || currentUser?.role === 'user';
+        const isDirector = role === 'director' || currentUser?.role === 'director';
+        const isAdmin = !isDirector && (role === 'admin' || (currentUser?.role === 'admin' && role !== 'requester'));
+        const isRequester = !isDirector && !isAdmin;
         const selectedEmployeeForUser = employeesData.find(emp => String(emp.id) === String(selectedEmployeeId))
           || employeesData.find(emp => cleanPersonName(emp.name) === cleanPersonName(currentUser?.displayName));
         const ownerIds = new Set(
@@ -1977,23 +2161,24 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
             const matchesOwnId = req.employee_id != null && ownerIds.has(String(req.employee_id));
             const matchesOwnName = ownerName && cleanPersonName(req.employee_name) === ownerName;
             if (!matchesOwnId && !matchesOwnName) return false;
-          } else if (false) {
-            const clean = name => name ? name.replace(/^(นาย|นางสาว|นาง|ดร\.|ครูผู้ช่วย|ครู|ผอ\.|ผู้อำนวยการ)\s*/, '').replace(/\s+/g, '').trim().toLowerCase() : '';
-            
-            if (currentUser?.employeeId) {
-              if (String(req.employee_id) !== String(currentUser.employeeId)) return false;
-            } else if (currentUser?.displayName) {
-              // If not linked, allow viewing their display name match OR the currently selected employee in the form (for testing)
-              if (clean(req.employee_name) !== clean(currentUser.displayName) && String(req.employee_id) !== String(selectedEmployeeId)) return false;
-            } else {
-              if (String(req.employee_id) !== String(selectedEmployeeId)) return false;
-            }
           }
 
-          if (role === 'director' && req.status !== 'pending') return false;
+          // Director view strictly shows pending requests needing approval
+          if (isDirector) {
+            if (req.status !== 'pending') return false;
+          } else {
+            if (historyFilterStatus !== 'all' && req.status !== historyFilterStatus) return false;
+          }
+
           if (historySearchName && !req.employee_name?.toLowerCase().includes(historySearchName.toLowerCase())) return false;
-          if (historyFilterType !== 'all' && req.leave_type !== historyFilterType) return false;
-          if (historyFilterStatus !== 'all' && req.status !== historyFilterStatus) return false;
+          if (historyFilterType !== 'all') {
+            const formatted = formatLeaveType(req.leave_type);
+            const matchesType = req.leave_type === historyFilterType
+              || req.leave_type?.startsWith(historyFilterType)
+              || formatted === historyFilterType
+              || formatted?.startsWith(historyFilterType);
+            if (!matchesType) return false;
+          }
           if (historyFilterDateFrom && req.start_date < historyFilterDateFrom) return false;
           if (historyFilterDateTo && req.end_date > historyFilterDateTo) return false;
           return true;
@@ -2007,10 +2192,11 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
         };
 
         const getTypeColor = (type) => {
-          if (type === 'ลาป่วย') return 'var(--red)';
-          if (type === 'ลากิจ') return 'var(--yellow)';
-          if (type === 'ลาคลอด') return 'var(--secondary)';
-          if (type === 'ลาพักผ่อน') return 'var(--cyan)';
+          if (!type) return 'var(--primary)';
+          if (type.startsWith('ลาป่วย') || type === 'sick') return 'var(--red)';
+          if (type.startsWith('ลากิจ') || type === 'personal') return 'var(--yellow)';
+          if (type.startsWith('ลาคลอด') || type === 'maternity') return 'var(--secondary)';
+          if (type.startsWith('ลาพักผ่อน') || type === 'vacation') return 'var(--cyan)';
           return 'var(--primary)';
         };
 
@@ -2019,12 +2205,31 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
             {/* Header Bar */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
               <h3 style={{ fontSize: '1.2rem', fontWeight: 700, margin: 0 }}>
-                {role === 'director' ? '⏳ ใบขออนุญาตลาที่รอพิจารณา' : '📋 ประวัติใบลาและสถานะล่าสุด'}
+                {isDirector ? '⏳ ใบขออนุญาตลาที่รอพิจารณา' : '📋 ประวัติใบลาและสถานะล่าสุด'}
                 <span style={{ fontSize: '0.78rem', fontWeight: 500, color: 'var(--text-muted)', marginLeft: '10px' }}>
                   ({filteredRequests.length} รายการ)
                 </span>
               </h3>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <button
+                  onClick={() => {
+                    loadDatabaseSilently();
+                    showToast('success', '🔄 อัปเดตข้อมูลล่าสุดเรียบร้อยแล้ว');
+                  }}
+                  style={{
+                    padding: '6px 12px',
+                    background: 'rgba(159,122,234,0.1)',
+                    border: '1px solid rgba(159,122,234,0.3)',
+                    color: 'var(--primary)',
+                    borderRadius: '8px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                  title="กดเพื่อดึงข้อมูลใบลาล่าสุดทันที"
+                >
+                  🔄 รีเฟรช
+                </button>
                 <div style={{ display: 'flex', background: 'rgba(0,0,0,0.15)', borderRadius: '8px', padding: '3px', gap: '2px' }}>
                   <button onClick={() => setHistoryViewMode('cards')} style={{ padding: '5px 10px', borderRadius: '6px', border: 'none', background: historyViewMode === 'cards' ? 'var(--primary)' : 'transparent', color: '#fff', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}>🃏 Card</button>
                   <button onClick={() => setHistoryViewMode('table')} style={{ padding: '5px 10px', borderRadius: '6px', border: 'none', background: historyViewMode === 'table' ? 'var(--primary)' : 'transparent', color: '#fff', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}>📊 Table</button>
@@ -2038,7 +2243,7 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
             {/* Filter Panel */}
             <div className="glass-panel" style={{ padding: '14px 18px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px', alignItems: 'end' }}>
-                {role !== 'requester' && (
+                {!isRequester && (
                   <div>
                     <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 600 }}>🔍 ค้นหาชื่อ</label>
                     <input type="text" value={historySearchName} onChange={e => setHistorySearchName(e.target.value)} placeholder="พิมพ์ชื่อ..." style={{ width: '100%', padding: '7px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-dark)', color: 'var(--text-main)', fontSize: '0.82rem' }} />
@@ -2055,7 +2260,7 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
                     <option value="ลาอุปสมบท">ลาอุปสมบท</option>
                   </select>
                 </div>
-                {role !== 'director' && (
+                {!isDirector && (
                   <div>
                     <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 600 }}>🔖 สถานะ</label>
                     <select value={historyFilterStatus} onChange={e => setHistoryFilterStatus(e.target.value)} style={{ width: '100%', padding: '7px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-dark)', color: 'var(--text-main)', fontSize: '0.82rem' }}>
@@ -2118,7 +2323,7 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
 
                       <div style={{ marginBottom: '10px' }}>
                         <span style={{ color: typeColor, background: `${typeColor}18`, border: `1px solid ${typeColor}40`, padding: '3px 10px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 700 }}>
-                          {req.leave_type}
+                          {formatLeaveType(req.leave_type)}
                         </span>
                       </div>
 
@@ -2142,17 +2347,11 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
                       )}
 
                       <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', borderTop: '1px solid var(--border-color)', paddingTop: '10px', marginTop: '4px' }}>
-                        {role === 'director' && req.status === 'pending' && (
+                        {(isDirector || isAdmin) && req.status === 'pending' && (
                           <>
-                            <input type="text" placeholder="ความเห็น ผอ. (ถ้ามี)..." value={directorComment} onChange={e => setDirectorComment(e.target.value)} style={{ flex: '1 1 100%', padding: '5px 8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-dark)', color: 'var(--text-main)', fontSize: '0.75rem' }} />
+                            <input type="text" placeholder="ความเห็น ผอ. (ถ้ามี)..." value={directorComments[req.id] || ''} onChange={e => setDirectorComments(prev => ({ ...prev, [req.id]: e.target.value }))} style={{ flex: '1 1 100%', padding: '5px 8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-dark)', color: 'var(--text-main)', fontSize: '0.75rem' }} />
                             <button onClick={() => handleUpdateStatus(req.id, 'approved')} style={{ flex: 1, padding: '5px 10px', background: 'var(--green)', border: 'none', color: '#fff', borderRadius: '6px', fontWeight: 'bold', fontSize: '0.75rem', cursor: 'pointer' }}>✅ อนุมัติ</button>
                             <button onClick={() => handleUpdateStatus(req.id, 'rejected')} style={{ flex: 1, padding: '5px 10px', background: 'var(--red)', border: 'none', color: '#fff', borderRadius: '6px', fontWeight: 'bold', fontSize: '0.75rem', cursor: 'pointer' }}>❌ ปฏิเสธ</button>
-                          </>
-                        )}
-                        {role === 'admin' && req.status === 'pending' && (
-                          <>
-                            <button onClick={() => handleUpdateStatus(req.id, 'approved')} style={{ padding: '5px 10px', background: 'var(--green)', border: 'none', color: '#fff', borderRadius: '6px', fontWeight: 'bold', fontSize: '0.72rem', cursor: 'pointer' }}>✅ อนุมัติ</button>
-                            <button onClick={() => handleUpdateStatus(req.id, 'rejected')} style={{ padding: '5px 10px', background: 'var(--red)', border: 'none', color: '#fff', borderRadius: '6px', fontWeight: 'bold', fontSize: '0.72rem', cursor: 'pointer' }}>❌ ปฏิเสธ</button>
                           </>
                         )}
                         <button onClick={() => setActivePrintRequest(req)} style={{ padding: '5px 12px', background: 'rgba(6,182,212,0.08)', border: '1px solid rgba(6,182,212,0.25)', color: 'var(--cyan)', borderRadius: '6px', fontWeight: 'bold', fontSize: '0.75rem', cursor: 'pointer' }} title="ดูตัวอย่างใบลาก่อนสั่งพิมพ์">👁️ พรีวิวใบลา</button>
@@ -2190,7 +2389,7 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
                         <tr key={req.id || req.created_at + idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)', verticalAlign: 'middle' }}>
                           <td data-label="วันที่ยื่น" style={{ padding: '10px', color: 'var(--text-muted)' }}>{formatDateThai(req.created_at)}</td>
                           <td data-label="ชื่อ - สกุล" style={{ padding: '10px', fontWeight: 600 }}>{req.employee_name}</td>
-                          <td data-label="ประเภท" style={{ padding: '10px' }}><span style={{ color: typeColor, fontWeight: 700 }}>{req.leave_type}</span></td>
+                          <td data-label="ประเภท" style={{ padding: '10px' }}><span style={{ color: typeColor, fontWeight: 700 }}>{formatLeaveType(req.leave_type)}</span></td>
                           <td data-label="วันที่ขอลา" style={{ padding: '10px', whiteSpace: 'nowrap' }}>{formatDateThai(req.start_date)} – {formatDateThai(req.end_date)}</td>
                           <td data-label="จำนวน" style={{ padding: '10px', fontWeight: 'bold', color: typeColor }}>{req.days} วัน</td>
                           <td data-label="เหตุผล" style={{ padding: '10px', color: 'var(--text-muted)', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{req.reason || '-'}</td>
@@ -2199,20 +2398,14 @@ const LeaveOnlineSystem = ({ employeesData, setEmployeesData }) => {
                           </td>
                           <td data-label="จัดการ" style={{ padding: '10px' }}>
                             <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                              {role === 'director' && req.status === 'pending' && (
+                              {(isDirector || isAdmin) && req.status === 'pending' && (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '150px' }}>
-                                  <input type="text" placeholder="ความเห็น..." value={directorComment} onChange={e => setDirectorComment(e.target.value)} style={{ padding: '4px 7px', borderRadius: '5px', border: '1px solid var(--border-color)', background: 'var(--bg-dark)', color: 'var(--text-main)', fontSize: '0.72rem' }} />
+                                  <input type="text" placeholder="ความเห็น..." value={directorComments[req.id] || ''} onChange={e => setDirectorComments(prev => ({ ...prev, [req.id]: e.target.value }))} style={{ padding: '4px 7px', borderRadius: '5px', border: '1px solid var(--border-color)', background: 'var(--bg-dark)', color: 'var(--text-main)', fontSize: '0.72rem' }} />
                                   <div style={{ display: 'flex', gap: '4px' }}>
                                     <button onClick={() => handleUpdateStatus(req.id, 'approved')} style={{ flex: 1, padding: '4px', background: 'var(--green)', border: 'none', color: '#fff', borderRadius: '5px', fontWeight: 'bold', fontSize: '0.70rem', cursor: 'pointer' }}>✅</button>
                                     <button onClick={() => handleUpdateStatus(req.id, 'rejected')} style={{ flex: 1, padding: '4px', background: 'var(--red)', border: 'none', color: '#fff', borderRadius: '5px', fontWeight: 'bold', fontSize: '0.70rem', cursor: 'pointer' }}>❌</button>
                                   </div>
                                 </div>
-                              )}
-                              {role === 'admin' && req.status === 'pending' && (
-                                <>
-                                  <button onClick={() => handleUpdateStatus(req.id, 'approved')} style={{ padding: '4px 8px', background: 'var(--green)', border: 'none', color: '#fff', borderRadius: '5px', fontSize: '0.70rem', cursor: 'pointer' }}>✅</button>
-                                  <button onClick={() => handleUpdateStatus(req.id, 'rejected')} style={{ padding: '4px 8px', background: 'var(--red)', border: 'none', color: '#fff', borderRadius: '5px', fontSize: '0.70rem', cursor: 'pointer' }}>❌</button>
-                                </>
                               )}
                               <button onClick={() => setActivePrintRequest(req)} style={{ padding: '5px 8px', background: 'rgba(6,182,212,0.08)', border: '1px solid rgba(6,182,212,0.25)', color: 'var(--cyan)', borderRadius: '6px', fontSize: '0.70rem', cursor: 'pointer' }} title="ดูตัวอย่างใบลาก่อนสั่งพิมพ์">👁️</button>
                               {(req.status === 'pending' || req.status === 'approved') && (
